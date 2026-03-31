@@ -19,7 +19,7 @@ No external dependencies required - stdlib only.
 Run a Monte Carlo simulation and print success rates, average total points, relic/ancient rates, and reset usage.
 
 ```bash
-python arkgrid.py stats [options]
+python -m arkgrid stats [options]
 ```
 
 ### `sim` - Single run with turn log
@@ -27,7 +27,7 @@ python arkgrid.py stats [options]
 Run one simulation and print the turn-by-turn log showing offers, rerolls, picks, and state changes.
 
 ```bash
-python arkgrid.py sim [options]
+python -m arkgrid sim [options]
 ```
 
 ## Options
@@ -62,6 +62,7 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 | `--extra-ticket` / `--no-extra-ticket` | Use extra reroll ticket. Default: yes. |
 | `--reset-ticket` / `--no-reset-ticket` | Use reset ticket. Default: run both variants. |
 | `--side-threshold F` | Goal-feasibility fraction at which side-node upgrades become valued. Default: `0.5`. |
+| `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value. `0.0` = disabled (binary feasibility only). Try `0.01`-`0.03` for typical goals. Default: `0.0`. |
 
 ### Stats-only options
 
@@ -93,38 +94,46 @@ Order/chaos pairs share the same effect pools.
 
 ### Effect priority (on equal chance, higher is preferred)
 
-**DPS:** boss_damage > additional_damage > attack_power
+**DPS:** boss_damage (coeff 1000) > additional_damage (700) > attack_power (400)
 
-**Support:** ally_attack > brand_power > ally_damage
+**Support:** ally_attack (coeff 1500) > brand_power (1050) > ally_damage (600)
+
+See [`documentation/calculation.md`](documentation/calculation.md) for the full combat power formulas and core coefficients.
 
 ## Examples
 
 ```bash
 # Basic: estimate probabilities for will>=4, chaos>=5 across all rarities
-python arkgrid.py stats --min-will 4 --min-chaos 5
+python -m arkgrid stats --min-will 4 --min-chaos 5
 
 # Epic only, with reset ticket, 500k trials
-python arkgrid.py stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket --trials 500000
+python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket --trials 500000
 
 # Support optimisation with a specific gem
-python arkgrid.py stats --min-will 3 --min-chaos 3 --optimize support \
+python -m arkgrid stats --min-will 3 --min-chaos 3 --optimize support \
   --gem-type order_fortitude --first-effect attack_power --second-effect ally_damage
 
 # Exact goals, no extra ticket
-python arkgrid.py stats --exact-will 5 --exact-chaos 5 --no-extra-ticket
+python -m arkgrid stats --exact-will 5 --exact-chaos 5 --no-extra-ticket
+
+# Probability-based early reset (resets before goal becomes impossible)
+python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket --prob-reset-threshold 0.02
+
+# Stricter side-node threshold (only value side upgrades when >=70% of offers keep goal feasible)
+python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --side-threshold 0.7
 
 # Single debug run with turn log
-python arkgrid.py sim --min-will 4 --min-chaos 5 --rarity epic --seed 123
+python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic --seed 123
 
 # Single run with a specific gem
-python arkgrid.py sim --min-will 4 --min-chaos 5 --rarity epic \
+python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic \
   --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
 ```
 
 ## Tests
 
 ```bash
-python -m unittest test_arkgrid -v
+python -m unittest discover -s tests -v
 ```
 
 ## Reference
