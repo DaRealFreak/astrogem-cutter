@@ -4,8 +4,8 @@ import random
 from typing import List, Optional, Dict, Any
 
 from arkgrid.constants import (
-    DPS_EFFECTS, DPS_PRIORITY, GEM_TYPES,
-    SUPPORT_EFFECTS, SUPPORT_PRIORITY,
+    DPS_COEFF, DPS_EFFECTS, DPS_PRIORITY, GEM_TYPES,
+    SUPPORT_COEFF, SUPPORT_EFFECTS, SUPPORT_PRIORITY,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
@@ -31,6 +31,7 @@ class GemSimulator:
             pool: Optional[OptionPool] = None,
             dp_reroll_margin: float = 0.03,
             side_quality_weight: float = 0.0,
+            reset_min_coeff: int = 0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -58,6 +59,7 @@ class GemSimulator:
         # Always built so the reroll policy can use DP probability as
         # its comfort signal instead of binary feasibility fraction.
         self.prob_reset_threshold = prob_reset_threshold
+        self.reset_min_coeff = reset_min_coeff
         self.prob_table = GoalProbabilityTable(goal, self.turns_total, self.pool)
 
     @staticmethod
@@ -202,6 +204,16 @@ class GemSimulator:
         self.reroll_policy.astro_gem = run_gem
 
         reset_available = bool(self.use_reset_ticket)
+        if reset_available and self.reset_min_coeff > 0:
+            coeff = (DPS_COEFF if run_gem.optimize == "dps"
+                     else SUPPORT_COEFF)
+            target = (DPS_EFFECTS if run_gem.optimize == "dps"
+                      else SUPPORT_EFFECTS)
+            total_coeff = sum(coeff.get(e, 0)
+                              for e in (run_gem.first_effect, run_gem.second_effect)
+                              if e in target)
+            if total_coeff < self.reset_min_coeff:
+                reset_available = False
         reset_used = False
 
         _log_pt = self.prob_table if log else None

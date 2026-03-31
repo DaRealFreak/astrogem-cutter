@@ -50,6 +50,11 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Only value side nodes when effects are best-in-slot")
         p.add_argument("--dp-reroll-margin", type=float, default=0.03, metavar="F",
                         help="Margin for DP-based reroll override (default: 0.03)")
+        p.add_argument("--reset-min-coeff", type=int, default=0, metavar="N",
+                        help="Only use reset ticket when the sum of starting target-effect "
+                             "coefficients meets this threshold (e.g. atk_power+additional_damage = "
+                             "400+700 = 1100 passes, 1051 skips brand_power alone for support). "
+                             "0 = always use. Default: 0")
         p.add_argument("--side-quality", type=float, default=0.0, metavar="F",
                         help="Weight side-node quality by coefficient in reroll decisions. "
                              "0 = off (max goal probability), 2 = mild, 12 = aggressive "
@@ -171,6 +176,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 bis_only=args.bis_only,
                 dp_reroll_margin=args.dp_reroll_margin,
                 side_quality_weight=args.side_quality,
+                reset_min_coeff=args.reset_min_coeff,
             )
             summary = GemAnalyzer.estimate_summary(
                 trials=args.trials, simulator=sim, seed=args.seed,
