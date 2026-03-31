@@ -26,7 +26,8 @@ def _build_parser() -> argparse.ArgumentParser:
     # ---- shared arguments ----
     def add_common(p: argparse.ArgumentParser) -> None:
         p.add_argument("--rarity", choices=["common", "rare", "epic"], default=None,
-                        help="Gem rarity (default: run all three)")
+                        nargs="+",
+                        help="Gem rarity (one or more, default: run all three)")
         p.add_argument("--optimize", choices=["dps", "support"], default="dps",
                         help="Side-node optimisation target (default: dps)")
         p.add_argument("--min-will", type=int, default=None, metavar="N",
@@ -120,7 +121,7 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
             raise SystemExit("--first-effect and --second-effect must differ")
         astro_gem = AstroGem(args.gem_type, first, second, args.optimize)
 
-    rarities = [args.rarity] if args.rarity else ["common", "rare", "epic"]
+    rarities = args.rarity if args.rarity else ["common", "rare", "epic"]
 
     if args.reset_ticket is None:
         reset_variants: List[Optional[bool]] = [False, True]
