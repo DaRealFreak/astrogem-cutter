@@ -1,6 +1,6 @@
 # Astrogem Combat Power Calculation
 
-Reverse-engineered values from the [arkgrid-gem-locator-v2](https://github.com/) project. These describe how gem stats translate into actual combat power multipliers.
+Extracted values from the [arkgrid-gem-locator-v2](https://github.com/Airplaner/lostark-arkgrid-gem-locator-v2) project. These describe how gem stats translate into actual combat power multipliers.
 
 ## Gem Option Level Coefficients
 
