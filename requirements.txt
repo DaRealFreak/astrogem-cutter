@@ -1,0 +1,2 @@
+# AstrogemCutter - no external dependencies required
+# All modules used (dataclasses, random, math) are part of the Python standard library
