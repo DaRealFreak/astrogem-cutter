@@ -11,6 +11,7 @@ class Option:
     weight: float
     kind: str  # will/chaos/first/second/view/cost/other
     delta: int = 0
+    resolved_effect: str = ""  # populated for change_effect options at offer time
 
 
 @dataclass(frozen=True)

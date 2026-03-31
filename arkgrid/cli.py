@@ -3,7 +3,12 @@ from __future__ import annotations
 import argparse
 from typing import List, Optional, Tuple
 
-from arkgrid.constants import DPS_EFFECTS, GEM_TYPES, SUPPORT_EFFECTS
+from itertools import combinations
+
+from arkgrid.constants import (
+    DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
+    SUPPORT_COEFF, SUPPORT_EFFECTS,
+)
 from arkgrid.models import LastTurnGoal, AstroGem
 from arkgrid.simulator import GemSimulator
 from arkgrid.analyzer import GemAnalyzer, pprint_result
@@ -41,6 +46,12 @@ def _build_parser() -> argparse.ArgumentParser:
         p.add_argument("--prob-reset-threshold", type=float, default=0.0, metavar="F",
                         help="Reset proactively when goal probability drops below this "
                              "(0.0 = disabled, try 0.05-0.15)")
+        p.add_argument("--bis-only", action="store_true", default=False,
+                        help="Only value side nodes when effects are best-in-slot")
+        p.add_argument("--dp-reroll-margin", type=float, default=0.03, metavar="F",
+                        help="Margin for DP-based reroll override (default: 0.03)")
+        p.add_argument("--no-dp-reroll", action="store_true", default=False,
+                        help="Disable DP-based reroll override (use heuristic only)")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type")
@@ -62,6 +73,15 @@ def _build_parser() -> argparse.ArgumentParser:
     add_common(p_sim)
     p_sim.add_argument("--seed", type=int, default=42,
                        help="RNG seed (default: 42)")
+
+    # ---- effects ----
+    p_eff = sub.add_parser("effects", help="Show effect change outcomes for gem types")
+    p_eff.add_argument("--optimize", choices=["dps", "support"], default="dps",
+                       help="Optimisation target (default: dps)")
+    p_eff.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
+                       help="Gem type (omit to show all)")
+    p_eff.add_argument("--side-threshold", type=float, default=0.5, metavar="F",
+                       help="Base side threshold for effective threshold display (default: 0.5)")
 
     return parser
 
@@ -146,6 +166,9 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 astro_gem=astro_gem,
                 optimize=args.optimize,
                 prob_reset_threshold=args.prob_reset_threshold,
+                bis_only=args.bis_only,
+                dp_reroll_margin=args.dp_reroll_margin,
+                use_dp_override=not args.no_dp_reroll,
             )
             summary = GemAnalyzer.estimate_summary(
                 trials=args.trials, simulator=sim, seed=args.seed,
@@ -167,6 +190,9 @@ def cmd_sim(args: argparse.Namespace) -> None:
         side_node_threshold=args.side_threshold,
         astro_gem=astro_gem,
         optimize=args.optimize,
+        bis_only=args.bis_only,
+        dp_reroll_margin=args.dp_reroll_margin,
+        use_dp_override=not args.no_dp_reroll,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -186,6 +212,8 @@ def cmd_sim(args: argparse.Namespace) -> None:
             hdr += f"  P(goal)={t['goal_prob']:.1%}"
         if "rerolls_available" in t:
             hdr += f"  rerolls={t['rerolls_available']}"
+        if "eff_threshold" in t:
+            hdr += f"  threshold={t['eff_threshold']:.0%}"
         print(hdr)
         if "offers_history" in t:
             for i, offers in enumerate(t["offers_history"]):
@@ -216,6 +244,58 @@ def cmd_sim(args: argparse.Namespace) -> None:
             print(state_line)
         print()
 
+    print("--- Result ---")
+    print(f"Result: {'SUCCESS' if r.success else 'FAIL'} ({r.reason})")
+    print(f"Reset used: {r.reset_used}")
+    print(f"Final state: will={r.state.will} chaos={r.state.chaos} "
+          f"first={r.state.first} second={r.state.second}  "
+          f"(total={r.total_points})")
+    print(f"Effects: {r.state.first_effect} / {r.state.second_effect}")
+    print(f"Rerolls left: {r.rerolls_left}")
+
+
+def cmd_effects(args: argparse.Namespace) -> None:
+    optimize = args.optimize
+    coeff = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+    target = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+    max_coeff = max(coeff.values())
+    threshold = args.side_threshold
+
+    gem_types = [args.gem_type] if args.gem_type else list(GEM_TYPES.keys())
+
+    for gem_type in gem_types:
+        pool = GEM_TYPES[gem_type]
+        print(f"=== {gem_type} ===")
+        print(f"Pool: {', '.join(f'{e}({coeff.get(e, 0)})' for e in pool)}")
+        print(f"Optimize: {optimize}  Base threshold: {threshold}")
+        print()
+
+        for first, second in combinations(pool, 2):
+            available = [e for e in pool if e != first and e != second]
+            first_val = coeff.get(first, 0)
+            second_val = coeff.get(second, 0)
+            best_val = max(first_val, second_val) if (first in target or second in target) else 0
+            if best_val > 0:
+                quality = best_val / max_coeff
+                eff_thresh = threshold + (1 - threshold) * (1 - quality)
+            else:
+                eff_thresh = 1.0
+
+            print(f"  {first}({first_val}) + {second}({second_val})"
+                  f"  eff.threshold={eff_thresh:.0%}")
+
+            for slot, cur_eff in [("first", first), ("second", second)]:
+                cur_val = coeff.get(cur_eff, 0)
+                outcomes = []
+                for e in available:
+                    e_val = coeff.get(e, 0)
+                    is_target = e in target
+                    outcomes.append(f"{e}({e_val}) {'GOOD' if is_target else 'BAD'}")
+                target_count = sum(1 for e in available if e in target)
+                print(f"    change_{slot}: {cur_eff}({cur_val}) -> [{', '.join(outcomes)}]"
+                      f"  {target_count}/{len(available)} target")
+            print()
+
 
 def main() -> None:
     parser = _build_parser()
@@ -225,5 +305,7 @@ def main() -> None:
         cmd_stats(args)
     elif args.command == "sim":
         cmd_sim(args)
+    elif args.command == "effects":
+        cmd_effects(args)
     else:
         parser.print_help()

@@ -93,19 +93,130 @@ class TestRerollPolicy(unittest.TestCase):
 
     # --- good effect change detection ---
 
-    def test_good_effect_change_dps(self) -> None:
+    def test_good_effect_change_resolved_to_target(self) -> None:
+        gem = AstroGem("order_stability", "ally_damage", "brand_power", "dps")
+        policy = RerollPolicy(LastTurnGoal(), astro_gem=gem)
+        state = GemState(first_effect="ally_damage", second_effect="brand_power")
+        # resolved to attack_power (DPS target) → good
+        offers = [Option("change_first_effect", 1, "other", resolved_effect="attack_power")]
+        self.assertTrue(policy._has_good_effect_change(offers, state))
+
+    def test_bad_effect_change_resolved_to_nontarget(self) -> None:
         gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
         policy = RerollPolicy(LastTurnGoal(), astro_gem=gem)
         state = GemState(first_effect="attack_power", second_effect="ally_damage")
-        # change_first can get boss_damage (better DPS) or ally_attack
-        self.assertTrue(policy._has_good_effect_change({"change_first_effect"}, state))
+        # resolved to ally_attack (support) → bad for DPS
+        offers = [Option("change_first_effect", 1, "other", resolved_effect="ally_attack")]
+        self.assertFalse(policy._has_good_effect_change(offers, state))
 
-    def test_no_good_effect_change_already_best(self) -> None:
+    def test_no_good_effect_change_without_resolved(self) -> None:
         gem = AstroGem("chaos_distortion", "boss_damage", "ally_attack", "dps")
         policy = RerollPolicy(LastTurnGoal(), astro_gem=gem)
         state = GemState(first_effect="boss_damage", second_effect="ally_attack")
-        # change_first can get attack_power (worse DPS) or ally_damage (support)
-        self.assertFalse(policy._has_good_effect_change({"change_first_effect"}, state))
+        # no resolved_effect → not good
+        offers = [Option("change_first_effect", 1, "other")]
+        self.assertFalse(policy._has_good_effect_change(offers, state))
+
+
+class TestDPOverride(unittest.TestCase):
+    """Tests for the DP-based reroll override logic."""
+
+    def _make_offers(self, *keys: str) -> list[Option]:
+        pool = OptionPool()
+        lookup = {o.key: o for o in pool.pool}
+        return [lookup[k] for k in keys]
+
+    def test_dp_override_rerolls_below_baseline(self) -> None:
+        """Heuristic accepts (will+1 present) but offers are below baseline → reroll."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        state = GemState(will=1)
+        offers = self._make_offers("will+1", "maintain", "cost+100", "view+1")
+        should, reasons = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.75,
+            goal_success_prob=0.10, dp_baseline=0.25, rerolls_remaining=2)
+        self.assertTrue(should)
+        self.assertIn("dp_override_below_baseline", reasons)
+
+    def test_dp_override_keeps_above_baseline(self) -> None:
+        """Heuristic rerolls (no goal upgrade) but offers are above baseline → don't reroll."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        state = GemState(will=1)
+        offers = self._make_offers("first+1", "second+1", "maintain", "cost-100")
+        # Heuristic says reroll (no goal upgrade in desperate mode)
+        # But DP says these offers are above baseline
+        should, reasons = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.25,
+            goal_success_prob=0.30, dp_baseline=0.25, rerolls_remaining=1)
+        self.assertFalse(should)
+        self.assertIn("dp_override_above_baseline", reasons)
+
+    def test_dp_override_respects_hard_constraint_last_turn(self) -> None:
+        """Never override last_turn_goal_not_met."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        state = GemState(will=3)
+        offers = self._make_offers("will+1", "first+1", "second+1", "maintain")
+        should, reasons = policy.should_reroll(
+            offers, state, turns_left=1, goal_feasible_frac=1.0,
+            goal_success_prob=0.90, dp_baseline=0.10, rerolls_remaining=1)
+        self.assertTrue(should)
+        self.assertIn("last_turn_goal_not_met", reasons)
+
+    def test_dp_override_respects_hard_constraint_infeasible(self) -> None:
+        """Never override no_offer_keeps_goal_feasible."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        state = GemState(will=1)
+        offers = self._make_offers("first+1", "second+1", "maintain", "cost-100")
+        should, reasons = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.0,
+            goal_success_prob=0.50, dp_baseline=0.20, rerolls_remaining=1)
+        self.assertTrue(should)
+        self.assertIn("no_offer_keeps_goal_feasible", reasons)
+
+    def test_dp_override_disabled(self) -> None:
+        """With use_dp_override=False, heuristic passes through unchanged."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), use_dp_override=False)
+        state = GemState(will=1)
+        # Offers with will+1 — heuristic accepts in desperate mode
+        offers = self._make_offers("will+1", "maintain", "cost+100", "view+1")
+        should, reasons = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.25,
+            goal_success_prob=0.05, dp_baseline=0.25, rerolls_remaining=2)
+        self.assertFalse(should)
+        self.assertEqual(reasons, [])
+
+    def test_dp_override_margin_scales_with_surplus_rerolls(self) -> None:
+        """Surplus rerolls reduce effective margin, making reroll easier."""
+        # Use turns_left=2 to avoid last_turn_goal_not_met hard constraint
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.10)
+        state = GemState(will=1)
+        offers = self._make_offers("will+1", "maintain", "cost+100", "view+1")
+
+        # Borderline case: p_current=0.23, dp_baseline=0.25
+        # With 2 turns left and 6 rerolls: effective_margin = 0.10 * (2/6) ≈ 0.033
+        # threshold = 0.25 * (1 - 0.033) = 0.242 → 0.23 < 0.242 → reroll
+        should_surplus, reasons_s = policy.should_reroll(
+            offers, state, turns_left=2, goal_feasible_frac=0.75,
+            goal_success_prob=0.23, dp_baseline=0.25, rerolls_remaining=6)
+        self.assertTrue(should_surplus)
+        self.assertIn("dp_override_below_baseline", reasons_s)
+
+        # With 2 turns left and 2 rerolls: effective_margin = 0.10 * (2/2) = 0.10
+        # threshold = 0.25 * (1 - 0.10) = 0.225 → 0.23 > 0.225 → don't reroll
+        should_scarce, reasons_sc = policy.should_reroll(
+            offers, state, turns_left=2, goal_feasible_frac=0.75,
+            goal_success_prob=0.23, dp_baseline=0.25, rerolls_remaining=2)
+        self.assertFalse(should_scarce)
+
+    def test_dp_override_none_values_passthrough(self) -> None:
+        """When dp_baseline or goal_success_prob is None, heuristic passes through."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        state = GemState(will=1)
+        offers = self._make_offers("will+1", "maintain", "cost+100", "view+1")
+        should, _ = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.25,
+            goal_success_prob=0.05, dp_baseline=None, rerolls_remaining=2)
+        # Heuristic accepts (will+1 is goal upgrade), no override without dp_baseline
+        self.assertFalse(should)
 
 
 class TestRerollPolicyAstroGem(unittest.TestCase):
@@ -121,8 +232,9 @@ class TestRerollPolicyAstroGem(unittest.TestCase):
         policy = RerollPolicy(LastTurnGoal(min_will=5), astro_gem=gem)
         state = GemState(will=1, first_effect="attack_power", second_effect="ally_damage")
         # first+3 is a DPS-slot upgrade -> target side upgrade
+        # attack_power has coeff 400 -> effective threshold = 0.8, so frac must exceed that
         offers = self._make_offers("first+3", "maintain", "cost-100", "cost+100")
-        should, _ = policy.should_reroll(offers, state, turns_left=5, goal_feasible_frac=0.75)
+        should, _ = policy.should_reroll(offers, state, turns_left=5, goal_feasible_frac=0.9)
         self.assertFalse(should)
 
     def test_comfortable_rejects_nontarget_only(self) -> None:
@@ -131,16 +243,22 @@ class TestRerollPolicyAstroGem(unittest.TestCase):
         state = GemState(will=1, first_effect="attack_power", second_effect="ally_damage")
         # second+3 is support-slot -> NOT a target upgrade for DPS
         offers = self._make_offers("second+3", "maintain", "cost-100", "cost+100")
-        should, reasons = policy.should_reroll(offers, state, turns_left=5, goal_feasible_frac=0.75)
+        should, reasons = policy.should_reroll(offers, state, turns_left=5, goal_feasible_frac=0.9)
         self.assertTrue(should)
         self.assertIn("no_useful_upgrade", reasons)
 
     def test_good_effect_change_counts_as_upgrade(self) -> None:
-        gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
+        gem = AstroGem("order_stability", "ally_damage", "brand_power", "dps")
         policy = RerollPolicy(LastTurnGoal(min_will=1), astro_gem=gem)
-        state = GemState(will=1, first_effect="attack_power", second_effect="ally_damage")
-        # goal met, change_first_effect would improve DPS (attack_power -> boss_damage)
-        offers = self._make_offers("change_first_effect", "maintain", "cost-100", "cost+100")
+        state = GemState(will=1, first_effect="ally_damage", second_effect="brand_power")
+        # goal met, change_first resolved to attack_power (DPS) → counts as positive
+        pool = OptionPool()
+        lookup = {o.key: o for o in pool.pool}
+        offers = [
+            Option("change_first_effect", lookup["change_first_effect"].weight,
+                   "other", resolved_effect="attack_power"),
+            lookup["maintain"], lookup["cost-100"], lookup["cost+100"],
+        ]
         should, _ = policy.should_reroll(offers, state, turns_left=5, goal_feasible_frac=1.0)
         self.assertFalse(should)
 

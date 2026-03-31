@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from arkgrid.constants import (
-    DPS_EFFECTS, DPS_PRIORITY, GEM_TYPES,
-    SUPPORT_EFFECTS, SUPPORT_PRIORITY,
+    DPS_COEFF, DPS_EFFECTS, DPS_PRIORITY, GEM_TYPES,
+    SUPPORT_COEFF, SUPPORT_EFFECTS, SUPPORT_PRIORITY,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState
 
@@ -22,7 +22,10 @@ class RerollPolicy:
     ALL_DOWNGRADES = {"will-1", "chaos-1", "first-1", "second-1"}
 
     def __init__(self, goal: LastTurnGoal, side_node_threshold: float = 0.5,
-                 astro_gem: Optional[AstroGem] = None) -> None:
+                 astro_gem: Optional[AstroGem] = None,
+                 bis_only: bool = False,
+                 dp_reroll_margin: float = 0.03,
+                 use_dp_override: bool = True) -> None:
         self.goal = goal
         # When this fraction (or more) of offers keep the goal feasible,
         # also consider side-node upgrades as valuable instead of focusing
@@ -30,6 +33,9 @@ class RerollPolicy:
         # 1.0+ = never value side nodes until goal is fully met.
         self.side_node_threshold = side_node_threshold
         self.astro_gem = astro_gem
+        self.bis_only = bis_only
+        self.dp_reroll_margin = dp_reroll_margin
+        self.use_dp_override = use_dp_override
 
     # ------------------------------------------------------------------
     # Target-aware helpers
@@ -56,29 +62,63 @@ class RerollPolicy:
                     big.add(f"{slot}+{n}")
         return ups, big
 
-    def _has_good_effect_change(self, keys: set, state: GemState) -> bool:
-        """True if any change_effect option would improve the target priority."""
+    def effective_side_threshold(self, state: GemState) -> float:
+        """Compute the side-node threshold scaled by target effect quality.
+
+        High-value effects (e.g. boss_damage) keep the base threshold,
+        low-value effects (e.g. attack_power) raise it so the policy
+        stays in desperate mode longer.
+
+        Formula: threshold + (1 - threshold) * (1 - quality)
+        where quality = max target coeff on gem / max coeff in set.
+        """
+        if self.astro_gem is None:
+            return self.side_node_threshold
+
+        if self.astro_gem.optimize == "dps":
+            target, coeff = DPS_EFFECTS, DPS_COEFF
+        else:
+            target, coeff = SUPPORT_EFFECTS, SUPPORT_COEFF
+
+        max_coeff = max(coeff.values())
+        target_coeffs = []
+        if state.first_effect in target:
+            target_coeffs.append(coeff[state.first_effect])
+        if state.second_effect in target:
+            target_coeffs.append(coeff[state.second_effect])
+
+        if not target_coeffs:
+            # No target effects on gem — side nodes have no value
+            return 1.0
+
+        # BIS-only: never value side nodes unless both slots are target effects
+        if self.bis_only and not self._has_bis_effects(state):
+            return 1.0
+
+        quality = max(target_coeffs) / max_coeff
+        return self.side_node_threshold + (1.0 - self.side_node_threshold) * (1.0 - quality)
+
+    def _has_good_effect_change(self, offers: List[Option], state: GemState) -> bool:
+        """True if any change_effect offer resolves to a target effect.
+
+        The game pre-determines and shows the outcome, so we check the
+        specific resolved effect rather than expected value.
+        """
         if self.astro_gem is None:
             return False
 
         target = DPS_EFFECTS if self.astro_gem.optimize == "dps" else SUPPORT_EFFECTS
-        prio = DPS_PRIORITY if self.astro_gem.optimize == "dps" else SUPPORT_PRIORITY
-        pool = GEM_TYPES[self.astro_gem.gem_type]
-
-        for key, cur_eff in [("change_first_effect", state.first_effect),
-                             ("change_second_effect", state.second_effect)]:
-            if key not in keys:
-                continue
-            available = [e for e in pool
-                         if e != state.first_effect and e != state.second_effect]
-            if not available:
-                continue
-            best = max(available, key=lambda e: (e in target, prio.get(e, 0)))
-            cur_score = (cur_eff in target, prio.get(cur_eff, 0))
-            best_score = (best in target, prio.get(best, 0))
-            if best_score > cur_score:
+        for o in offers:
+            if o.resolved_effect and o.resolved_effect in target:
                 return True
         return False
+
+    def _has_bis_effects(self, state: GemState) -> bool:
+        """True if both effect slots have target-type effects."""
+        if self.astro_gem is None:
+            return True
+        target = DPS_EFFECTS if self.astro_gem.optimize == "dps" else SUPPORT_EFFECTS
+        return state.first_effect in target and state.second_effect in target
 
     # ------------------------------------------------------------------
 
@@ -89,6 +129,8 @@ class RerollPolicy:
             turns_left: int,
             goal_feasible_frac: float,
             goal_success_prob: Optional[float] = None,
+            dp_baseline: Optional[float] = None,
+            rerolls_remaining: int = 0,
     ) -> Tuple[bool, List[str]]:
         keys = {o.key for o in offers}
         reasons: List[str] = []
@@ -100,7 +142,8 @@ class RerollPolicy:
 
         # Target-aware side-node key sets
         side_ups, side_big_ups = self._target_side_sets(state)
-        good_change = self._has_good_effect_change(keys, state)
+        good_change = self._has_good_effect_change(offers, state)
+        eff_threshold = self.effective_side_threshold(state)
 
         # Always reroll on last turn if goal not met
         if turns_left == 1 and not goal_met:
@@ -120,18 +163,18 @@ class RerollPolicy:
                     or good_change
             )
             has_downgrade = bool(keys & self.ALL_DOWNGRADES)
-            has_big = bool(keys & (side_big_ups | self.GOAL_BIG_UPGRADES))
+            has_big = bool(keys & (side_big_ups | self.GOAL_BIG_UPGRADES)) or good_change
 
             if has_downgrade and not has_big:
                 reasons.append("goal_met_downgrade_without_big_upgrade")
             if not has_positive:
                 reasons.append("goal_met_no_positive_upgrade")
 
-        elif comfort_signal >= self.side_node_threshold:
+        elif comfort_signal >= eff_threshold:
             # Comfortable -- any positive upgrade (goal or side) is acceptable
             has_any_upgrade = bool(keys & (self.GOAL_UPGRADES | side_ups)) or good_change
             has_any_downgrade = bool(keys & self.ALL_DOWNGRADES)
-            has_any_big = bool(keys & (self.GOAL_BIG_UPGRADES | side_big_ups))
+            has_any_big = bool(keys & (self.GOAL_BIG_UPGRADES | side_big_ups)) or good_change
 
             if has_any_downgrade and not has_any_big:
                 reasons.append("downgrade_without_any_big_upgrade")
@@ -143,6 +186,9 @@ class RerollPolicy:
             has_goal_upgrade = any(
                 o.kind in ("will", "chaos") and o.delta > 0 for o in offers
             )
+            # BIS-only: treat good effect changes as upgrades when effects aren't optimal
+            if self.bis_only and not self._has_bis_effects(state) and good_change:
+                has_goal_upgrade = True
             has_goal_downgrade = bool(keys & self.GOAL_DOWNGRADES)
             has_goal_big = bool(keys & self.GOAL_BIG_UPGRADES)
 
@@ -151,4 +197,53 @@ class RerollPolicy:
             if not has_goal_upgrade:
                 reasons.append("no_goal_upgrade")
 
-        return len(reasons) > 0, reasons
+        heuristic_reroll = len(reasons) > 0
+        if self.use_dp_override:
+            return self._dp_override(
+                heuristic_reroll, reasons,
+                goal_success_prob, dp_baseline,
+                rerolls_remaining, turns_left,
+            )
+        return heuristic_reroll, reasons
+
+    # ------------------------------------------------------------------
+    # DP-based reroll override
+    # ------------------------------------------------------------------
+
+    _HARD_CONSTRAINTS = frozenset({"last_turn_goal_not_met",
+                                   "no_offer_keeps_goal_feasible"})
+
+    def _dp_override(
+            self,
+            heuristic_reroll: bool,
+            reasons: List[str],
+            goal_success_prob: Optional[float],
+            dp_baseline: Optional[float],
+            rerolls_remaining: int,
+            turns_left: int,
+    ) -> Tuple[bool, List[str]]:
+        """Override heuristic reroll decision using DP probability comparison.
+
+        Compares the expected goal probability from the current 4 offers
+        (goal_success_prob) against the baseline expected probability from
+        a random draw (dp_baseline).
+        """
+        if goal_success_prob is None or dp_baseline is None:
+            return heuristic_reroll, reasons
+
+        # Never override hard constraints
+        if self._HARD_CONSTRAINTS & set(reasons):
+            return heuristic_reroll, reasons
+
+        # Margin scales down when rerolls are surplus (won't all be used)
+        effective_margin = self.dp_reroll_margin * min(
+            1.0, turns_left / max(1, rerolls_remaining))
+
+        if not heuristic_reroll and goal_success_prob < dp_baseline * (1.0 - effective_margin):
+            reasons.append("dp_override_below_baseline")
+            return True, reasons
+
+        if heuristic_reroll and goal_success_prob >= dp_baseline:
+            return False, ["dp_override_above_baseline"]
+
+        return heuristic_reroll, reasons

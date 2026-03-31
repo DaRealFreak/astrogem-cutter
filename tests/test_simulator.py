@@ -59,69 +59,64 @@ class TestApplyOption(unittest.TestCase):
     def test_change_first_effect_no_astro(self) -> None:
         sim = self._sim(astro_gem=None)
         s = GemState(first_effect="attack_power", second_effect="ally_damage")
-        sim.apply_option(Option("change_first_effect", 1, "other"), s)
-        self.assertEqual(s.first_effect, "attack_power")  # unchanged
+        sim.apply_option(Option("change_first_effect", 1, "other"), s, rng=random.Random(0))
+        self.assertEqual(s.first_effect, "attack_power")  # unchanged (no astro_gem)
 
     def test_change_first_effect_with_astro(self) -> None:
         gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
         sim = self._sim(astro_gem=gem)
         s = GemState(first_effect="attack_power", second_effect="ally_damage")
-        sim.apply_option(Option("change_first_effect", 1, "other"), s)
-        # chaos_distortion effects: attack_power, boss_damage, ally_damage, ally_attack
+        sim.apply_option(Option("change_first_effect", 1, "other"), s, rng=random.Random(0))
+        # chaos_distortion: attack_power, boss_damage, ally_damage, ally_attack
         # available: boss_damage, ally_attack (excl attack_power + ally_damage)
-        # DPS optimise -> boss_damage preferred
-        self.assertEqual(s.first_effect, "boss_damage")
+        self.assertIn(s.first_effect, {"boss_damage", "ally_attack"})
 
     def test_change_second_effect_support_optimise(self) -> None:
         gem = AstroGem("order_fortitude", "attack_power", "ally_damage", "support")
         sim = self._sim(astro_gem=gem)
         s = GemState(first_effect="attack_power", second_effect="ally_damage")
-        sim.apply_option(Option("change_second_effect", 1, "other"), s)
-        # order_fortitude effects: attack_power, boss_damage, ally_damage, ally_attack
+        sim.apply_option(Option("change_second_effect", 1, "other"), s, rng=random.Random(0))
+        # order_fortitude: attack_power, boss_damage, ally_damage, ally_attack
         # available: boss_damage, ally_attack (excl attack_power + ally_damage)
-        # support optimise -> ally_attack preferred
-        self.assertEqual(s.second_effect, "ally_attack")
+        self.assertIn(s.second_effect, {"boss_damage", "ally_attack"})
+
+    def test_change_effect_no_op_without_rng(self) -> None:
+        gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
+        sim = self._sim(astro_gem=gem)
+        s = GemState(first_effect="attack_power", second_effect="ally_damage")
+        sim.apply_option(Option("change_first_effect", 1, "other"), s)  # no rng
+        self.assertEqual(s.first_effect, "attack_power")  # unchanged
 
 
-class TestBestEffectChange(unittest.TestCase):
-    def _sim(self, gem: AstroGem) -> GemSimulator:
+class TestResolveEffectChange(unittest.TestCase):
+    def _sim(self, gem=None) -> GemSimulator:
         return GemSimulator(
             rarity="common", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(), astro_gem=gem,
         )
 
-    def test_picks_boss_damage_for_dps(self) -> None:
+    def test_random_from_available_pool(self) -> None:
         gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
         sim = self._sim(gem)
         state = GemState(first_effect="attack_power", second_effect="ally_damage")
-        # available: boss_damage, ally_attack -> DPS pref -> boss_damage
-        self.assertEqual(sim._best_effect_change(state, "first"), "boss_damage")
+        # available: boss_damage, ally_attack — both should appear across seeds
+        results = {sim._resolve_effect_change(state, "first", random.Random(s))
+                   for s in range(20)}
+        self.assertEqual(results, {"boss_damage", "ally_attack"})
 
-    def test_picks_ally_attack_for_support(self) -> None:
-        gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "support")
+    def test_no_change_without_rng(self) -> None:
+        gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
         sim = self._sim(gem)
         state = GemState(first_effect="attack_power", second_effect="ally_damage")
-        # available: boss_damage, ally_attack -> support pref -> ally_attack
-        self.assertEqual(sim._best_effect_change(state, "second"), "ally_attack")
+        self.assertEqual(sim._resolve_effect_change(state, "first"), "attack_power")
 
-    def test_picks_target_over_nontarget(self) -> None:
-        # order_stability: attack_power, additional_damage, ally_damage, brand_power
-        gem = AstroGem("order_stability", "attack_power", "ally_damage", "dps")
-        sim = self._sim(gem)
-        state = GemState(first_effect="attack_power", second_effect="ally_damage")
-        # available: additional_damage (DPS), brand_power (support)
-        # DPS optimise -> additional_damage
-        self.assertEqual(sim._best_effect_change(state, "first"), "additional_damage")
-
-    def test_no_change_when_astro_gem_attr_none(self) -> None:
-        """Before simulate_one sets a run gem, _best_effect_change is a no-op."""
-        sim = GemSimulator(
-            rarity="common", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(), astro_gem=None,
-        )
-        # Before any simulate_one call, astro_gem is still None
+    def test_no_change_without_astro_gem(self) -> None:
+        """Without an astro_gem, effect changes are a no-op."""
+        sim = self._sim(gem=None)
         state = GemState(first_effect="attack_power")
-        self.assertEqual(sim._best_effect_change(state, "first"), "attack_power")
+        self.assertEqual(
+            sim._resolve_effect_change(state, "first", random.Random(0)),
+            "attack_power")
 
 
 class TestSimulator(unittest.TestCase):
@@ -255,6 +250,51 @@ class TestSimulator(unittest.TestCase):
                 val = getattr(r.state, attr)
                 self.assertGreaterEqual(val, 1, f"seed={seed} {attr}={val}")
                 self.assertLessEqual(val, 5, f"seed={seed} {attr}={val}")
+
+
+class TestDPRerollIntegration(unittest.TestCase):
+    def test_dp_reroll_logs_override_reason(self) -> None:
+        """DP override reasons should appear in the turn log."""
+        sim = GemSimulator(
+            rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+            dp_reroll_margin=0.03, use_dp_override=True,
+        )
+        # Run enough seeds to find at least one DP override
+        found_override = False
+        for seed in range(200):
+            r = sim.simulate_one(seed=seed, log=True)
+            for t in (r.turn_log or []):
+                for reasons in t.get("reroll_reasons_history", []):
+                    if any("dp_override" in r for r in reasons):
+                        found_override = True
+                        break
+                if found_override:
+                    break
+            if found_override:
+                break
+        self.assertTrue(found_override,
+                        "Expected at least one DP override in 200 seeds")
+
+    def test_dp_reroll_disabled_matches_heuristic_only(self) -> None:
+        """With use_dp_override=False, results should differ from enabled."""
+        goal = LastTurnGoal(min_will=4, min_chaos=4)
+        sim_dp = GemSimulator(
+            rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
+            goal=goal, use_dp_override=True, dp_reroll_margin=0.03,
+        )
+        sim_no_dp = GemSimulator(
+            rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
+            goal=goal, use_dp_override=False,
+        )
+        # At least one seed should produce different results
+        diff_count = sum(
+            1 for seed in range(100)
+            if sim_dp.simulate_one(seed=seed).success != sim_no_dp.simulate_one(seed=seed).success
+        )
+        # We don't assert a direction, just that the override changes behavior
+        self.assertGreater(diff_count, 0,
+                           "DP override should change at least one outcome in 100 seeds")
 
 
 class TestRandomAstroGem(unittest.TestCase):

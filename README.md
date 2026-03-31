@@ -30,6 +30,14 @@ Run one simulation and print the turn-by-turn log showing offers, rerolls, picks
 python -m arkgrid sim [options]
 ```
 
+### `effects` - Effect change reference table
+
+Show all possible effect change outcomes for a gem type, including expected coefficient deltas and whether each change is worth it.
+
+```bash
+python -m arkgrid effects [--gem-type TYPE] [--optimize {dps,support}]
+```
+
 ## Options
 
 ### Goal
@@ -61,8 +69,9 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 |---|---|
 | `--extra-ticket` / `--no-extra-ticket` | Use extra reroll ticket. Default: yes. |
 | `--reset-ticket` / `--no-reset-ticket` | Use reset ticket. Default: run both variants. |
-| `--side-threshold F` | Goal-feasibility fraction at which side-node upgrades become valued. Default: `0.5`. |
+| `--side-threshold F` | Base threshold at which side-node upgrades become valued, scaled by effect coefficient (see [strategy](documentation/strategy.md#coefficient-scaled-effective-threshold)). Default: `0.5`. |
 | `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value. `0.0` = disabled (binary feasibility only). Try `0.01`-`0.03` for typical goals. Default: `0.0`. |
+| `--bis-only` | Only value side-node upgrades when both effects are target-type (2 DPS or 2 support). Actively pursues target effects via change_effect offers. |
 
 ### Stats-only options
 
@@ -105,6 +114,12 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket 
 
 # Stricter side-node threshold (only value side upgrades when >=70% of offers keep goal feasible)
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --side-threshold 0.7
+
+# BIS-only: ignore side nodes unless effects are best-in-slot
+python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --bis-only
+
+# Show effect change outcomes for a gem type
+python -m arkgrid effects --gem-type order_stability --optimize dps
 
 # Single debug run with turn log
 python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic --seed 123
