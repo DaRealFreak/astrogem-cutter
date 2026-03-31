@@ -47,12 +47,10 @@ class GemSimulator:
         self.pool = pool or OptionPool()
 
         # DP probability table (built once, reused across all trials)
+        # Always built so the reroll policy can use DP probability as
+        # its comfort signal instead of binary feasibility fraction.
         self.prob_reset_threshold = prob_reset_threshold
-        if prob_reset_threshold > 0.0:
-            self.prob_table: Optional[GoalProbabilityTable] = GoalProbabilityTable(
-                goal, self.turns_total, self.pool)
-        else:
-            self.prob_table = None
+        self.prob_table = GoalProbabilityTable(goal, self.turns_total, self.pool)
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -169,11 +167,7 @@ class GemSimulator:
         reset_available = bool(self.use_reset_ticket)
         reset_used = False
 
-        # Build DP table for verbose logging (does not affect simulation logic)
-        _log_pt = None
-        if log:
-            _log_pt = (self.prob_table if self.prob_table is not None
-                       else GoalProbabilityTable(self.goal, self.turns_total, self.pool))
+        _log_pt = self.prob_table if log else None
 
         for attempt in range(1, 3):
             state = GemState(

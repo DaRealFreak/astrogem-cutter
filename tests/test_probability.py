@@ -123,12 +123,12 @@ class TestEarlyReset(unittest.TestCase):
         # prob-based should reset at least as often (more proactive)
         self.assertGreaterEqual(prob_resets, base_resets)
 
-    def test_prob_table_not_built_when_disabled(self) -> None:
+    def test_prob_table_always_built(self) -> None:
         sim = GemSimulator(
             rarity="common", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(), prob_reset_threshold=0.0,
         )
-        self.assertIsNone(sim.prob_table)
+        self.assertIsNotNone(sim.prob_table)
 
     def test_prob_table_built_when_enabled(self) -> None:
         sim = GemSimulator(

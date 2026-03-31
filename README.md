@@ -49,7 +49,7 @@ At least one goal flag should be set. Flags can be combined (e.g. `--min-will 4 
 |---|---|
 | `--rarity {common,rare,epic}` | Gem rarity. Omit to run all three. Common = 5 turns, rare = 7, epic = 9. |
 | `--optimize {dps,support}` | Side-node optimisation target. Default: `dps`. |
-| `--gem-type TYPE` | Gem type (see table below). Omit to use a random gem each trial. |
+| `--gem-type TYPE` | Gem type (see [gem types](documentation/gem_types.md)). Omit to use a random gem each trial. |
 | `--first-effect EFFECT` | First effect on the gem. Required when `--gem-type` is set. |
 | `--second-effect EFFECT` | Second effect on the gem. Required when `--gem-type` is set. |
 
@@ -77,28 +77,12 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 |---|---|
 | `--seed N` | RNG seed. Default: `42`. |
 
-## Gem types & effects
+## Documentation
 
-Each gem type has 2 DPS effects and 2 support effects:
-
-| Gem type | DPS effects | Support effects |
-|---|---|---|
-| `order_stability` | attack_power, additional_damage | ally_damage, brand_power |
-| `order_fortitude` | attack_power, boss_damage | ally_damage, ally_attack |
-| `order_immutability` | additional_damage, boss_damage | brand_power, ally_attack |
-| `chaos_erosion` | attack_power, additional_damage | ally_damage, brand_power |
-| `chaos_distortion` | attack_power, boss_damage | ally_damage, ally_attack |
-| `chaos_collapse` | additional_damage, boss_damage | brand_power, ally_attack |
-
-Order/chaos pairs share the same effect pools.
-
-### Effect priority (on equal chance, higher is preferred)
-
-**DPS:** boss_damage (coeff 1000) > additional_damage (700) > attack_power (400)
-
-**Support:** ally_attack (coeff 1500) > brand_power (1050) > ally_damage (600)
-
-See [`documentation/calculation.md`](documentation/calculation.md) for the full combat power formulas and core coefficients.
+- [Gem types & effects](documentation/gem_types.md) — gem types, effect pools, and priority rankings
+- [Decision-making strategy](documentation/strategy.md) — turn flow, reroll policy modes, reset logic, and DP probability table
+- [Combat power formulas](documentation/calculation.md) — core coefficients and combat power calculations
+- [Official probability data](documentation/official_probability_info_en.md) — Smilegate's published probability disclosure
 
 ## Examples
 
@@ -135,7 +119,3 @@ python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic \
 ```bash
 python -m unittest discover -s tests -v
 ```
-
-## Reference
-
-The official probability data from Smilegate is documented in [`documentation/official_probability_info_en.md`](documentation/official_probability_info_en.md).
