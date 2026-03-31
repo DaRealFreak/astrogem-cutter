@@ -71,7 +71,8 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 | `--reset-ticket` / `--no-reset-ticket` | Use reset ticket. Default: run both variants. |
 | `--side-threshold F` | Base threshold at which side-node upgrades become valued, scaled by effect coefficient (see [strategy](documentation/strategy.md#coefficient-scaled-effective-threshold)). Default: `0.5`. |
 | `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value. `0.0` = disabled (binary feasibility only). Try `0.01`-`0.03` for typical goals. Default: `0.0`. |
-| `--bis-only` | Only value side-node upgrades when both effects are target-type (2 DPS or 2 support). Actively pursues target effects via change_effect offers. |
+| `--bis-only` | Actively pursue target effects via `change_effect` offers in desperate mode. Side-node upgrades still use the coefficient-scaled threshold but are filtered to target-type slots only. |
+| `--dp-reroll-margin F` | Margin for DP-based reroll override. Controls how far below the baseline expected probability the current offers must be before spending a reroll. Default: `0.03`. |
 
 ### Stats-only options
 
@@ -115,8 +116,11 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket 
 # Stricter side-node threshold (only value side upgrades when >=70% of offers keep goal feasible)
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --side-threshold 0.7
 
-# BIS-only: ignore side nodes unless effects are best-in-slot
+# BIS-only: pursue target effects, only invest in target-type side nodes
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --bis-only
+
+# Aggressive DP reroll override (lower margin = more willing to spend rerolls)
+python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity rare --dp-reroll-margin 0.01
 
 # Show effect change outcomes for a gem type
 python -m arkgrid effects --gem-type order_stability --optimize dps

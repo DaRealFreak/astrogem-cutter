@@ -24,8 +24,7 @@ class RerollPolicy:
     def __init__(self, goal: LastTurnGoal, side_node_threshold: float = 0.5,
                  astro_gem: Optional[AstroGem] = None,
                  bis_only: bool = False,
-                 dp_reroll_margin: float = 0.03,
-                 use_dp_override: bool = True) -> None:
+                 dp_reroll_margin: float = 0.03) -> None:
         self.goal = goal
         # When this fraction (or more) of offers keep the goal feasible,
         # also consider side-node upgrades as valuable instead of focusing
@@ -35,7 +34,6 @@ class RerollPolicy:
         self.astro_gem = astro_gem
         self.bis_only = bis_only
         self.dp_reroll_margin = dp_reroll_margin
-        self.use_dp_override = use_dp_override
 
     # ------------------------------------------------------------------
     # Target-aware helpers
@@ -89,10 +87,6 @@ class RerollPolicy:
 
         if not target_coeffs:
             # No target effects on gem — side nodes have no value
-            return 1.0
-
-        # BIS-only: never value side nodes unless both slots are target effects
-        if self.bis_only and not self._has_bis_effects(state):
             return 1.0
 
         quality = max(target_coeffs) / max_coeff
@@ -198,13 +192,11 @@ class RerollPolicy:
                 reasons.append("no_goal_upgrade")
 
         heuristic_reroll = len(reasons) > 0
-        if self.use_dp_override:
-            return self._dp_override(
-                heuristic_reroll, reasons,
-                goal_success_prob, dp_baseline,
-                rerolls_remaining, turns_left,
-            )
-        return heuristic_reroll, reasons
+        return self._dp_override(
+            heuristic_reroll, reasons,
+            goal_success_prob, dp_baseline,
+            rerolls_remaining, turns_left,
+        )
 
     # ------------------------------------------------------------------
     # DP-based reroll override

@@ -172,18 +172,6 @@ class TestDPOverride(unittest.TestCase):
         self.assertTrue(should)
         self.assertIn("no_offer_keeps_goal_feasible", reasons)
 
-    def test_dp_override_disabled(self) -> None:
-        """With use_dp_override=False, heuristic passes through unchanged."""
-        policy = RerollPolicy(LastTurnGoal(min_will=5), use_dp_override=False)
-        state = GemState(will=1)
-        # Offers with will+1 — heuristic accepts in desperate mode
-        offers = self._make_offers("will+1", "maintain", "cost+100", "view+1")
-        should, reasons = policy.should_reroll(
-            offers, state, turns_left=5, goal_feasible_frac=0.25,
-            goal_success_prob=0.05, dp_baseline=0.25, rerolls_remaining=2)
-        self.assertFalse(should)
-        self.assertEqual(reasons, [])
-
     def test_dp_override_margin_scales_with_surplus_rerolls(self) -> None:
         """Surplus rerolls reduce effective margin, making reroll easier."""
         # Use turns_left=2 to avoid last_turn_goal_not_met hard constraint

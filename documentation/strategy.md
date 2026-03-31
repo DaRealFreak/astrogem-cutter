@@ -61,13 +61,9 @@ If the gem has no target-type effects at all (e.g. both slots are support on a D
 
 ### BIS-only mode (`--bis-only`)
 
-When `--bis-only` is enabled, the effective threshold is forced to 100% unless **both** effect slots have target-type effects (both DPS for `--optimize dps`, both support for `--optimize support`). Since each gem has exactly 2 DPS and 2 support effects, this means the gem must have its 2 DPS effects (or 2 support effects) to be considered BIS.
+When `--bis-only` is enabled, good `change_effect` offers (ones that resolve to a target effect) are treated as goal upgrades in desperate mode. This makes the policy actively pursue optimal effects rather than ignoring change_effect offers.
 
-While effects aren't BIS, the policy:
-- Never enters comfortable mode (threshold = 100%, side-node upgrades ignored)
-- Still values good `change_effect` offers in desperate mode (ones that resolve to a target effect), actively pursuing BIS effects
-
-Once both effects are target, the coefficient-scaled threshold applies normally and side-node upgrades are valued.
+The coefficient-scaled threshold applies normally regardless of whether effects are BIS. Side-node upgrades are always filtered by `_target_side_sets` to only target-type slots — so if one slot has a DPS effect and the other has a support effect (with `--optimize dps`), only the DPS slot's upgrades are valued in comfortable mode.
 
 The effective threshold is shown as `threshold=` in the `sim` turn log.
 
@@ -101,6 +97,25 @@ Activated when the goal probability drops below the effective threshold. The pol
 Reroll if:
 - A goal downgrade (will-1 or chaos-1) is present **and** no big goal upgrade compensates
 - No goal upgrade (will+N or chaos+N) exists in the offers
+
+### DP-based reroll override (`--dp-reroll-margin`)
+
+After the heuristic makes its reroll decision, a DP-based override layer can adjust it. This compares the expected goal probability from the current 4 offers against the baseline expected probability from a random draw:
+
+- **p_current** = average of `dp[state_after_each_offer, turns_left - 1]` across the 4 offers (25% each)
+- **p_baseline** = `dp[state, turns_left]` — the DP recurrence value, which is the weighted average over all possible single-option draws
+
+The override works bidirectionally:
+
+1. **Heuristic says don't reroll, but offers are below baseline**: If `p_current < p_baseline * (1 - margin)`, override to reroll. This catches cases like `[maintain, view+1, cost+100, will+1]` where only 1 of 4 options provides stat progress.
+
+2. **Heuristic says reroll, but offers are above baseline**: If `p_current >= p_baseline`, override to NOT reroll. This prevents wasting rerolls when the heuristic is too picky but the offers are actually better than average.
+
+**Hard constraints are never overridden**: the forced rerolls for `last_turn_goal_not_met` and `no_offer_keeps_goal_feasible` always take priority.
+
+The margin accounts for the opportunity cost of spending a reroll token (can't use it on a future bad draw). It scales with the reroll/turn ratio: `effective_margin = margin * min(1.0, turns_left / rerolls_remaining)`. When rerolls are surplus (more rerolls than turns remaining), the margin shrinks — surplus rerolls have lower marginal value, so the policy is more willing to spend them.
+
+Default margin is `0.03` (3%).
 
 ## Post-offer checks
 
@@ -142,6 +157,7 @@ The `sim` turn log shows both attempts when a reset occurs.
 
 A backward-induction probability table is precomputed once at startup (~20ms). It stores P(reach goal | will, chaos, first, second, turns_left) for all 6,250 possible states. This table drives:
 - The comfort signal for the reroll policy (comfortable vs desperate mode)
+- The DP-based reroll override (comparing current offers against baseline)
 - Probability-based early resets (when `--prob-reset-threshold` > 0)
 - The `P(goal)` and `P(click)` values shown in `sim` output
 

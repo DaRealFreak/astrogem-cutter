@@ -258,7 +258,7 @@ class TestDPRerollIntegration(unittest.TestCase):
         sim = GemSimulator(
             rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
-            dp_reroll_margin=0.03, use_dp_override=True,
+            dp_reroll_margin=0.03,
         )
         # Run enough seeds to find at least one DP override
         found_override = False
@@ -276,25 +276,23 @@ class TestDPRerollIntegration(unittest.TestCase):
         self.assertTrue(found_override,
                         "Expected at least one DP override in 200 seeds")
 
-    def test_dp_reroll_disabled_matches_heuristic_only(self) -> None:
-        """With use_dp_override=False, results should differ from enabled."""
+    def test_dp_margin_affects_behavior(self) -> None:
+        """Different margins should produce different outcomes."""
         goal = LastTurnGoal(min_will=4, min_chaos=4)
-        sim_dp = GemSimulator(
+        sim_tight = GemSimulator(
             rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
-            goal=goal, use_dp_override=True, dp_reroll_margin=0.03,
+            goal=goal, dp_reroll_margin=0.01,
         )
-        sim_no_dp = GemSimulator(
+        sim_wide = GemSimulator(
             rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
-            goal=goal, use_dp_override=False,
+            goal=goal, dp_reroll_margin=0.20,
         )
-        # At least one seed should produce different results
         diff_count = sum(
             1 for seed in range(100)
-            if sim_dp.simulate_one(seed=seed).success != sim_no_dp.simulate_one(seed=seed).success
+            if sim_tight.simulate_one(seed=seed).success != sim_wide.simulate_one(seed=seed).success
         )
-        # We don't assert a direction, just that the override changes behavior
         self.assertGreater(diff_count, 0,
-                           "DP override should change at least one outcome in 100 seeds")
+                           "Different margins should change at least one outcome in 100 seeds")
 
 
 class TestRandomAstroGem(unittest.TestCase):

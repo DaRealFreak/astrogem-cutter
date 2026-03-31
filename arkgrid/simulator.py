@@ -30,7 +30,6 @@ class GemSimulator:
             bis_only: bool = False,
             pool: Optional[OptionPool] = None,
             dp_reroll_margin: float = 0.03,
-            use_dp_override: bool = True,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -44,7 +43,6 @@ class GemSimulator:
         self.reroll_policy = RerollPolicy(
             goal, side_node_threshold, astro_gem, bis_only,
             dp_reroll_margin=dp_reroll_margin,
-            use_dp_override=use_dp_override,
         )
 
         self.use_extra_ticket = use_extra_ticket
