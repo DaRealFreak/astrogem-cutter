@@ -50,6 +50,10 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Only value side nodes when effects are best-in-slot")
         p.add_argument("--dp-reroll-margin", type=float, default=0.03, metavar="F",
                         help="Margin for DP-based reroll override (default: 0.03)")
+        p.add_argument("--side-quality", type=float, default=0.0, metavar="F",
+                        help="Weight side-node quality by coefficient in reroll decisions. "
+                             "0 = off (max goal probability), 2 = mild, 12 = aggressive "
+                             "(tolerates ~40%% prob drop for +4 boss_damage). Default: 0")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type")
@@ -166,6 +170,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 prob_reset_threshold=args.prob_reset_threshold,
                 bis_only=args.bis_only,
                 dp_reroll_margin=args.dp_reroll_margin,
+                side_quality_weight=args.side_quality,
             )
             summary = GemAnalyzer.estimate_summary(
                 trials=args.trials, simulator=sim, seed=args.seed,
@@ -189,7 +194,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         optimize=args.optimize,
         bis_only=args.bis_only,
         dp_reroll_margin=args.dp_reroll_margin,
-        use_dp_override=not args.no_dp_reroll,
+        side_quality_weight=args.side_quality,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 

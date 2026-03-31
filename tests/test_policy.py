@@ -206,6 +206,80 @@ class TestDPOverride(unittest.TestCase):
         # Heuristic accepts (will+1 is goal upgrade), no override without dp_baseline
         self.assertFalse(should)
 
+    def test_side_quality_keeps_high_value_upgrade(self) -> None:
+        """A +4 boss_damage suppresses reroll even when goal prob is below baseline."""
+        gem = AstroGem("chaos_distortion", "boss_damage", "ally_attack", "dps")
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03,
+                              astro_gem=gem, side_quality_weight=2.0)
+        state = GemState(will=1, first_effect="boss_damage", second_effect="ally_attack")
+        # Heuristic says reroll (no goal upgrade in desperate mode).
+        # p_current=0.23 < p_baseline=0.25, but +4 boss_damage quality=1.0
+        # side_adjustment = 1.0 * 0.03 * 2 = 0.06
+        # Case 2 threshold: 0.25 * (1 - 0.06) = 0.235 → 0.23 < 0.235 → still rerolls
+        # But at p_current=0.24: 0.24 >= 0.235 → suppresses reroll
+        offers = self._make_offers("first+4", "will-1", "maintain", "cost+100")
+        should, reasons = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.25,
+            goal_success_prob=0.24, dp_baseline=0.25, rerolls_remaining=1)
+        self.assertFalse(should)
+        self.assertIn("dp_override_above_baseline", reasons)
+
+    def test_side_quality_low_coeff_less_impact(self) -> None:
+        """A +2 attack_power has much less impact than a +4 boss_damage."""
+        gem = AstroGem("chaos_distortion", "attack_power", "ally_damage", "dps")
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03,
+                              astro_gem=gem, side_quality_weight=2.0)
+        state = GemState(will=1, first_effect="attack_power", second_effect="ally_damage")
+        # +2 attack_power: quality = (2/4) * (400/1000) = 0.2
+        # side_adjustment = 0.2 * 0.03 * 2 = 0.012
+        # Case 2 threshold: 0.25 * (1 - 0.012) = 0.247
+        # p_current=0.24 < 0.247 → does NOT suppress reroll
+        offers = self._make_offers("first+2", "will-1", "maintain", "cost+100")
+        should, _ = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.25,
+            goal_success_prob=0.24, dp_baseline=0.25, rerolls_remaining=1)
+        self.assertTrue(should)
+
+    def test_side_quality_no_astro_gem(self) -> None:
+        """Without astro_gem, side quality is 0 and doesn't affect the margin."""
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        state = GemState(will=1)
+        offers = self._make_offers("first+4", "will-1", "maintain", "cost+100")
+        # No astro_gem → side_quality=0, no adjustment
+        # Heuristic: desperate, has will-1 downgrade, no big goal upgrade → reroll
+        # DP: p_current=0.24 < p_baseline=0.25 → doesn't suppress
+        should, _ = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.25,
+            goal_success_prob=0.24, dp_baseline=0.25, rerolls_remaining=1)
+        self.assertTrue(should)
+
+    def test_side_quality_prevents_reroll_override(self) -> None:
+        """Side quality prevents DP from overriding heuristic to reroll when good sides present."""
+        gem = AstroGem("order_immutability", "boss_damage", "ally_attack", "dps")
+        policy = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03,
+                              astro_gem=gem, side_quality_weight=2.0)
+        state = GemState(will=3, first_effect="boss_damage", second_effect="ally_attack")
+        offers = self._make_offers("will+1", "first+3", "maintain", "cost+100")
+        # Heuristic: don't reroll (will+1 is goal upgrade).
+        # +3 boss_damage: quality = (3/4)*1.0 = 0.75
+        # side_adjustment = 0.75 * 0.03 * 2 = 0.045
+        # effective_margin = 0.03 + 0.045 = 0.075
+        # threshold = 0.25 * (1 - 0.075) = 0.25 * 0.925 = 0.23125
+        # p_current=0.235 > 0.23125 → does NOT override to reroll
+        should, _ = policy.should_reroll(
+            offers, state, turns_left=5, goal_feasible_frac=0.75,
+            goal_success_prob=0.235, dp_baseline=0.25, rerolls_remaining=1)
+        self.assertFalse(should)
+
+        # Without side bonus (no astro_gem): margin=0.03
+        # threshold = 0.25 * 0.97 = 0.2425 → 0.235 < 0.2425 → WOULD reroll
+        policy_no_gem = RerollPolicy(LastTurnGoal(min_will=5), dp_reroll_margin=0.03)
+        should2, reasons2 = policy_no_gem.should_reroll(
+            offers, GemState(will=3), turns_left=5, goal_feasible_frac=0.75,
+            goal_success_prob=0.235, dp_baseline=0.25, rerolls_remaining=1)
+        self.assertTrue(should2)
+        self.assertIn("dp_override_below_baseline", reasons2)
+
 
 class TestRerollPolicyAstroGem(unittest.TestCase):
     """Verify the reroll policy correctly filters side-node upgrades by target."""

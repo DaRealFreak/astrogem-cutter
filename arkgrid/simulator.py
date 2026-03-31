@@ -30,6 +30,7 @@ class GemSimulator:
             bis_only: bool = False,
             pool: Optional[OptionPool] = None,
             dp_reroll_margin: float = 0.03,
+            side_quality_weight: float = 0.0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -43,6 +44,7 @@ class GemSimulator:
         self.reroll_policy = RerollPolicy(
             goal, side_node_threshold, astro_gem, bis_only,
             dp_reroll_margin=dp_reroll_margin,
+            side_quality_weight=side_quality_weight,
         )
 
         self.use_extra_ticket = use_extra_ticket
@@ -415,6 +417,12 @@ class GemSimulator:
 
             else:
                 success = self.goal.satisfied(state.will, state.chaos)
+                if success and self.bis_only:
+                    target = (DPS_EFFECTS if run_gem.optimize == "dps"
+                              else SUPPORT_EFFECTS)
+                    if (state.first_effect not in target
+                            or state.second_effect not in target):
+                        success = False
                 return RunResult(
                     success=success,
                     reason="goal_met" if success else "goal_not_met",

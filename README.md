@@ -73,6 +73,7 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 | `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value. `0.0` = disabled (binary feasibility only). Try `0.01`-`0.03` for typical goals. Default: `0.0`. |
 | `--bis-only` | Actively pursue target effects via `change_effect` offers in desperate mode. Side-node upgrades still use the coefficient-scaled threshold but are filtered to target-type slots only. |
 | `--dp-reroll-margin F` | Margin for DP-based reroll override. Controls how far below the baseline expected probability the current offers must be before spending a reroll. Default: `0.03`. |
+| `--side-quality F` | Weight side-node quality by coefficient in reroll decisions. `0` = off (max goal probability), `2` = mild, `12` = aggressive (~40% prob drop tolerated for +4 boss_damage). Default: `0`. |
 
 ### Stats-only options
 
@@ -121,6 +122,14 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --bis-only
 
 # Aggressive DP reroll override (lower margin = more willing to spend rerolls)
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity rare --dp-reroll-margin 0.01
+
+# Min-max side nodes: mild weighting (2x)
+python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 2 \
+  --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
+
+# Aggressive min-max: tolerate big probability drops for +4 boss_damage
+python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 12 \
+  --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
 
 # Show effect change outcomes for a gem type
 python -m arkgrid effects --gem-type order_stability --optimize dps

@@ -115,6 +115,22 @@ The override works bidirectionally:
 
 The margin accounts for the opportunity cost of spending a reroll token (can't use it on a future bad draw). It scales with the reroll/turn ratio: `effective_margin = margin * min(1.0, turns_left / rerolls_remaining)`. When rerolls are surplus (more rerolls than turns remaining), the margin shrinks — surplus rerolls have lower marginal value, so the policy is more willing to spend them.
 
+#### Side-node quality adjustment (`--side-quality`)
+
+When `--side-quality` is set to a value > 0 and an astro gem is configured, the margin is further adjusted by the best target-type side-node upgrade in the current offers. The value controls the multiplier: `side_adjustment = quality * margin * weight`. Default `0` = off (max goal probability). Use higher values for min-maxing specific gems on mains. The quality formula is `(delta / 4) * (coeff / max_coeff)`, producing a value in [0.0, 1.0]:
+
+| Offer | Quality | Weight=2 margin adj. | Weight=12 margin adj. |
+|---|---|---|---|
+| +4 boss_damage (1000) | 1.0 | +0.06 → 0.09 | +0.36 → 0.39 |
+| +2 boss_damage | 0.5 | +0.03 → 0.06 | +0.18 → 0.21 |
+| +4 attack_power (400) | 0.4 | +0.024 → 0.054 | +0.144 → 0.174 |
+| +2 attack_power | 0.2 | +0.012 → 0.042 | +0.072 → 0.102 |
+| +1 attack_power | 0.1 | +0.006 → 0.036 | +0.036 → 0.066 |
+
+Higher margin = lower reroll threshold = more tolerant of below-baseline goal probability. At weight=12, a +4 boss_damage makes the policy tolerate a ~40% probability drop to keep the upgrade. At weight=2, the tolerance is ~9%.
+
+The same side quality also lowers the bar for case 2 (suppressing heuristic rerolls).
+
 Default margin is `0.03` (3%).
 
 ## Post-offer checks

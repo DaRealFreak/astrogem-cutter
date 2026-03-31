@@ -24,7 +24,8 @@ class RerollPolicy:
     def __init__(self, goal: LastTurnGoal, side_node_threshold: float = 0.5,
                  astro_gem: Optional[AstroGem] = None,
                  bis_only: bool = False,
-                 dp_reroll_margin: float = 0.03) -> None:
+                 dp_reroll_margin: float = 0.03,
+                 side_quality_weight: float = 0.0) -> None:
         self.goal = goal
         # When this fraction (or more) of offers keep the goal feasible,
         # also consider side-node upgrades as valuable instead of focusing
@@ -34,6 +35,7 @@ class RerollPolicy:
         self.astro_gem = astro_gem
         self.bis_only = bis_only
         self.dp_reroll_margin = dp_reroll_margin
+        self.side_quality_weight = side_quality_weight
 
     # ------------------------------------------------------------------
     # Target-aware helpers
@@ -196,6 +198,7 @@ class RerollPolicy:
             heuristic_reroll, reasons,
             goal_success_prob, dp_baseline,
             rerolls_remaining, turns_left,
+            offers, state,
         )
 
     # ------------------------------------------------------------------
@@ -205,6 +208,34 @@ class RerollPolicy:
     _HARD_CONSTRAINTS = frozenset({"last_turn_goal_not_met",
                                    "no_offer_keeps_goal_feasible"})
 
+    def _side_quality(self, offers: List[Option], state: GemState) -> float:
+        """Best target-type side-node upgrade quality in [0.0, 1.0].
+
+        Formula: (delta / 4) * (coeff / max_coeff).
+        +4 boss_damage = 1.0, +2 attack_power = 0.2, +1 attack_power = 0.1.
+        Returns 0.0 when side_quality_weight is 0.
+        """
+        if self.side_quality_weight <= 0.0:
+            return 0.0
+        if self.astro_gem is None:
+            return 0.0
+
+        if self.astro_gem.optimize == "dps":
+            target, coeff = DPS_EFFECTS, DPS_COEFF
+        else:
+            target, coeff = SUPPORT_EFFECTS, SUPPORT_COEFF
+        max_coeff = max(coeff.values())
+
+        best = 0.0
+        for o in offers:
+            if o.kind in ("first", "second") and o.delta > 0:
+                effect = (state.first_effect if o.kind == "first"
+                          else state.second_effect)
+                if effect in target:
+                    quality = (o.delta / 4.0) * (coeff[effect] / max_coeff)
+                    best = max(best, quality)
+        return best
+
     def _dp_override(
             self,
             heuristic_reroll: bool,
@@ -213,12 +244,16 @@ class RerollPolicy:
             dp_baseline: Optional[float],
             rerolls_remaining: int,
             turns_left: int,
+            offers: List[Option],
+            state: GemState,
     ) -> Tuple[bool, List[str]]:
         """Override heuristic reroll decision using DP probability comparison.
 
         Compares the expected goal probability from the current 4 offers
         (goal_success_prob) against the baseline expected probability from
-        a random draw (dp_baseline).
+        a random draw (dp_baseline).  High-value side-node upgrades reduce
+        the margin, making the policy more willing to keep offers that
+        contain them even at some goal probability cost.
         """
         if goal_success_prob is None or dp_baseline is None:
             return heuristic_reroll, reasons
@@ -231,11 +266,18 @@ class RerollPolicy:
         effective_margin = self.dp_reroll_margin * min(
             1.0, turns_left / max(1, rerolls_remaining))
 
+        # Side-node quality increases margin: a +4 boss_damage (quality=1.0)
+        # doubles it, making the policy willing to accept offers further
+        # below baseline goal probability to keep the side upgrade.
+        side_q = self._side_quality(offers, state)
+        side_adjustment = side_q * self.dp_reroll_margin * self.side_quality_weight
+        effective_margin += side_adjustment
+
         if not heuristic_reroll and goal_success_prob < dp_baseline * (1.0 - effective_margin):
             reasons.append("dp_override_below_baseline")
             return True, reasons
 
-        if heuristic_reroll and goal_success_prob >= dp_baseline:
+        if heuristic_reroll and goal_success_prob >= dp_baseline * (1.0 - side_adjustment):
             return False, ["dp_override_above_baseline"]
 
         return heuristic_reroll, reasons
