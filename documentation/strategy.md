@@ -61,7 +61,10 @@ If the gem has no target-type effects at all (e.g. both slots are support on a D
 
 ### BIS-only mode (`--bis-only`)
 
-When `--bis-only` is enabled, good `change_effect` offers (ones that resolve to a target effect) are treated as goal upgrades in desperate mode. This makes the policy actively pursue optimal effects rather than ignoring change_effect offers.
+When `--bis-only` is enabled:
+
+- Good `change_effect` offers (ones that resolve to a target effect) are treated as goal upgrades in desperate mode, actively pursuing optimal effects.
+- In `stats` mode, success requires **both** effect slots to be target-type at the end of the run (not just meeting the will/chaos goal). Runs that meet the goal but have non-target effects count as failures.
 
 The coefficient-scaled threshold applies normally regardless of whether effects are BIS. Side-node upgrades are always filtered by `_target_side_sets` to only target-type slots — so if one slot has a DPS effect and the other has a support effect (with `--optimize dps`), only the DPS slot's upgrades are valued in comfortable mode.
 
@@ -159,13 +162,31 @@ Use `python -m arkgrid effects` to see the full table of possible outcomes for a
 
 ## Reset ticket
 
-The reset ticket allows one full restart to initial state (will=1, chaos=1, first=1, second=1) if the run goes badly. It triggers on (in priority order):
+The reset ticket allows one full restart to initial state (will=1, chaos=1, first=1, second=1) if the run goes badly. **Effects are also restored to their original starting values** — any effects acquired via `change_effect` during the run are lost. This means resetting a gem that changed from `attack_power + ally_damage` to `attack_power + boss_damage` would lose the boss_damage.
+
+The reset triggers on (in priority order):
 
 1. **Last-turn fresh-start comparison**: on the final turn, after exhausting all rerolls, if P(goal after clicking) < P(goal from initial state with full turns), resetting gives better odds. This is always checked — no flag needed. Rerolls are used first to find the best possible offers before comparing.
 2. **Probability threshold** (`--prob-reset-threshold`): on any turn, if P(goal) drops below the configured threshold, reset proactively.
 3. **Binary infeasibility**: on any turn, if the goal is mathematically unreachable, reset.
 
 After a reset, the run restarts from turn 1 with the same gem but fresh stats. The reset ticket can only be used once per run.
+
+### Minimum coefficient gate (`--reset-min-coeff`)
+
+When using random gems, `--reset-min-coeff` controls whether the reset ticket is used based on the gem's starting effects. The sum of target-effect coefficients for the starting effects must meet or exceed the threshold. If not, the reset ticket is disabled for that run — it's not worth resetting back to bad starting effects.
+
+Example with DPS optimization:
+
+| Starting effects | Sum | Resets at 1051? |
+|---|---|---|
+| attack_power (400) alone | 400 | no |
+| boss_damage (1000) alone | 1000 | no |
+| attack_power + additional_damage | 1100 | yes |
+| attack_power + boss_damage | 1400 | yes |
+| additional_damage + boss_damage | 1700 | yes |
+
+Default is `0` (always use reset ticket).
 
 The `sim` turn log shows both attempts when a reset occurs.
 
