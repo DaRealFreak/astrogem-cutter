@@ -134,4 +134,5 @@ class RunResult:
     state: GemState
     total_points: int
     rerolls_left: int
+    extra_ticket_used: bool = True
     turn_log: Optional[List[Dict[str, Any]]] = None

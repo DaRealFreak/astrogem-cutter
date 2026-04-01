@@ -29,6 +29,7 @@ class GemAnalyzer:
 
         wins = 0
         resets = 0
+        extra_tickets = 0
         sum_points = 0
         relic_plus = 0
         ancient = 0
@@ -39,6 +40,7 @@ class GemAnalyzer:
 
             wins += 1 if r.success else 0
             resets += 1 if r.reset_used else 0
+            extra_tickets += 1 if r.extra_ticket_used else 0
 
             sum_points += r.total_points
             relic_plus += 1 if r.total_points >= relic_threshold else 0
@@ -55,6 +57,7 @@ class GemAnalyzer:
             "p_relic_plus": relic_plus / trials,
             "p_ancient": ancient / trials,
             "reset_rate": resets / trials,
+            "extra_ticket_rate": extra_tickets / trials,
         }
 
 
@@ -66,4 +69,5 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
     print(f"  Relic+ rate (>=16): {result['p_relic_plus'] * 100:.2f}%")
     print(f"  Ancient rate (>=19): {result['p_ancient'] * 100:.2f}%")
     print(f"  Reset usage rate: {result['reset_rate'] * 100:.2f}%")
+    print(f"  Extra ticket usage rate: {result['extra_ticket_rate'] * 100:.2f}%")
     print("")

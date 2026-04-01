@@ -32,6 +32,7 @@ class GemSimulator:
             dp_reroll_margin: float = 0.03,
             side_quality_weight: float = 0.0,
             reset_min_coeff: int = 0,
+            reroll_min_coeff: int = 0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -60,6 +61,7 @@ class GemSimulator:
         # its comfort signal instead of binary feasibility fraction.
         self.prob_reset_threshold = prob_reset_threshold
         self.reset_min_coeff = reset_min_coeff
+        self.reroll_min_coeff = reroll_min_coeff
         self.prob_table = GoalProbabilityTable(goal, self.turns_total, self.pool)
 
     @staticmethod
@@ -204,7 +206,8 @@ class GemSimulator:
         self.reroll_policy.astro_gem = run_gem
 
         reset_available = bool(self.use_reset_ticket)
-        if reset_available and self.reset_min_coeff > 0:
+        extra_ticket_active = bool(self.use_extra_ticket)
+        if reset_available or (extra_ticket_active and self.reroll_min_coeff > 0):
             coeff = (DPS_COEFF if run_gem.optimize == "dps"
                      else SUPPORT_COEFF)
             target = (DPS_EFFECTS if run_gem.optimize == "dps"
@@ -212,8 +215,12 @@ class GemSimulator:
             total_coeff = sum(coeff.get(e, 0)
                               for e in (run_gem.first_effect, run_gem.second_effect)
                               if e in target)
-            if total_coeff < self.reset_min_coeff:
-                reset_available = False
+            if reset_available and self.reset_min_coeff > 0:
+                if total_coeff < self.reset_min_coeff:
+                    reset_available = False
+            if extra_ticket_active and self.reroll_min_coeff > 0:
+                if total_coeff < self.reroll_min_coeff:
+                    extra_ticket_active = False
         reset_used = False
 
         _log_pt = self.prob_table if log else None
@@ -224,10 +231,13 @@ class GemSimulator:
 
         turn_log: List[Dict[str, Any]] = []
 
+        run_rerolls = (self.RARITY_REROLLS[self.rarity]
+                       + (1 if extra_ticket_active else 0))
+
         for attempt in range(1, 3):
             state = GemState(
                 will=1, chaos=1, first=1, second=1,
-                cost_ratio=0, rerolls=self.base_rerolls,
+                cost_ratio=0, rerolls=run_rerolls,
                 first_effect=run_gem.first_effect,
                 second_effect=run_gem.second_effect,
             )
@@ -292,6 +302,7 @@ class GemSimulator:
                         state=state,
                         total_points=state.total_points(),
                         rerolls_left=state.rerolls,
+                        extra_ticket_used=extra_ticket_active,
                         turn_log=turn_log if log else None,
                     )
 
@@ -381,6 +392,7 @@ class GemSimulator:
                         state=state,
                         total_points=state.total_points(),
                         rerolls_left=state.rerolls,
+                        extra_ticket_used=extra_ticket_active,
                         turn_log=turn_log if log else None,
                     )
 
@@ -442,6 +454,7 @@ class GemSimulator:
                     state=state,
                     total_points=state.total_points(),
                     rerolls_left=state.rerolls,
+                    extra_ticket_used=extra_ticket_active,
                     turn_log=turn_log if log else None,
                 )
 
@@ -456,6 +469,7 @@ class GemSimulator:
                 state=state,
                 total_points=state.total_points(),
                 rerolls_left=state.rerolls,
+                extra_ticket_used=extra_ticket_active,
                 turn_log=turn_log if log else None,
             )
 
