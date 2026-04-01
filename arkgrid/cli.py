@@ -95,6 +95,17 @@ def _build_parser() -> argparse.ArgumentParser:
     p_eff.add_argument("--side-threshold", type=float, default=0.5, metavar="F",
                        help="Base side threshold for effective threshold display (default: 0.5)")
 
+    # ---- read (vision) ----
+    p_read = sub.add_parser("read", help="Read current game screen state via vision")
+    p_read.add_argument("--screenshot", type=str, default=None, metavar="FILE",
+                        help="Read from image file instead of live screen capture")
+    p_read.add_argument("--debug", action="store_true", default=False,
+                        help="Show debug visualization window")
+    p_read.add_argument("--save-debug", type=str, default=None, metavar="FILE",
+                        help="Save debug visualization to file")
+    p_read.add_argument("--monitor", type=int, default=1,
+                        help="Monitor index for live capture (default: 1 = primary)")
+
     return parser
 
 
@@ -312,6 +323,43 @@ def cmd_effects(args: argparse.Namespace) -> None:
             print()
 
 
+def cmd_read(args: argparse.Namespace) -> None:
+    """Read the game screen and print recognized state."""
+    from arkgrid.vision import (
+        ScreenRecognizer, draw_debug, describe_result,
+        load_screenshot, grab_screen,
+    )
+    import cv2
+
+    # Capture or load frame
+    if args.screenshot:
+        frame = load_screenshot(args.screenshot)
+        print(f"Loaded screenshot: {args.screenshot} ({frame.shape[1]}x{frame.shape[0]})")
+    else:
+        frame = grab_screen(monitor_index=args.monitor)
+        print(f"Captured screen ({frame.shape[1]}x{frame.shape[0]})")
+
+    # Recognize
+    recognizer = ScreenRecognizer()
+    result = recognizer.recognize(frame)
+
+    # Print results
+    print()
+    print(describe_result(result))
+
+    # Debug output
+    if args.debug or args.save_debug:
+        debug_img = draw_debug(frame, result)
+        if args.save_debug:
+            cv2.imwrite(args.save_debug, debug_img)
+            print(f"\nDebug image saved to {args.save_debug}")
+        if args.debug:
+            cv2.imshow("AstrogemCutter Vision Debug", debug_img)
+            print("\nPress any key to close debug window...")
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -322,5 +370,7 @@ def main() -> None:
         cmd_sim(args)
     elif args.command == "effects":
         cmd_effects(args)
+    elif args.command == "read":
+        cmd_read(args)
     else:
         parser.print_help()

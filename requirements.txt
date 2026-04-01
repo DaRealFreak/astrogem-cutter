@@ -1,2 +1,7 @@
-# AstrogemCutter - no external dependencies required
-# All modules used (dataclasses, random, math) are part of the Python standard library
+# AstrogemCutter
+# Core simulation: stdlib only (dataclasses, random, math)
+# Vision module: requires the following
+opencv-python>=4.8.0
+mss>=9.0.0
+numpy>=1.24.0
+pytesseract>=0.3.10
