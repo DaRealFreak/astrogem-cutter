@@ -23,8 +23,11 @@ class LastTurnGoal:
     exact_chaos: Optional[int] = None
     min_total_will_chaos: Optional[int] = None
     exact_total_will_chaos: Optional[int] = None
+    min_first: Optional[int] = None
+    min_second: Optional[int] = None
 
-    def satisfied(self, will: int, chaos: int) -> bool:
+    def satisfied(self, will: int, chaos: int,
+                  first: int = 5, second: int = 5) -> bool:
         if self.exact_will is not None and will != self.exact_will:
             return False
         if self.exact_chaos is not None and chaos != self.exact_chaos:
@@ -39,13 +42,20 @@ class LastTurnGoal:
             return False
         if self.min_total_will_chaos is not None and total < self.min_total_will_chaos:
             return False
+
+        if self.min_first is not None and first < self.min_first:
+            return False
+        if self.min_second is not None and second < self.min_second:
+            return False
+
         return True
 
-    def feasible(self, will: int, chaos: int, turns_left: int) -> bool:
+    def feasible(self, will: int, chaos: int, turns_left: int,
+                 first: int = 1, second: int = 1) -> bool:
         """
-        Necessary feasibility check for min_will/min_chaos goals:
-          - will/chaos capped at 5
-          - one click can raise at most ONE of (will, chaos) by up to +4
+        Necessary feasibility check for min_will/min_chaos/min_first/min_second goals:
+          - all stats capped at 5
+          - one click can raise at most ONE stat by up to +4
           - for exact targets below current we return False (not handled here)
         """
         target_w = self.exact_will if self.exact_will is not None else self.min_will
@@ -69,9 +79,19 @@ class LastTurnGoal:
         if chaos + req_c > 5:
             return False
 
+        req_f = max(0, (self.min_first - first)) if self.min_first is not None else 0
+        req_s = max(0, (self.min_second - second)) if self.min_second is not None else 0
+
+        if self.min_first is not None and self.min_first > 5:
+            return False
+        if self.min_second is not None and self.min_second > 5:
+            return False
+
         turns_needed_w = math.ceil(req_w / 4) if req_w > 0 else 0
         turns_needed_c = math.ceil(req_c / 4) if req_c > 0 else 0
-        if turns_needed_w + turns_needed_c > turns_left:
+        turns_needed_f = math.ceil(req_f / 4) if req_f > 0 else 0
+        turns_needed_s = math.ceil(req_s / 4) if req_s > 0 else 0
+        if turns_needed_w + turns_needed_c + turns_needed_f + turns_needed_s > turns_left:
             return False
 
         # Optional total constraints (loose safe bound)

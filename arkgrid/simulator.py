@@ -33,12 +33,14 @@ class GemSimulator:
             side_quality_weight: float = 0.0,
             reset_min_coeff: int = 0,
             reroll_min_coeff: int = 0,
+            min_side_coeff: int = 0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
         self._configured_gem = astro_gem
         self.optimize = optimize
         self.bis_only = bis_only
+        self.min_side_coeff = min_side_coeff
         # Active gem/policy are set per-run in simulate_one;
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
@@ -62,7 +64,25 @@ class GemSimulator:
         self.prob_reset_threshold = prob_reset_threshold
         self.reset_min_coeff = reset_min_coeff
         self.reroll_min_coeff = reroll_min_coeff
-        self.prob_table = GoalProbabilityTable(goal, self.turns_total, self.pool)
+
+        # Compute side-node coefficients for DP from configured gem
+        side_coeff_first, side_coeff_second = 0, 0
+        if astro_gem is not None and min_side_coeff > 0:
+            coeff = DPS_COEFF if astro_gem.optimize == "dps" else SUPPORT_COEFF
+            target = DPS_EFFECTS if astro_gem.optimize == "dps" else SUPPORT_EFFECTS
+            if astro_gem.first_effect in target:
+                side_coeff_first = coeff[astro_gem.first_effect]
+            if astro_gem.second_effect in target:
+                side_coeff_second = coeff[astro_gem.second_effect]
+        self._side_coeff_first = side_coeff_first
+        self._side_coeff_second = side_coeff_second
+
+        self.prob_table = GoalProbabilityTable(
+            goal, self.turns_total, self.pool,
+            side_coeff_first=side_coeff_first,
+            side_coeff_second=side_coeff_second,
+            min_side_coeff=min_side_coeff,
+        )
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -145,7 +165,8 @@ class GemSimulator:
         for o in offers:
             s = state.clone()
             self.apply_option(o, s)
-            if self.goal.feasible(s.will, s.chaos, turns_left_after):
+            if self.goal.feasible(s.will, s.chaos, turns_left_after,
+                                  first=s.first, second=s.second):
                 ok += 1
         return ok / len(offers)
 
@@ -273,7 +294,8 @@ class GemSimulator:
                         break
 
                 # Binary feasibility check (hard -- can trigger fail)
-                if not self.goal.feasible(state.will, state.chaos, turns_left):
+                if not self.goal.feasible(state.will, state.chaos, turns_left,
+                                         first=state.first, second=state.second):
                     if reset_available and not reset_used:
                         reset_used = True
                         if log:
@@ -440,12 +462,25 @@ class GemSimulator:
                     turn_log.append(entry)
 
             else:
-                success = self.goal.satisfied(state.will, state.chaos)
+                success = self.goal.satisfied(state.will, state.chaos,
+                                              state.first, state.second)
                 if success and self.bis_only:
                     target = (DPS_EFFECTS if run_gem.optimize == "dps"
                               else SUPPORT_EFFECTS)
                     if (state.first_effect not in target
                             or state.second_effect not in target):
+                        success = False
+                if success and self.min_side_coeff > 0:
+                    coeff = (DPS_COEFF if run_gem.optimize == "dps"
+                             else SUPPORT_COEFF)
+                    t_set = (DPS_EFFECTS if run_gem.optimize == "dps"
+                             else SUPPORT_EFFECTS)
+                    coeff_total = 0
+                    if state.first_effect in t_set:
+                        coeff_total += state.first * coeff[state.first_effect]
+                    if state.second_effect in t_set:
+                        coeff_total += state.second * coeff[state.second_effect]
+                    if coeff_total < self.min_side_coeff:
                         success = False
                 return RunResult(
                     success=success,

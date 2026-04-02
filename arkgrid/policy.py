@@ -130,7 +130,8 @@ class RerollPolicy:
     ) -> Tuple[bool, List[str]]:
         keys = {o.key for o in offers}
         reasons: List[str] = []
-        goal_met = self.goal.satisfied(state.will, state.chaos)
+        goal_met = self.goal.satisfied(state.will, state.chaos,
+                                       state.first, state.second)
 
         # Use DP probability for comfort/desperate mode when available,
         # otherwise fall back to binary feasibility fraction.

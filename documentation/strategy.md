@@ -77,7 +77,7 @@ The effective threshold is shown as `threshold=` in the `sim` turn log.
 
 ### Goal-met mode (goal already satisfied)
 
-Activated when willpower and chaos already meet or exceed the goal targets. Focus shifts entirely to maximising total points via side-node upgrades.
+Activated when all goal constraints are satisfied — willpower, chaos, and any side-node level requirements (`--min-first`, `--min-second`). Focus shifts entirely to maximising total points via side-node upgrades.
 
 Reroll if:
 - Any offer contains a downgrade (will-1, chaos-1, first-1, second-1) **and** no big upgrade (+2/+3/+4) is available
@@ -190,9 +190,27 @@ Default is `0` (always use reset ticket).
 
 The `sim` turn log shows both attempts when a reset occurs.
 
+## Side node goals
+
+Two types of side-node constraints can be added to the goal:
+
+### Per-slot level minimums (`--min-first`, `--min-second`)
+
+Requires the first/second side node to reach at least the specified level. The DP and feasibility checks account for the extra turns needed.
+
+Example: `--min-first 5` with `--first-effect boss_damage` means "boss_damage must reach level 5."
+
+### Coefficient-weighted total (`--min-side-coeff`)
+
+Requires `sum(level * coefficient)` across target-type side nodes to meet a threshold. Only target-type effects (matching `--optimize`) contribute. Requires a configured gem (`--gem-type` + `--first/second-effect`).
+
+The DP base case evaluates this from the known starting coefficients. In BIS mode with effect changes, the check uses the starting effect's coefficient as an approximation.
+
+Example: `--min-side-coeff 5000` with boss_damage(1000) as first effect requires boss_damage at level 5 (1000*5=5000), or boss_damage at 3 + additional_damage(700) at 3 = 3000+2100=5100 also passes.
+
 ## DP probability table
 
-A backward-induction probability table is precomputed once at startup (~20ms). It stores P(reach goal | will, chaos, first, second, turns_left) for all 6,250 possible states. This table drives:
+A backward-induction probability table is precomputed once at startup (~20ms). It stores P(reach goal | will, chaos, first, second, turns_left) for all 6,250 possible states. When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space. This table drives:
 - The comfort signal for the reroll policy (comfortable vs desperate mode)
 - The DP-based reroll override (comparing current offers against baseline)
 - Probability-based early resets (when `--prob-reset-threshold` > 0)

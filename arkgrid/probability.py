@@ -27,12 +27,18 @@ class GoalProbabilityTable:
         *,
         bis_only: bool = False,
         target_effects: Optional[FrozenSet[str]] = None,
+        side_coeff_first: int = 0,
+        side_coeff_second: int = 0,
+        min_side_coeff: int = 0,
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
         self.pool = pool
         self.bis_only = bis_only
         self._target_effects = target_effects or frozenset()
+        self._side_coeff_first = side_coeff_first
+        self._side_coeff_second = side_coeff_second
+        self._min_side_coeff = min_side_coeff
         self._dp: Dict[tuple, float] = {}
         if bis_only:
             self._build_bis()
@@ -70,6 +76,14 @@ class GoalProbabilityTable:
             dest[key] = dest.get(key, 0.0) + p
         return dest
 
+    def _coeff_satisfied(self, f: int, s: int,
+                         ft: int = 1, st: int = 1) -> bool:
+        if self._min_side_coeff <= 0:
+            return True
+        coeff_total = (self._side_coeff_first * f * ft
+                       + self._side_coeff_second * s * st)
+        return coeff_total >= self._min_side_coeff
+
     def _build(self) -> None:
         dp = self._dp
         mt = self.max_turns
@@ -77,9 +91,10 @@ class GoalProbabilityTable:
         # Base case: turns_left == 0
         for w in range(1, 6):
             for c in range(1, 6):
-                sat = 1.0 if self.goal.satisfied(w, c) else 0.0
                 for f in range(1, 6):
                     for s in range(1, 6):
+                        sat = 1.0 if (self.goal.satisfied(w, c, f, s)
+                                      and self._coeff_satisfied(f, s)) else 0.0
                         dp[(w, c, f, s, 0)] = sat
 
         # Precompute transition tables for three turn types.
@@ -189,13 +204,14 @@ class GoalProbabilityTable:
         # Base case: turns_left == 0
         for w in range(1, 6):
             for c in range(1, 6):
-                wc_sat = self.goal.satisfied(w, c)
                 for f in range(1, 6):
                     for s in range(1, 6):
                         for ft in ft_range:
                             for st in st_range:
-                                # BIS: success requires targets + will/chaos goal
-                                sat = 1.0 if (wc_sat and ft == 1 and st == 1) else 0.0
+                                # BIS: success requires targets + goal + coefficient
+                                goal_sat = self.goal.satisfied(w, c, f, s)
+                                sat = 1.0 if (goal_sat and ft == 1 and st == 1
+                                              and self._coeff_satisfied(f, s, ft, st)) else 0.0
                                 dp[(w, c, f, s, ft, st, 0)] = sat
 
         # Precompute transition tables

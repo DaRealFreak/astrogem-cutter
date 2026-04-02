@@ -64,6 +64,14 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Weight side-node quality by coefficient in reroll decisions. "
                              "0 = off (max goal probability), 2 = mild, 12 = aggressive "
                              "(tolerates ~40%% prob drop for +4 boss_damage). Default: 0")
+        p.add_argument("--min-first", type=int, default=None, metavar="N",
+                        help="Minimum level for first side node (1-5)")
+        p.add_argument("--min-second", type=int, default=None, metavar="N",
+                        help="Minimum level for second side node (1-5)")
+        p.add_argument("--min-side-coeff", type=int, default=0, metavar="N",
+                        help="Minimum coefficient-weighted level total from target side nodes. "
+                             "Value = sum(level * coefficient). E.g. boss_damage(1000)*5 = 5000. "
+                             "Requires --gem-type with --first/second-effect. Default: 0")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type")
@@ -128,6 +136,8 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
         min_chaos=args.min_chaos,
         exact_will=args.exact_will,
         exact_chaos=args.exact_chaos,
+        min_first=getattr(args, "min_first", None),
+        min_second=getattr(args, "min_second", None),
     )
 
     astro_gem: Optional[AstroGem] = None
@@ -168,6 +178,13 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
         parts.append(f"exact_will={goal.exact_will}")
     if goal.exact_chaos is not None:
         parts.append(f"exact_chaos={goal.exact_chaos}")
+    if goal.min_first is not None:
+        parts.append(f"min_first={goal.min_first}")
+    if goal.min_second is not None:
+        parts.append(f"min_second={goal.min_second}")
+    min_side_coeff = getattr(args, "min_side_coeff", 0)
+    if min_side_coeff > 0:
+        parts.append(f"min_side_coeff={min_side_coeff}")
     goal_str = ", ".join(parts) if parts else "(no goal constraints)"
 
     if astro_gem:
@@ -205,6 +222,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 side_quality_weight=args.side_quality,
                 reset_min_coeff=args.reset_min_coeff,
                 reroll_min_coeff=args.reroll_min_coeff,
+                min_side_coeff=args.min_side_coeff,
             )
             summary = GemAnalyzer.estimate_summary(
                 trials=args.trials, simulator=sim, seed=args.seed,
@@ -230,6 +248,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         dp_reroll_margin=args.dp_reroll_margin,
         side_quality_weight=args.side_quality,
         reroll_min_coeff=args.reroll_min_coeff,
+        min_side_coeff=args.min_side_coeff,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -406,6 +425,8 @@ def cmd_live(args: argparse.Namespace) -> None:
         min_chaos=args.min_chaos,
         exact_will=args.exact_will,
         exact_chaos=args.exact_chaos,
+        min_first=getattr(args, "min_first", None),
+        min_second=getattr(args, "min_second", None),
     )
     pool = OptionPool()
 
@@ -419,9 +440,25 @@ def cmd_live(args: argparse.Namespace) -> None:
         gem_pool = set(GEM_TYPES[gem_type_domain])
         target_effects = frozenset(gem_pool & opt_set)
 
+    # Compute side-node coefficients for DP
+    min_side_coeff = getattr(args, "min_side_coeff", 0)
+    side_coeff_first, side_coeff_second = 0, 0
+    if min_side_coeff > 0 and gem_type_domain in GEM_TYPES:
+        from arkgrid.constants import DPS_COEFF, SUPPORT_COEFF
+        optimize = getattr(args, "optimize", "dps")
+        coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+        opt_set_coeff = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        if state.first_effect in opt_set_coeff:
+            side_coeff_first = coeff_map[state.first_effect]
+        if state.second_effect in opt_set_coeff:
+            side_coeff_second = coeff_map[state.second_effect]
+
     prob_table = GoalProbabilityTable(
         goal, turns_total, pool,
         bis_only=bis_only, target_effects=target_effects,
+        side_coeff_first=side_coeff_first,
+        side_coeff_second=side_coeff_second,
+        min_side_coeff=min_side_coeff,
     )
     p_current = prob_table.lookup(state, turns_left)
 
@@ -496,6 +533,12 @@ def cmd_live(args: argparse.Namespace) -> None:
         goal_parts.append(f"exact_will={goal.exact_will}")
     if goal.exact_chaos is not None:
         goal_parts.append(f"exact_chaos={goal.exact_chaos}")
+    if goal.min_first is not None:
+        goal_parts.append(f"min_first={goal.min_first}")
+    if goal.min_second is not None:
+        goal_parts.append(f"min_second={goal.min_second}")
+    if min_side_coeff > 0:
+        goal_parts.append(f"min_side_coeff={min_side_coeff}")
     print(f"Goal:       {', '.join(goal_parts) if goal_parts else '(none)'}")
     print(f"P(goal):    {p_current:.1%}")
     print()
@@ -562,6 +605,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             side_quality_weight=getattr(args, "side_quality", 0.0),
             reset_min_coeff=getattr(args, "reset_min_coeff", 0),
             reroll_min_coeff=getattr(args, "reroll_min_coeff", 0),
+            min_side_coeff=getattr(args, "min_side_coeff", 0),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,

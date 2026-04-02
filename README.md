@@ -1,6 +1,6 @@
 # AstrogemCutter
 
-Monte Carlo simulator for the Lost Ark Astrogem (gem cutting) system. Estimates the probability of reaching specific willpower/chaos stat goals, while optimising side-node effect levels using the official in-game probability weights published by Smilegate.
+Monte Carlo simulator for the Lost Ark Astrogem (gem cutting) system. Estimates the probability of reaching specific willpower/chaos/side-node stat goals, while optimising effect levels using the official in-game probability weights published by Smilegate.
 
 ## Setup
 
@@ -10,7 +10,7 @@ source .venv/Scripts/activate   # Windows (Git Bash)
 source .venv/bin/activate       # Linux / macOS
 ```
 
-No external dependencies required - stdlib only.
+No external dependencies required for the simulator (stdlib only). Vision features (`live`, `read`) require `opencv-python` and `numpy`.
 
 ## Commands
 
@@ -38,6 +38,22 @@ Show all possible effect change outcomes for a gem type, including expected coef
 python -m arkgrid effects [--gem-type TYPE] [--optimize {dps,support}]
 ```
 
+### `live` - Screenshot analysis with probabilities
+
+Detect game state from a screenshot and show per-option goal probabilities with reroll recommendations.
+
+```bash
+python -m arkgrid live --screenshot FILE [options]
+```
+
+### `read` - Vision debug
+
+Read the game screen (from screenshot or live capture) and print the recognized state.
+
+```bash
+python -m arkgrid read [--screenshot FILE] [--debug] [--save-debug FILE]
+```
+
 ## Options
 
 ### Goal
@@ -48,14 +64,35 @@ python -m arkgrid effects [--gem-type TYPE] [--optimize {dps,support}]
 | `--min-chaos N` | Minimum chaos target |
 | `--exact-will N` | Exact willpower target |
 | `--exact-chaos N` | Exact chaos target |
+| `--min-first N` | Minimum level for first side node (1-5) |
+| `--min-second N` | Minimum level for second side node (1-5) |
+| `--min-side-coeff N` | Minimum coefficient-weighted level total from target side nodes. Value = `sum(level * coefficient)`. E.g. boss_damage(1000) at level 5 = 5000. Requires `--gem-type` with `--first/second-effect`. Default: `0`. |
 
-At least one goal flag should be set. Flags can be combined (e.g. `--min-will 4 --min-chaos 5`).
+At least one goal flag should be set. Flags can be combined (e.g. `--min-will 4 --min-chaos 5 --min-first 5`).
+
+#### Side node coefficient reference
+
+`--min-side-coeff` uses `level * coefficient` summed across target-type side nodes:
+
+| DPS Effect | Coefficient | Level 3 | Level 4 | Level 5 |
+|---|---|---|---|---|
+| attack_power | 400 | 1200 | 1600 | 2000 |
+| additional_damage | 700 | 2100 | 2800 | 3500 |
+| boss_damage | 1000 | 3000 | 4000 | 5000 |
+
+| Support Effect | Coefficient | Level 3 | Level 4 | Level 5 |
+|---|---|---|---|---|
+| ally_damage | 600 | 1800 | 2400 | 3000 |
+| brand_power | 1050 | 3150 | 4200 | 5250 |
+| ally_attack | 1500 | 4500 | 6000 | 7500 |
+
+Example: boss_damage at level 5 + additional_damage at level 3 = 5000 + 2100 = 7100.
 
 ### Gem configuration
 
 | Flag | Description |
 |---|---|
-| `--rarity {common,rare,epic}` | Gem rarity. Omit to run all three. Common = 5 turns, rare = 7, epic = 9. |
+| `--rarity {common,rare,epic}` | Gem rarity (one or more). Omit to run all three. Common = 5 turns, rare = 7, epic = 9. |
 | `--optimize {dps,support}` | Side-node optimisation target. Default: `dps`. |
 | `--gem-type TYPE` | Gem type (see [gem types](documentation/gem_types.md)). Omit to use a random gem each trial. |
 | `--first-effect EFFECT` | First effect on the gem. Required when `--gem-type` is set. |
@@ -73,6 +110,7 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 | `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value. `0.0` = disabled (binary feasibility only). Try `0.01`-`0.03` for typical goals. Default: `0.0`. |
 | `--bis-only` | Actively pursue target effects via `change_effect` offers in desperate mode. Side-node upgrades still use the coefficient-scaled threshold but are filtered to target-type slots only. In `stats`, only runs where both effects end up as target-type count as success. |
 | `--reset-min-coeff N` | Only use reset ticket when the sum of starting target-effect coefficients meets this threshold (e.g. atk_power+additional_damage = 1100 passes, brand_power alone = 1050 does not). `0` = always use. Default: `0`. |
+| `--reroll-min-coeff N` | Only use extra reroll ticket when the sum of starting target-effect coefficients meets this threshold. Same logic as `--reset-min-coeff` but for the extra reroll ticket. `0` = always use. Default: `0`. |
 | `--dp-reroll-margin F` | Margin for DP-based reroll override. Controls how far below the baseline expected probability the current offers must be before spending a reroll. Default: `0.03`. |
 | `--side-quality F` | Weight side-node quality by coefficient in reroll decisions. `0` = off (max goal probability), `2` = mild, `12` = aggressive (~40% prob drop tolerated for +4 boss_damage). Default: `0`. |
 
@@ -88,6 +126,14 @@ When `--gem-type` is omitted, each simulation trial randomly picks a gem type an
 | Flag | Description |
 |---|---|
 | `--seed N` | RNG seed. Default: `42`. |
+
+### Live-only options
+
+| Flag | Description |
+|---|---|
+| `--screenshot FILE` | Path to screenshot image (required). |
+| `--trials N` | Monte Carlo trials from current state. `0` = DP only. Default: `0`. |
+| `--seed N` | RNG seed for Monte Carlo. Default: `42`. |
 
 ## Documentation
 
@@ -132,15 +178,34 @@ python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 
 python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 12 \
   --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
 
+# Side node level goal: require boss_damage (first slot) at level 5
+python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \
+  --gem-type order_fortitude --first-effect boss_damage --second-effect ally_attack
+
+# Coefficient-weighted side node goal: total >= 5000 (e.g. boss_damage*5)
+python -m arkgrid stats --min-will 4 --min-chaos 5 --min-side-coeff 5000 --rarity epic \
+  --gem-type order_fortitude --first-effect boss_damage --second-effect ally_attack
+
+# Combined: both side nodes at level 4+ with coefficient floor
+python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 4 --min-second 4 \
+  --min-side-coeff 6000 --rarity epic \
+  --gem-type order_immutability --first-effect boss_damage --second-effect additional_damage
+
+# Save extra reroll ticket for high-coeff gems only
+python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reroll-min-coeff 1100
+
 # Show effect change outcomes for a gem type
 python -m arkgrid effects --gem-type order_stability --optimize dps
 
 # Single debug run with turn log
 python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic --seed 123
 
-# Single run with a specific gem
-python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic \
+# Single run with a specific gem and side node goal
+python -m arkgrid sim --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \
   --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
+
+# Analyse a screenshot (requires opencv-python)
+python -m arkgrid live --screenshot screenshot.png --min-will 4 --min-chaos 5
 ```
 
 ## Tests
