@@ -34,6 +34,7 @@ class GemSimulator:
             reset_min_coeff: int = 0,
             reroll_min_coeff: int = 0,
             min_side_coeff: int = 0,
+            exact_draw: bool = False,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -82,6 +83,7 @@ class GemSimulator:
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
         )
 
     @staticmethod

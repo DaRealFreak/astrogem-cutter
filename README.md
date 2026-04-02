@@ -66,7 +66,7 @@ python -m arkgrid read [--screenshot FILE] [--debug] [--save-debug FILE]
 | `--exact-chaos N` | Exact chaos target |
 | `--min-first N` | Minimum level for first side node (1-5) |
 | `--min-second N` | Minimum level for second side node (1-5) |
-| `--min-side-coeff N` | Minimum coefficient-weighted level total from target side nodes. Value = `sum(level * coefficient)`. E.g. boss_damage(1000) at level 5 = 5000. Requires `--gem-type` with `--first/second-effect`. Default: `0`. |
+| `--min-side-coeff N` | Minimum coefficient-weighted level total from target side nodes. Value = `sum(level * coefficient)`. E.g. boss_damage(1000) at level 5 = 5000. Requires `--first-effect` and `--second-effect`. Default: `0`. |
 
 At least one goal flag should be set. Flags can be combined (e.g. `--min-will 4 --min-chaos 5 --min-first 5`).
 
@@ -94,11 +94,13 @@ Example: boss_damage at level 5 + additional_damage at level 3 = 5000 + 2100 = 7
 |---|---|
 | `--rarity {common,rare,epic}` | Gem rarity (one or more). Omit to run all three. Common = 5 turns, rare = 7, epic = 9. |
 | `--optimize {dps,support}` | Side-node optimisation target. Default: `dps`. |
-| `--gem-type TYPE` | Gem type (see [gem types](documentation/gem_types.md)). Omit to use a random gem each trial. |
-| `--first-effect EFFECT` | First effect on the gem. Required when `--gem-type` is set. |
-| `--second-effect EFFECT` | Second effect on the gem. Required when `--gem-type` is set. |
+| `--gem-type TYPE` | Gem type (see [gem types](documentation/gem_types.md)). Auto-resolved from effects when unambiguous. |
+| `--first-effect EFFECT` | First effect on the gem. |
+| `--second-effect EFFECT` | Second effect on the gem. |
 
-When `--gem-type` is omitted, each simulation trial randomly picks a gem type and assigns two random effects from its pool.
+When both `--first-effect` and `--second-effect` are specified, the gem type is auto-resolved from the effect pair. Each same-type pair (both DPS or both support) maps to exactly one gem pool. Three cross-type pairs are ambiguous and require `--gem-type` to disambiguate: `attack_power + ally_damage`, `additional_damage + brand_power`, `boss_damage + ally_attack`.
+
+When no effects are specified, each simulation trial randomly picks a gem type and assigns two random effects from its pool.
 
 ### Tickets & strategy
 
@@ -151,9 +153,9 @@ python -m arkgrid stats --min-will 4 --min-chaos 5
 # Epic only, with reset ticket, 500k trials
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket --trials 500000
 
-# Support optimisation with a specific gem
+# Support optimisation with a specific gem (gem type auto-resolved)
 python -m arkgrid stats --min-will 3 --min-chaos 3 --optimize support \
-  --gem-type order_fortitude --first-effect attack_power --second-effect ally_damage
+  --first-effect ally_damage --second-effect ally_attack
 
 # Exact goals, no extra ticket
 python -m arkgrid stats --exact-will 5 --exact-chaos 5 --no-extra-ticket
@@ -172,24 +174,24 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity rare --dp-reroll-mar
 
 # Min-max side nodes: mild weighting (2x)
 python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 2 \
-  --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
+  --first-effect boss_damage --second-effect attack_power
 
 # Aggressive min-max: tolerate big probability drops for +4 boss_damage
 python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 12 \
-  --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
+  --first-effect boss_damage --second-effect attack_power
 
 # Side node level goal: require boss_damage (first slot) at level 5
 python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \
-  --gem-type order_fortitude --first-effect boss_damage --second-effect ally_attack
+  --first-effect boss_damage --second-effect attack_power
 
 # Coefficient-weighted side node goal: total >= 5000 (e.g. boss_damage*5)
 python -m arkgrid stats --min-will 4 --min-chaos 5 --min-side-coeff 5000 --rarity epic \
-  --gem-type order_fortitude --first-effect boss_damage --second-effect ally_attack
+  --first-effect boss_damage --second-effect additional_damage
 
 # Combined: both side nodes at level 4+ with coefficient floor
 python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 4 --min-second 4 \
   --min-side-coeff 6000 --rarity epic \
-  --gem-type order_immutability --first-effect boss_damage --second-effect additional_damage
+  --first-effect boss_damage --second-effect additional_damage
 
 # Save extra reroll ticket for high-coeff gems only
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reroll-min-coeff 1100
@@ -202,7 +204,7 @@ python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic --seed 123
 
 # Single run with a specific gem and side node goal
 python -m arkgrid sim --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \
-  --gem-type chaos_distortion --first-effect boss_damage --second-effect ally_attack
+  --first-effect boss_damage --second-effect additional_damage
 
 # Analyse a screenshot (requires opencv-python)
 python -m arkgrid live --screenshot screenshot.png --min-will 4 --min-chaos 5

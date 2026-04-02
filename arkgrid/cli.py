@@ -9,7 +9,9 @@ from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
     SUPPORT_COEFF, SUPPORT_EFFECTS,
 )
-from arkgrid.models import LastTurnGoal, AstroGem
+from arkgrid.models import LastTurnGoal, AstroGem, GemState
+from arkgrid.pool import OptionPool
+from arkgrid.probability import GoalProbabilityTable
 from arkgrid.simulator import GemSimulator
 from arkgrid.analyzer import GemAnalyzer, pprint_result
 
@@ -71,14 +73,14 @@ def _build_parser() -> argparse.ArgumentParser:
         p.add_argument("--min-side-coeff", type=int, default=0, metavar="N",
                         help="Minimum coefficient-weighted level total from target side nodes. "
                              "Value = sum(level * coefficient). E.g. boss_damage(1000)*5 = 5000. "
-                             "Requires --gem-type with --first/second-effect. Default: 0")
+                             "Requires --first-effect and --second-effect. Default: 0")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
-                         help="Gem type")
+                         help="Gem type (auto-resolved from effects if unambiguous)")
         grp.add_argument("--first-effect", choices=ALL_EFFECTS, default=None,
-                         help="First effect on the gem")
+                         help="First effect on the gem (with --second-effect, auto-resolves gem type)")
         grp.add_argument("--second-effect", choices=ALL_EFFECTS, default=None,
-                         help="Second effect on the gem")
+                         help="Second effect on the gem (with --first-effect, auto-resolves gem type)")
 
     # ---- stats ----
     p_stats = sub.add_parser("stats", help="Run Monte Carlo probability estimation")
@@ -87,12 +89,17 @@ def _build_parser() -> argparse.ArgumentParser:
                          help="Number of simulation trials (default: 200000)")
     p_stats.add_argument("--seed", type=int, default=12345,
                          help="RNG seed for reproducibility (default: 12345)")
+    p_stats.add_argument("--exact-dp", action="store_true", default=False,
+                         help="Also compute exact 4-draw-pick-1 DP probability "
+                              "(slower but more accurate, ~5-15s build time)")
 
     # ---- sim ----
     p_sim = sub.add_parser("sim", help="Run a single simulation with turn-by-turn log")
     add_common(p_sim)
     p_sim.add_argument("--seed", type=int, default=42,
                        help="RNG seed (default: 42)")
+    p_sim.add_argument("--exact-dp", action="store_true", default=False,
+                       help="Use exact 4-draw-pick-1 DP for reroll/reset decisions")
 
     # ---- effects ----
     p_eff = sub.add_parser("effects", help="Show effect change outcomes for gem types")
@@ -113,6 +120,8 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Monte Carlo trials from current state (0 = DP only, default: 0)")
     p_live.add_argument("--seed", type=int, default=42,
                         help="RNG seed for Monte Carlo (default: 42)")
+    p_live.add_argument("--exact-dp", action="store_true", default=False,
+                        help="Use exact 4-draw-pick-1 DP for probability display")
 
     # ---- read (vision) ----
     p_read = sub.add_parser("read", help="Read current game screen state via vision")
@@ -141,21 +150,56 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
     )
 
     astro_gem: Optional[AstroGem] = None
-    if args.gem_type:
-        pool = set(GEM_TYPES[args.gem_type])
-        first = args.first_effect
-        second = args.second_effect
+    first = getattr(args, "first_effect", None)
+    second = getattr(args, "second_effect", None)
+    gem_type = getattr(args, "gem_type", None)
+
+    if gem_type:
+        pool = set(GEM_TYPES[gem_type])
         if not first or first not in pool:
             raise SystemExit(
-                f"--first-effect must be one of {sorted(pool)} for {args.gem_type}"
+                f"--first-effect must be one of {sorted(pool)} for {gem_type}"
             )
         if not second or second not in pool:
             raise SystemExit(
-                f"--second-effect must be one of {sorted(pool)} for {args.gem_type}"
+                f"--second-effect must be one of {sorted(pool)} for {gem_type}"
             )
         if first == second:
             raise SystemExit("--first-effect and --second-effect must differ")
-        astro_gem = AstroGem(args.gem_type, first, second, args.optimize)
+        astro_gem = AstroGem(gem_type, first, second, args.optimize)
+    elif first and second:
+        if first == second:
+            raise SystemExit("--first-effect and --second-effect must differ")
+        # Auto-resolve gem type from effect pair
+        matches = [name for name, pool in GEM_TYPES.items()
+                   if first in pool and second in pool]
+        if not matches:
+            raise SystemExit(
+                f"No gem type contains both {first} and {second}"
+            )
+        # Group by unique pool (order/chaos pairs share pools)
+        seen_pools: dict = {}
+        for name in matches:
+            pool_key = tuple(sorted(GEM_TYPES[name]))
+            if pool_key not in seen_pools:
+                seen_pools[pool_key] = name
+        if len(seen_pools) > 1:
+            options = " or ".join(sorted(seen_pools.values()))
+            raise SystemExit(
+                f"{first} + {second} exists in multiple gem pools — "
+                f"use --gem-type to disambiguate ({options})"
+            )
+        resolved_type = next(iter(seen_pools.values()))
+        astro_gem = AstroGem(resolved_type, first, second, args.optimize)
+    elif first or second:
+        raise SystemExit("Both --first-effect and --second-effect are required")
+
+    min_side_coeff = getattr(args, "min_side_coeff", 0)
+    if min_side_coeff > 0 and astro_gem is None:
+        raise SystemExit(
+            "--min-side-coeff requires a configured gem "
+            "(--first-effect and --second-effect)"
+        )
 
     rarities = args.rarity if args.rarity else ["common", "rare", "epic"]
 
@@ -200,6 +244,77 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
     print()
 
 
+def _compute_dp_prob(
+    goal: LastTurnGoal,
+    rarity: str,
+    astro_gem: Optional[AstroGem],
+    optimize: str,
+    bis_only: bool,
+    min_side_coeff: int,
+    exact_draw: bool = False,
+) -> float:
+    """Compute analytical DP probability from initial state.
+
+    Does not model rerolls, reset tickets, or smart policy decisions.
+    When exact_draw=False: single-draw transition approximation (~20ms).
+    When exact_draw=True: exact PPSWOR(4) pick-1 transitions (~1-4s).
+    """
+    pool = OptionPool()
+    turns = GemSimulator.RARITY_TURNS[rarity]
+
+    side_coeff_first, side_coeff_second = 0, 0
+    target_effects: frozenset = frozenset()
+
+    if astro_gem:
+        coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+        target_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        if min_side_coeff > 0:
+            if astro_gem.first_effect in target_set:
+                side_coeff_first = coeff_map[astro_gem.first_effect]
+            if astro_gem.second_effect in target_set:
+                side_coeff_second = coeff_map[astro_gem.second_effect]
+        if bis_only:
+            target_effects = frozenset(
+                set(GEM_TYPES[astro_gem.gem_type]) & target_set)
+
+    if bis_only and astro_gem:
+        table = GoalProbabilityTable(
+            goal, turns, pool,
+            bis_only=True,
+            target_effects=target_effects,
+            side_coeff_first=side_coeff_first,
+            side_coeff_second=side_coeff_second,
+            min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
+        )
+        initial = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=astro_gem.first_effect,
+            second_effect=astro_gem.second_effect,
+        )
+        return table.lookup(initial, turns)
+    elif bis_only:
+        # No configured gem — average over all starting (ft, st) combos.
+        # The BIS DP is gem-type-independent (only tracks target/non-target
+        # binary state), so one table covers all gem types.
+        table = GoalProbabilityTable(
+            goal, turns, pool,
+            bis_only=True,
+            exact_draw=exact_draw,
+        )
+        return table.lookup_bis_averaged(turns)
+    else:
+        table = GoalProbabilityTable(
+            goal, turns, pool,
+            side_coeff_first=side_coeff_first,
+            side_coeff_second=side_coeff_second,
+            min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
+        )
+        initial = GemState(will=1, chaos=1, first=1, second=1)
+        return table.lookup(initial, turns)
+
+
 def cmd_stats(args: argparse.Namespace) -> None:
     goal, astro_gem, rarities, reset_variants = _resolve_args(args)
     _print_config(args, goal, astro_gem)
@@ -223,10 +338,29 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 reset_min_coeff=args.reset_min_coeff,
                 reroll_min_coeff=args.reroll_min_coeff,
                 min_side_coeff=args.min_side_coeff,
+                exact_draw=getattr(args, "exact_dp", False),
             )
-            summary = GemAnalyzer.estimate_summary(
-                trials=args.trials, simulator=sim, seed=args.seed,
+
+            dp_prob = _compute_dp_prob(
+                goal, rarity, astro_gem, args.optimize,
+                args.bis_only, args.min_side_coeff,
             )
+            summary: dict = {"dp_prob": dp_prob}
+
+            if getattr(args, "exact_dp", False):
+                exact_prob = _compute_dp_prob(
+                    goal, rarity, astro_gem, args.optimize,
+                    args.bis_only, args.min_side_coeff,
+                    exact_draw=True,
+                )
+                summary["dp_exact_prob"] = exact_prob
+
+            if args.trials > 0:
+                mc = GemAnalyzer.estimate_summary(
+                    trials=args.trials, simulator=sim, seed=args.seed,
+                )
+                summary.update(mc)
+
             pprint_result(f"  {rarity.capitalize()}", summary)
 
 
@@ -249,6 +383,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         side_quality_weight=args.side_quality,
         reroll_min_coeff=args.reroll_min_coeff,
         min_side_coeff=args.min_side_coeff,
+        exact_draw=getattr(args, "exact_dp", False),
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -362,8 +497,6 @@ def cmd_live(args: argparse.Namespace) -> None:
     from arkgrid.vision.constants import (
         GEM_TYPE_TEMPLATE_TO_DOMAIN, RARITY_FROM_TOTAL_STEPS,
     )
-    from arkgrid.pool import OptionPool
-    from arkgrid.probability import GoalProbabilityTable
 
     # --- Load and detect ---
     frame = cv2.imread(args.screenshot)
@@ -453,12 +586,14 @@ def cmd_live(args: argparse.Namespace) -> None:
         if state.second_effect in opt_set_coeff:
             side_coeff_second = coeff_map[state.second_effect]
 
+    exact_draw = getattr(args, "exact_dp", False)
     prob_table = GoalProbabilityTable(
         goal, turns_total, pool,
         bis_only=bis_only, target_effects=target_effects,
         side_coeff_first=side_coeff_first,
         side_coeff_second=side_coeff_second,
         min_side_coeff=min_side_coeff,
+        exact_draw=exact_draw,
     )
     p_current = prob_table.lookup(state, turns_left)
 
@@ -606,6 +741,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             reset_min_coeff=getattr(args, "reset_min_coeff", 0),
             reroll_min_coeff=getattr(args, "reroll_min_coeff", 0),
             min_side_coeff=getattr(args, "min_side_coeff", 0),
+            exact_draw=exact_draw,
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,

@@ -4,6 +4,7 @@ import math
 import random
 from typing import Dict, Tuple
 
+from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS
 from arkgrid.simulator import GemSimulator
 
 
@@ -18,6 +19,17 @@ class GemAnalyzer:
         return (max(0.0, center - half), min(1.0, center + half))
 
     @staticmethod
+    def _side_coeff(state, optimize: str) -> int:
+        coeff = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+        target = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        total = 0
+        if state.first_effect in target:
+            total += state.first * coeff[state.first_effect]
+        if state.second_effect in target:
+            total += state.second * coeff[state.second_effect]
+        return total
+
+    @staticmethod
     def estimate_summary(
             trials: int,
             simulator: GemSimulator,
@@ -26,11 +38,13 @@ class GemAnalyzer:
             seed: int = 12345,
     ) -> Dict[str, float]:
         rng = random.Random(seed)
+        optimize = simulator.optimize
 
         wins = 0
         resets = 0
         extra_tickets = 0
         sum_points = 0
+        sum_side_coeff = 0
         relic_plus = 0
         ancient = 0
 
@@ -43,6 +57,7 @@ class GemAnalyzer:
             extra_tickets += 1 if r.extra_ticket_used else 0
 
             sum_points += r.total_points
+            sum_side_coeff += GemAnalyzer._side_coeff(r.state, optimize)
             relic_plus += 1 if r.total_points >= relic_threshold else 0
             ancient += 1 if r.total_points >= ancient_threshold else 0
 
@@ -54,6 +69,7 @@ class GemAnalyzer:
             "p_success_ci_lo": lo,
             "p_success_ci_hi": hi,
             "avg_total_points": sum_points / trials,
+            "avg_side_coeff": sum_side_coeff / trials,
             "p_relic_plus": relic_plus / trials,
             "p_ancient": ancient / trials,
             "reset_rate": resets / trials,
@@ -63,11 +79,20 @@ class GemAnalyzer:
 
 def pprint_result(title: str, result: Dict[str, float]) -> None:
     print(title)
-    print(
-        f"  Success rate: {result['p_success'] * 100:.2f}% (CI: {result['p_success_ci_lo'] * 100:.2f}% - {result['p_success_ci_hi'] * 100:.2f}%)")
-    print(f"  Average total points: {result['avg_total_points']:.3f}")
-    print(f"  Relic+ rate (>=16): {result['p_relic_plus'] * 100:.2f}%")
-    print(f"  Ancient rate (>=19): {result['p_ancient'] * 100:.2f}%")
-    print(f"  Reset usage rate: {result['reset_rate'] * 100:.2f}%")
-    print(f"  Extra ticket usage rate: {result['extra_ticket_rate'] * 100:.2f}%")
+    if "dp_prob" in result:
+        line = f"  DP probability: {result['dp_prob'] * 100:.2f}%"
+        if "dp_exact_prob" in result:
+            line += f"  (exact draw: {result['dp_exact_prob'] * 100:.2f}%)"
+        print(line)
+    if "p_success" in result:
+        print(
+            f"  Success rate: {result['p_success'] * 100:.2f}% "
+            f"(CI: {result['p_success_ci_lo'] * 100:.2f}% - "
+            f"{result['p_success_ci_hi'] * 100:.2f}%)")
+        print(f"  Average total points: {result['avg_total_points']:.3f}")
+        print(f"  Average side coefficient: {result['avg_side_coeff']:.0f}")
+        print(f"  Relic+ rate (>=16): {result['p_relic_plus'] * 100:.2f}%")
+        print(f"  Ancient rate (>=19): {result['p_ancient'] * 100:.2f}%")
+        print(f"  Reset usage rate: {result['reset_rate'] * 100:.2f}%")
+        print(f"  Extra ticket usage rate: {result['extra_ticket_rate'] * 100:.2f}%")
     print("")
