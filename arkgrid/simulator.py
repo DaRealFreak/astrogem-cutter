@@ -4,8 +4,8 @@ import random
 from typing import List, Optional, Dict, Any
 
 from arkgrid.constants import (
-    DPS_COEFF, DPS_EFFECTS, DPS_PRIORITY, GEM_TYPES,
-    SUPPORT_COEFF, SUPPORT_EFFECTS, SUPPORT_PRIORITY,
+    DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
+    SUPPORT_COEFF, SUPPORT_EFFECTS,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
@@ -35,6 +35,7 @@ class GemSimulator:
             reroll_min_coeff: int = 0,
             min_side_coeff: int = 0,
             exact_draw: bool = False,
+            early_finish_coeff: int = 0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -77,6 +78,7 @@ class GemSimulator:
                 side_coeff_second = coeff[astro_gem.second_effect]
         self._side_coeff_first = side_coeff_first
         self._side_coeff_second = side_coeff_second
+        self.early_finish_coeff = early_finish_coeff
 
         self.prob_table = GoalProbabilityTable(
             goal, self.turns_total, self.pool,
@@ -84,6 +86,7 @@ class GemSimulator:
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
+            early_finish=early_finish_coeff >= 0,
         )
 
     @staticmethod
@@ -159,6 +162,74 @@ class GemSimulator:
         elif opt.key == "change_second_effect":
             state.second_effect = (opt.resolved_effect
                                    or self._resolve_effect_change(state, "second", rng))
+
+    def _goal_fully_satisfied(self, state: GemState) -> bool:
+        """Check if goal + BIS + coeff constraints are all met."""
+        if not self.goal.satisfied(state.will, state.chaos,
+                                   state.first, state.second):
+            return False
+        if self.bis_only and self.astro_gem:
+            target = (DPS_EFFECTS if self.astro_gem.optimize == "dps"
+                      else SUPPORT_EFFECTS)
+            if (state.first_effect not in target
+                    or state.second_effect not in target):
+                return False
+        if self.min_side_coeff > 0 and self.astro_gem:
+            coeff = (DPS_COEFF if self.astro_gem.optimize == "dps"
+                     else SUPPORT_COEFF)
+            t_set = (DPS_EFFECTS if self.astro_gem.optimize == "dps"
+                     else SUPPORT_EFFECTS)
+            coeff_total = 0
+            if state.first_effect in t_set:
+                coeff_total += state.first * coeff[state.first_effect]
+            if state.second_effect in t_set:
+                coeff_total += state.second * coeff[state.second_effect]
+            if coeff_total < self.min_side_coeff:
+                return False
+        return True
+
+    def should_early_finish(self, state: GemState, offers: List[Option]) -> bool:
+        """Decide whether to finish early when goal is already satisfied.
+
+        Returns True if we should finish (stop processing turns).
+        Uses the early_finish_coeff threshold:
+          0 = finish if any risk, >0 = tolerate risk up to that level.
+        """
+        if self.early_finish_coeff < 0:
+            return False
+        if not self._goal_fully_satisfied(state):
+            return False
+
+        # Compute P(miss) = fraction of offers that would break the goal
+        miss_count = 0
+        for o in offers:
+            s = state.clone()
+            self.apply_option(o, s)
+            if not self._goal_fully_satisfied(s):
+                miss_count += 1
+        p_miss = miss_count / len(offers) if offers else 0.0
+
+        if p_miss == 0.0:
+            return False  # no risk, continue
+
+        # Compute best coefficient gain from side upgrades
+        best_coeff_gain = 0
+        if self.astro_gem:
+            coeff_map = (DPS_COEFF if self.astro_gem.optimize == "dps"
+                         else SUPPORT_COEFF)
+            t_set = (DPS_EFFECTS if self.astro_gem.optimize == "dps"
+                     else SUPPORT_EFFECTS)
+            for o in offers:
+                if o.kind in ("first", "second"):
+                    eff = getattr(state, f"{o.kind}_effect")
+                    if eff in t_set and o.delta > 0:
+                        gain = o.delta * coeff_map[eff]
+                        best_coeff_gain = max(best_coeff_gain, gain)
+
+        if best_coeff_gain == 0:
+            return True  # risk but no side gain, finish
+
+        return best_coeff_gain * p_miss > self.early_finish_coeff
 
     def prob_goal_feasible_after_click(self, state: GemState, offers: List[Option], turns_left_after: int) -> float:
         if not offers:
@@ -349,6 +420,33 @@ class GemSimulator:
                     if _log_pt is not None:
                         entry["prob_after_click"] = _log_pt.expected_prob_after_click(
                             state, offers, turns_left - 1)
+
+                # Early finish: goal already satisfied, risk not worth it
+                if self.should_early_finish(state, offers):
+                    if log:
+                        entry["action"] = "EARLY_FINISH"
+                        entry["state_after"] = {
+                            "will": state.will,
+                            "chaos": state.chaos,
+                            "first": state.first,
+                            "second": state.second,
+                            "total_points": state.total_points(),
+                            "rerolls": state.rerolls,
+                            "first_effect": state.first_effect,
+                            "second_effect": state.second_effect,
+                            "goal_prob": 1.0,
+                        }
+                        turn_log.append(entry)
+                    return RunResult(
+                        success=True,
+                        reason="early_finish",
+                        reset_used=reset_used,
+                        state=state,
+                        total_points=state.total_points(),
+                        rerolls_left=state.rerolls,
+                        extra_ticket_used=extra_ticket_active,
+                        turn_log=turn_log if log else None,
+                    )
 
                 # after rerolls: probability-based early reset
                 if (self.prob_reset_threshold > 0.0

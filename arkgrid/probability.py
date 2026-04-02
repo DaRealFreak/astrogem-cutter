@@ -35,6 +35,7 @@ class GoalProbabilityTable:
         side_coeff_second: int = 0,
         min_side_coeff: int = 0,
         exact_draw: bool = False,
+        early_finish: bool = False,
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
@@ -45,6 +46,7 @@ class GoalProbabilityTable:
         self._side_coeff_first = side_coeff_first
         self._side_coeff_second = side_coeff_second
         self._min_side_coeff = min_side_coeff
+        self.early_finish = early_finish
         self._dp: Dict[tuple, float] = {}
         if bis_only:
             self._build_bis()
@@ -216,6 +218,11 @@ class GoalProbabilityTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            if (self.early_finish
+                                    and self.goal.satisfied(w, c, f, s)
+                                    and self._coeff_satisfied(f, s)):
+                                dp[(w, c, f, s, tl)] = 1.0
+                                continue
                             val = 0.0
                             for (nw, nc, nf, ns), p in tc[(w, c, f, s)].items():
                                 val += p * dp[(nw, nc, nf, ns, tl - 1)]
@@ -336,6 +343,12 @@ class GoalProbabilityTable:
                         for s in range(1, 6):
                             for ft in ft_range:
                                 for st in st_range:
+                                    if (self.early_finish
+                                            and self.goal.satisfied(w, c, f, s)
+                                            and ft == 1 and st == 1
+                                            and self._coeff_satisfied(f, s, ft, st)):
+                                        dp[(w, c, f, s, ft, st, tl)] = 1.0
+                                        continue
                                     val = 0.0
                                     for dest_key, p in tc[(w, c, f, s, ft, st)].items():
                                         val += p * dp[(*dest_key, tl - 1)]

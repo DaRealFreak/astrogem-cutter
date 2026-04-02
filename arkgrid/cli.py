@@ -74,6 +74,12 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Minimum coefficient-weighted level total from target side nodes. "
                              "Value = sum(level * coefficient). E.g. boss_damage(1000)*5 = 5000. "
                              "Requires --first-effect and --second-effect. Default: 0")
+        p.add_argument("--early-finish-coeff", type=int, default=0, metavar="N",
+                        help="Finish early when goal is satisfied. Risk tolerance: "
+                             "best_coeff_gain * P(miss) must be <= N to continue. "
+                             "0 = always finish when met (safe). "
+                             "E.g. 750 = continue for boss_damage+3 at 25%% miss "
+                             "(3000*0.25=750). Default: 0")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type (auto-resolved from effects if unambiguous)")
@@ -254,6 +260,8 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
     print(f"Optimize: {args.optimize}")
     print(f"Extra ticket: {'yes' if args.extra_ticket else 'no'}")
     print(f"Side threshold: {args.side_threshold}")
+    early_finish_coeff = getattr(args, "early_finish_coeff", 0)
+    print(f"Early finish:   {early_finish_coeff} ({'safe' if early_finish_coeff == 0 else 'risk tolerance'})")
     print()
 
 
@@ -268,6 +276,7 @@ def _compute_dp_prob(
     bis_only: bool,
     min_side_coeff: int,
     exact_draw: bool = False,
+    early_finish: bool = False,
 ) -> float:
     """Compute analytical DP probability from initial state.
 
@@ -302,6 +311,7 @@ def _compute_dp_prob(
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
+            early_finish=early_finish,
         )
         initial = GemState(
             will=1, chaos=1, first=1, second=1,
@@ -317,6 +327,7 @@ def _compute_dp_prob(
             goal, turns, pool,
             bis_only=True,
             exact_draw=exact_draw,
+            early_finish=early_finish,
         )
         return table.lookup_bis_averaged(turns)
     else:
@@ -326,6 +337,7 @@ def _compute_dp_prob(
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
+            early_finish=early_finish,
         )
         initial = GemState(will=1, chaos=1, first=1, second=1)
         return table.lookup(initial, turns)
@@ -339,9 +351,11 @@ def cmd_stats(args: argparse.Namespace) -> None:
         label = "With reset ticket" if use_reset else "Without reset ticket"
         print(f"--- {label} ---")
         for rarity in rarities:
+            ef = args.early_finish_coeff >= 0
             dp_prob = _compute_dp_prob(
                 goal, rarity, astro_gem, args.optimize,
                 args.bis_only, args.min_side_coeff,
+                early_finish=ef,
             )
             summary: dict = {"dp_prob": dp_prob}
 
@@ -350,6 +364,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     goal, rarity, astro_gem, args.optimize,
                     args.bis_only, args.min_side_coeff,
                     exact_draw=True,
+                    early_finish=ef,
                 )
                 summary["dp_exact_prob"] = exact_prob
 
@@ -370,6 +385,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     reroll_min_coeff=args.reroll_min_coeff,
                     min_side_coeff=args.min_side_coeff,
                     exact_draw=getattr(args, "exact_dp", False),
+                    early_finish_coeff=args.early_finish_coeff,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -399,6 +415,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         reroll_min_coeff=args.reroll_min_coeff,
         min_side_coeff=args.min_side_coeff,
         exact_draw=getattr(args, "exact_dp", False),
+        early_finish_coeff=args.early_finish_coeff,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -602,6 +619,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             side_coeff_second = coeff_map[state.second_effect]
 
     exact_draw = getattr(args, "exact_dp", False)
+    early_finish_coeff = getattr(args, "early_finish_coeff", 0)
     prob_table = GoalProbabilityTable(
         goal, turns_total, pool,
         bis_only=bis_only, target_effects=target_effects,
@@ -609,6 +627,7 @@ def cmd_live(args: argparse.Namespace) -> None:
         side_coeff_second=side_coeff_second,
         min_side_coeff=min_side_coeff,
         exact_draw=exact_draw,
+        early_finish=early_finish_coeff >= 0,
     )
     p_current = prob_table.lookup(state, turns_left)
 
@@ -723,7 +742,47 @@ def cmd_live(args: argparse.Namespace) -> None:
           f"  |  Reroll below: {reroll_threshold:.1%}" if can_reroll else
           f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline: {p_current:.1%}  "
           f"|  Best pick: {p_best_option:.1%}")
-    if should_reroll:
+    # --- Early finish check ---
+    should_early_finish = False
+    if (early_finish_coeff >= 0 and turns_left > 0
+            and goal.satisfied(state.will, state.chaos, state.first, state.second)):
+        # Compute P(miss) and best coefficient gain from shown options
+        miss_count = sum(1 for _, _, _, p in option_probs if p < p_current * 0.5)
+        # More precise: check if applying option breaks goal satisfaction
+        miss_count = 0
+        best_coeff_gain = 0
+        optimize = getattr(args, "optimize", "dps")
+        from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS
+        coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+        opt_set_ef = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        for opt, kind, delta_val, p_after in option_probs:
+            # Check if this option would break the goal
+            ns = state.clone()
+            if delta_val is not None and kind in ("will", "chaos", "first", "second"):
+                cur = getattr(ns, kind)
+                setattr(ns, kind, min(5, max(1, cur + delta_val)))
+            if not goal.satisfied(ns.will, ns.chaos, ns.first, ns.second):
+                miss_count += 1
+            # Coefficient gain from side upgrades
+            if kind in ("first", "second") and delta_val is not None and delta_val > 0:
+                eff = getattr(state, f"{kind}_effect")
+                if eff in opt_set_ef:
+                    gain = delta_val * coeff_map[eff]
+                    best_coeff_gain = max(best_coeff_gain, gain)
+
+        p_miss = miss_count / len(option_probs) if option_probs else 0.0
+        if p_miss > 0:
+            if best_coeff_gain == 0:
+                should_early_finish = True
+            else:
+                should_early_finish = best_coeff_gain * p_miss > early_finish_coeff
+
+    if should_early_finish:
+        print(f"  >>> Finish early (goal satisfied, risk={p_miss:.0%}, "
+              f"best_gain={best_coeff_gain}, "
+              f"score={best_coeff_gain * p_miss:.0f} "
+              f"{'>' if should_early_finish else '<='} {early_finish_coeff})")
+    elif should_reroll:
         print(f"  >>> Reroll (offers {p_current - p_avg_offers:+.1%} below baseline, "
               f"{reroll_count} rerolls available)")
     else:
@@ -757,6 +816,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             reroll_min_coeff=getattr(args, "reroll_min_coeff", 0),
             min_side_coeff=getattr(args, "min_side_coeff", 0),
             exact_draw=exact_draw,
+            early_finish_coeff=early_finish_coeff,
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,
@@ -829,6 +889,7 @@ def cmd_auto(args: argparse.Namespace) -> None:
         astro_gem=astro_gem,
         reset_min_coeff=args.reset_min_coeff,
         reroll_min_coeff=args.reroll_min_coeff,
+        early_finish_coeff=args.early_finish_coeff,
     )
 
 
