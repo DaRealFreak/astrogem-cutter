@@ -1,6 +1,6 @@
-"""Recognize all option cards from all example images.
+"""Recognize option cards and gem state from all example images.
 
-Uses template matching for both option names and deltas.
+Uses template matching for option names/deltas and side node names/levels.
 """
 
 import glob
@@ -30,10 +30,12 @@ def strip_variant(key):
     return _VARIANT_SUFFIX.sub("", key)
 
 
-def load_templates(subdir):
-    """Load all PNG templates from a subdirectory as grayscale images."""
-    d = os.path.join(TEMPLATES_DIR, "options", subdir)
+def load_templates_from(base_dir, subdir):
+    """Load all PNG templates from base_dir/subdir/ as grayscale images."""
+    d = os.path.join(base_dir, subdir)
     templates = {}
+    if not os.path.isdir(d):
+        return templates
     for path in sorted(glob.glob(os.path.join(d, "*.png"))):
         key = os.path.splitext(os.path.basename(path))[0]
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
@@ -42,20 +44,16 @@ def load_templates(subdir):
     return templates
 
 
-def match_template(card_gray, templates, strip_variants=False):
-    """Find the best matching template in a card crop via sub-image search.
-
-    If strip_variants is True, the returned key has _NN suffixes stripped
-    (e.g. 'additional_damage_01' -> 'additional_damage').
-    """
+def match_template(crop_gray, templates, strip_variants=False):
+    """Find the best matching template in a crop via sub-image search."""
     best_key = None
     best_score = 0.0
 
     for key, tmpl in templates.items():
-        if tmpl.shape[0] > card_gray.shape[0] or tmpl.shape[1] > card_gray.shape[1]:
+        if tmpl.shape[0] > crop_gray.shape[0] or tmpl.shape[1] > crop_gray.shape[1]:
             continue
 
-        result = cv2.matchTemplate(card_gray, tmpl, cv2.TM_CCOEFF_NORMED)
+        result = cv2.matchTemplate(crop_gray, tmpl, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, _ = cv2.minMaxLoc(result)
 
         if max_val > best_score:
@@ -73,7 +71,6 @@ def delta_key_to_value(delta_key):
     if not delta_key:
         return None
 
-    # Strip 1_line_ / 2_line_ prefix
     d = delta_key
     for prefix in ("1_line_", "2_line_"):
         if d.startswith(prefix):
@@ -81,7 +78,7 @@ def delta_key_to_value(delta_key):
             break
 
     if d.startswith("lvl"):
-        return d.replace("lvl", "lvl")
+        return d
     elif d == "effect_changed":
         return "ec"
     elif d == "maintained":
@@ -92,6 +89,14 @@ def delta_key_to_value(delta_key):
         return d
     else:
         return d
+
+
+def side_node_level(delta_key):
+    """Extract level number from side node delta key like '1_line_lvl3'."""
+    if not delta_key:
+        return None
+    m = re.search(r"lvl(\d)", delta_key)
+    return int(m.group(1)) if m else None
 
 
 def format_option(name, delta_key):
@@ -118,12 +123,45 @@ def format_option(name, delta_key):
         return f"{name}{delta}"
 
 
+def crop_roi(gray, ax, ay, roi):
+    """Crop an anchor-relative ROI."""
+    dx, dy, w, h = roi
+    x, y = ax + dx, ay + dy
+    fh, fw = gray.shape[:2]
+    x, y = max(0, x), max(0, y)
+    w = min(w, fw - x)
+    h = min(h, fh - y)
+    if w <= 0 or h <= 0:
+        return None
+    return gray[y:y + h, x:x + w]
+
+
 def main():
     store = TemplateStore()
-    name_templates = load_templates("names")
-    delta_templates = load_templates("deltas")
-    print(f"Loaded {len(name_templates)} name templates, "
-          f"{len(delta_templates)} delta templates\n")
+
+    # Option templates
+    opt_dir = os.path.join(TEMPLATES_DIR, "options")
+    opt_name_templates = load_templates_from(opt_dir, "names")
+    opt_delta_templates = load_templates_from(opt_dir, "deltas")
+
+    # Side node templates
+    sn_dir = os.path.join(TEMPLATES_DIR, "side_nodes")
+    sn_name_templates = load_templates_from(sn_dir, "names")
+    sn_delta_templates = load_templates_from(sn_dir, "deltas")
+
+    # Willpower/chaos/reroll digit templates
+    wp_templates = load_templates_from(TEMPLATES_DIR, "willpower")
+    ch_templates = load_templates_from(TEMPLATES_DIR, "chaos")
+    reroll_templates = load_templates_from(TEMPLATES_DIR, "rerolls")
+
+    print(f"Options:    {len(opt_name_templates)} names, "
+          f"{len(opt_delta_templates)} deltas")
+    print(f"Side nodes: {len(sn_name_templates)} names, "
+          f"{len(sn_delta_templates)} deltas")
+    print(f"Willpower:  {len(wp_templates)} templates")
+    print(f"Chaos:      {len(ch_templates)} templates")
+    print(f"Rerolls:    {len(reroll_templates)} templates")
+    print()
 
     images = sorted(glob.glob(os.path.join(EXAMPLES_DIR, "*.jpg")))
 
@@ -146,8 +184,68 @@ def main():
 
         ax, ay = match.location
         basename = os.path.basename(path)
+        print(f"{basename}:")
 
-        options = []
+        # --- Willpower ---
+        wp_crop = crop_roi(gray, ax, ay, C.ROI_STAT_WILLPOWER)
+        if wp_crop is not None and wp_templates:
+            wp_key, wp_score = match_template(
+                wp_crop, wp_templates, strip_variants=True)
+            low = " *** LOW" if wp_score < 0.9 else ""
+            print(f"  willpower:  {wp_key} ({wp_score:.2f}){low}")
+        else:
+            print(f"  willpower:  ? (no templates)")
+
+        # --- Chaos ---
+        ch_crop = crop_roi(gray, ax, ay, C.ROI_STAT_CHAOS)
+        if ch_crop is not None and ch_templates:
+            ch_key, ch_score = match_template(
+                ch_crop, ch_templates, strip_variants=True)
+            low = " *** LOW" if ch_score < 0.9 else ""
+            print(f"  chaos:      {ch_key} ({ch_score:.2f}){low}")
+        else:
+            print(f"  chaos:      ? (no templates)")
+
+        # --- Rerolls ---
+        rr_crop = crop_roi(gray, ax, ay, C.ROI_REROLL)
+        if rr_crop is not None and reroll_templates:
+            rr_key, rr_score = match_template(
+                rr_crop, reroll_templates, strip_variants=True)
+            low = " *** LOW" if rr_score < 0.9 else ""
+            print(f"  rerolls:    {rr_key} ({rr_score:.2f}){low}")
+        else:
+            print(f"  rerolls:    ? (no templates)")
+
+        # --- Side nodes ---
+        for side_idx, (label, roi) in enumerate([
+            ("side_1", C.ROI_STAT_FIRST),
+            ("side_2", C.ROI_STAT_SECOND),
+        ]):
+            sn_crop = crop_roi(gray, ax, ay, roi)
+            if sn_crop is None:
+                print(f"  {label}:    ? (crop failed)")
+                continue
+
+            sn_name, sn_name_score = match_template(
+                sn_crop, sn_name_templates, strip_variants=True)
+            sn_delta, sn_delta_score = match_template(
+                sn_crop, sn_delta_templates)
+
+            lvl = side_node_level(sn_delta)
+            name_str = sn_name or "?"
+            lvl_str = str(lvl) if lvl else "?"
+
+            low = ""
+            if sn_name_score < 0.9:
+                low += " *** LOW NAME"
+            if sn_delta_score < 0.9:
+                low += " *** LOW DELTA"
+
+            print(f"  {label}:    {name_str} Lv.{lvl_str:4s} "
+                  f"name={sn_name}({sn_name_score:.2f}) "
+                  f"delta={sn_delta}({sn_delta_score:.2f}){low}")
+
+        # --- Option cards ---
         for i, (dx, card_w) in enumerate(C.OPTION_CARD_POSITIONS):
             card_x = ax + dx
             card_y = ay + C.OPTION_CARD_Y_OFFSET
@@ -155,29 +253,27 @@ def main():
                              card_x:card_x + card_w]
 
             name_key, name_score = match_template(
-                card_crop, name_templates, strip_variants=True)
+                card_crop, opt_name_templates, strip_variants=True)
             if name_score < 0.65:
                 name_key = None
 
-            delta_key, delta_score = match_template(card_crop, delta_templates)
+            delta_key, delta_score = match_template(
+                card_crop, opt_delta_templates)
             if delta_score < 0.65:
                 delta_key = None
 
             formatted = format_option(name_key, delta_key)
-            options.append((formatted, name_key, name_score,
-                            delta_key, delta_score))
 
-        has_low = any(ns < 0.9 or ds < 0.9
-                      for _, _, ns, _, ds in options)
-        print(f"{basename}:")
-        for i, (fmt, nk, ns, dk, ds) in enumerate(options):
             low = ""
-            if ns < 0.9:
+            if name_score < 0.9:
                 low += " *** LOW NAME"
-            if ds < 0.9:
+            if delta_score < 0.9:
                 low += " *** LOW DELTA"
-            print(f"  option {i+1}: {fmt:30s} "
-                  f"name={nk}({ns:.2f}) delta={dk}({ds:.2f}){low}")
+
+            print(f"  option {i+1}: {formatted:30s} "
+                  f"name={name_key}({name_score:.2f}) "
+                  f"delta={delta_key}({delta_score:.2f}){low}")
+
         print()
 
 

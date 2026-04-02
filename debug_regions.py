@@ -32,8 +32,8 @@ PROPOSED_CARD_POSITIONS = [
 ]
 
 # Diamond stat boxes (anchor-relative: dx, dy, w, h)
-PROPOSED_SIDE_NODE_1 = (-70, 336, 102, 57)   # abs x=825 y=379
-PROPOSED_SIDE_NODE_2 = (98, 336, 102, 57)    # abs x=993 y=379
+PROPOSED_SIDE_NODE_1 = (-72, 332, 102, 57)   # abs x=823 y=375, center 874,404
+PROPOSED_SIDE_NODE_2 = (96, 332, 102, 57)    # abs x=991 y=375, center 1042,404
 PROPOSED_WILLPOWER   = (56, 309, 16, 16)     # abs x=951 y=352
 PROPOSED_CHAOS       = (56, 427, 16, 16)     # abs x=951 y=470
 
