@@ -45,25 +45,38 @@ def load_templates_from(base_dir, subdir):
 
 
 def match_template(crop_gray, templates, strip_variants=False):
-    """Find the best matching template in a crop via sub-image search."""
+    """Find the best matching template in a crop via sub-image search.
+
+    Returns (key, score, matched_region) where matched_region is the
+    sub-image of crop_gray at the best match location with the template's size.
+    """
     best_key = None
     best_score = 0.0
+    best_loc = (0, 0)
+    best_size = (0, 0)
 
     for key, tmpl in templates.items():
         if tmpl.shape[0] > crop_gray.shape[0] or tmpl.shape[1] > crop_gray.shape[1]:
             continue
 
         result = cv2.matchTemplate(crop_gray, tmpl, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, _ = cv2.minMaxLoc(result)
+        _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
         if max_val > best_score:
             best_score = max_val
             best_key = key
+            best_loc = max_loc
+            best_size = (tmpl.shape[1], tmpl.shape[0])
+
+    # Extract matched sub-region
+    mx, my = best_loc
+    mw, mh = best_size
+    matched_region = crop_gray[my:my + mh, mx:mx + mw] if best_key else None
 
     if strip_variants and best_key:
         best_key = strip_variant(best_key)
 
-    return best_key, best_score
+    return best_key, best_score, matched_region
 
 
 def delta_key_to_value(delta_key):
@@ -136,8 +149,27 @@ def crop_roi(gray, ax, ay, roi):
     return gray[y:y + h, x:x + w]
 
 
+LOW_SCORE_DIR = os.path.join(os.path.dirname(__file__), "low_score")
+LOW_THRESHOLD = 0.9
+
+
+def save_low_score(crop, matched_region, category, assumed_key, basename, score):
+    """Save a low-score crop and its matched region for review."""
+    out_dir = os.path.join(LOW_SCORE_DIR, category, assumed_key or "unknown")
+    os.makedirs(out_dir, exist_ok=True)
+    cv2.imwrite(os.path.join(out_dir, f"{basename}_{score:.2f}.png"), crop)
+    if matched_region is not None:
+        cv2.imwrite(os.path.join(out_dir, f"{basename}_{score:.2f}_match.png"),
+                    matched_region)
+
+
 def main():
     store = TemplateStore()
+
+    # Clean previous low_score output
+    import shutil
+    if os.path.isdir(LOW_SCORE_DIR):
+        shutil.rmtree(LOW_SCORE_DIR)
 
     # Option templates
     opt_dir = os.path.join(TEMPLATES_DIR, "options")
@@ -149,10 +181,12 @@ def main():
     sn_name_templates = load_templates_from(sn_dir, "names")
     sn_delta_templates = load_templates_from(sn_dir, "deltas")
 
-    # Willpower/chaos/reroll digit templates
+    # Willpower/chaos/reroll/steps/gem_type templates
     wp_templates = load_templates_from(TEMPLATES_DIR, "willpower")
     ch_templates = load_templates_from(TEMPLATES_DIR, "chaos")
     reroll_templates = load_templates_from(TEMPLATES_DIR, "rerolls")
+    step_templates = load_templates_from(TEMPLATES_DIR, "steps")
+    gem_templates = load_templates_from(TEMPLATES_DIR, "gem_type")
 
     print(f"Options:    {len(opt_name_templates)} names, "
           f"{len(opt_delta_templates)} deltas")
@@ -161,6 +195,8 @@ def main():
     print(f"Willpower:  {len(wp_templates)} templates")
     print(f"Chaos:      {len(ch_templates)} templates")
     print(f"Rerolls:    {len(reroll_templates)} templates")
+    print(f"Steps:      {len(step_templates)} templates")
+    print(f"Gem type:   {len(gem_templates)} templates")
     print()
 
     images = sorted(glob.glob(os.path.join(EXAMPLES_DIR, "*.jpg")))
@@ -184,14 +220,29 @@ def main():
 
         ax, ay = match.location
         basename = os.path.basename(path)
+        bname = os.path.splitext(basename)[0]
         print(f"{basename}:")
+
+        # --- Gem type ---
+        gem_crop = crop_roi(gray, ax, ay, C.ROI_GEM_TYPE)
+        if gem_crop is not None and gem_templates:
+            gem_key, gem_score, gem_match = match_template(
+                gem_crop, gem_templates, strip_variants=True)
+            low = " *** LOW" if gem_score < LOW_THRESHOLD else ""
+            if gem_score < LOW_THRESHOLD:
+                save_low_score(gem_crop, gem_match, "gem_type", gem_key, bname, gem_score)
+            print(f"  gem_type:   {gem_key} ({gem_score:.2f}){low}")
+        else:
+            print(f"  gem_type:   ? (no templates)")
 
         # --- Willpower ---
         wp_crop = crop_roi(gray, ax, ay, C.ROI_STAT_WILLPOWER)
         if wp_crop is not None and wp_templates:
-            wp_key, wp_score = match_template(
+            wp_key, wp_score, wp_match = match_template(
                 wp_crop, wp_templates, strip_variants=True)
-            low = " *** LOW" if wp_score < 0.9 else ""
+            low = " *** LOW" if wp_score < LOW_THRESHOLD else ""
+            if wp_score < LOW_THRESHOLD:
+                save_low_score(wp_crop, wp_match, "willpower", wp_key, bname, wp_score)
             print(f"  willpower:  {wp_key} ({wp_score:.2f}){low}")
         else:
             print(f"  willpower:  ? (no templates)")
@@ -199,9 +250,11 @@ def main():
         # --- Chaos ---
         ch_crop = crop_roi(gray, ax, ay, C.ROI_STAT_CHAOS)
         if ch_crop is not None and ch_templates:
-            ch_key, ch_score = match_template(
+            ch_key, ch_score, ch_match = match_template(
                 ch_crop, ch_templates, strip_variants=True)
-            low = " *** LOW" if ch_score < 0.9 else ""
+            low = " *** LOW" if ch_score < LOW_THRESHOLD else ""
+            if ch_score < LOW_THRESHOLD:
+                save_low_score(ch_crop, ch_match, "chaos", ch_key, bname, ch_score)
             print(f"  chaos:      {ch_key} ({ch_score:.2f}){low}")
         else:
             print(f"  chaos:      ? (no templates)")
@@ -209,12 +262,26 @@ def main():
         # --- Rerolls ---
         rr_crop = crop_roi(gray, ax, ay, C.ROI_REROLL)
         if rr_crop is not None and reroll_templates:
-            rr_key, rr_score = match_template(
+            rr_key, rr_score, rr_match = match_template(
                 rr_crop, reroll_templates, strip_variants=True)
-            low = " *** LOW" if rr_score < 0.9 else ""
+            low = " *** LOW" if rr_score < LOW_THRESHOLD else ""
+            if rr_score < LOW_THRESHOLD:
+                save_low_score(rr_crop, rr_match, "rerolls", rr_key, bname, rr_score)
             print(f"  rerolls:    {rr_key} ({rr_score:.2f}){low}")
         else:
             print(f"  rerolls:    ? (no templates)")
+
+        # --- Steps ---
+        st_crop = crop_roi(gray, ax, ay, C.ROI_PROCESS_STEPS)
+        if st_crop is not None and step_templates:
+            st_key, st_score, st_match = match_template(
+                st_crop, step_templates, strip_variants=True)
+            low = " *** LOW" if st_score < LOW_THRESHOLD else ""
+            if st_score < LOW_THRESHOLD:
+                save_low_score(st_crop, st_match, "steps", st_key, bname, st_score)
+            print(f"  steps:      {st_key} ({st_score:.2f}){low}")
+        else:
+            print(f"  steps:      ? (no templates)")
 
         # --- Side nodes ---
         for side_idx, (label, roi) in enumerate([
@@ -226,9 +293,9 @@ def main():
                 print(f"  {label}:    ? (crop failed)")
                 continue
 
-            sn_name, sn_name_score = match_template(
+            sn_name, sn_name_score, sn_name_match = match_template(
                 sn_crop, sn_name_templates, strip_variants=True)
-            sn_delta, sn_delta_score = match_template(
+            sn_delta, sn_delta_score, sn_delta_match = match_template(
                 sn_crop, sn_delta_templates)
 
             lvl = side_node_level(sn_delta)
@@ -236,10 +303,12 @@ def main():
             lvl_str = str(lvl) if lvl else "?"
 
             low = ""
-            if sn_name_score < 0.9:
+            if sn_name_score < LOW_THRESHOLD:
                 low += " *** LOW NAME"
-            if sn_delta_score < 0.9:
+                save_low_score(sn_crop, sn_name_match, "side_node_names", sn_name, bname, sn_name_score)
+            if sn_delta_score < LOW_THRESHOLD:
                 low += " *** LOW DELTA"
+                save_low_score(sn_crop, sn_delta_match, "side_node_deltas", sn_delta, bname, sn_delta_score)
 
             print(f"  {label}:    {name_str} Lv.{lvl_str:4s} "
                   f"name={sn_name}({sn_name_score:.2f}) "
@@ -252,12 +321,12 @@ def main():
             card_crop = gray[card_y:card_y + C.OPTION_CARD_HEIGHT,
                              card_x:card_x + card_w]
 
-            name_key, name_score = match_template(
+            name_key, name_score, name_match = match_template(
                 card_crop, opt_name_templates, strip_variants=True)
             if name_score < 0.65:
                 name_key = None
 
-            delta_key, delta_score = match_template(
+            delta_key, delta_score, delta_match = match_template(
                 card_crop, opt_delta_templates)
             if delta_score < 0.65:
                 delta_key = None
@@ -265,10 +334,12 @@ def main():
             formatted = format_option(name_key, delta_key)
 
             low = ""
-            if name_score < 0.9:
+            if name_score < LOW_THRESHOLD:
                 low += " *** LOW NAME"
-            if delta_score < 0.9:
+                save_low_score(card_crop, name_match, "option_names", name_key, bname, name_score)
+            if delta_score < LOW_THRESHOLD:
                 low += " *** LOW DELTA"
+                save_low_score(card_crop, delta_match, "option_deltas", delta_key, bname, delta_score)
 
             print(f"  option {i+1}: {formatted:30s} "
                   f"name={name_key}({name_score:.2f}) "
