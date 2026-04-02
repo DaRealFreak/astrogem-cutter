@@ -133,3 +133,22 @@ GEM_ATTR_MAP = {
     "chaos": "chaos",
     "order": "order",
 }
+
+# ---------------------------------------------------------------------------
+# Template key → domain key mappings
+# ---------------------------------------------------------------------------
+# Gem type template filenames → domain gem type keys (from arkgrid.constants)
+GEM_TYPE_TEMPLATE_TO_DOMAIN = {
+    "chaos_corrosion": "chaos_erosion",
+    "chaos_destruction": "chaos_collapse",
+    "chaos_distortion": "chaos_distortion",
+    "order_immutability": "order_immutability",
+    "order_solidity": "order_fortitude",
+    "order_stability": "order_stability",
+}
+
+# Rarity template key → total steps
+RARITY_TOTAL_STEPS = {"common": 5, "rare": 7, "epic": 9}
+
+# Total steps → rarity
+RARITY_FROM_TOTAL_STEPS = {5: "common", 7: "rare", 9: "epic"}

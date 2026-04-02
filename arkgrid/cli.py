@@ -95,6 +95,17 @@ def _build_parser() -> argparse.ArgumentParser:
     p_eff.add_argument("--side-threshold", type=float, default=0.5, metavar="F",
                        help="Base side threshold for effective threshold display (default: 0.5)")
 
+    # ---- live (vision + probability) ----
+    p_live = sub.add_parser("live",
+                            help="Detect game state from screenshot and show option probabilities")
+    add_common(p_live)
+    p_live.add_argument("--screenshot", type=str, required=True, metavar="FILE",
+                        help="Path to screenshot image")
+    p_live.add_argument("--trials", type=int, default=0,
+                        help="Monte Carlo trials from current state (0 = DP only, default: 0)")
+    p_live.add_argument("--seed", type=int, default=42,
+                        help="RNG seed for Monte Carlo (default: 42)")
+
     # ---- read (vision) ----
     p_read = sub.add_parser("read", help="Read current game screen state via vision")
     p_read.add_argument("--screenshot", type=str, default=None, metavar="FILE",
@@ -323,6 +334,188 @@ def cmd_effects(args: argparse.Namespace) -> None:
             print()
 
 
+def cmd_live(args: argparse.Namespace) -> None:
+    """Detect game state from screenshot and display option probabilities."""
+    import cv2
+    from arkgrid.vision.template_recognizer import (
+        detect, parse_rerolls, determine_option_kind, parse_delta,
+    )
+    from arkgrid.vision.constants import (
+        GEM_TYPE_TEMPLATE_TO_DOMAIN, RARITY_FROM_TOTAL_STEPS,
+    )
+    from arkgrid.pool import OptionPool
+    from arkgrid.probability import GoalProbabilityTable
+
+    # --- Load and detect ---
+    frame = cv2.imread(args.screenshot)
+    if frame is None:
+        raise SystemExit(f"Cannot read image: {args.screenshot}")
+
+    det = detect(frame)
+    if not det.found:
+        raise SystemExit("Anchor not found in screenshot — is the Processing dialog open?")
+
+    # --- Validate detection ---
+    warnings = []
+    for field_name, score, label in [
+        ("gem_type_score", det.gem_type_score, "gem_type"),
+        ("willpower_score", det.willpower_score, "willpower"),
+        ("chaos_score", det.chaos_score, "chaos"),
+        ("first_effect_score", det.first_effect_score, "side_1 name"),
+        ("first_level_score", det.first_level_score, "side_1 level"),
+        ("second_effect_score", det.second_effect_score, "side_2 name"),
+        ("second_level_score", det.second_level_score, "side_2 level"),
+        ("rerolls_score", det.rerolls_score, "rerolls"),
+        ("step_score", det.step_score, "step"),
+        ("rarity_score", det.rarity_score, "rarity"),
+    ]:
+        if score < 0.9:
+            warnings.append(f"  LOW: {label} = {score:.2f}")
+
+    if det.gem_type is None or det.willpower is None or det.chaos is None:
+        raise SystemExit("Critical detection failure — gem_type, willpower, or chaos not detected")
+    if det.first_effect is None or det.second_effect is None:
+        raise SystemExit("Critical detection failure — side node effects not detected")
+    if det.current_step is None or det.total_steps is None:
+        raise SystemExit("Critical detection failure — step/rarity not detected")
+
+    # --- Map to domain ---
+    gem_type_domain = GEM_TYPE_TEMPLATE_TO_DOMAIN.get(det.gem_type, det.gem_type)
+    rarity = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
+    turns_total = det.total_steps
+    turns_left = det.current_step        # "X/Y" means X turns remaining
+    current_turn = turns_total - turns_left + 1
+
+    reroll_count = parse_rerolls(det.rerolls, extra_ticket=args.extra_ticket)
+
+    from arkgrid.models import GemState
+    state = GemState(
+        will=det.willpower,
+        chaos=det.chaos,
+        first=det.first_level or 1,
+        second=det.second_level or 1,
+        cost_ratio=0,
+        rerolls=reroll_count,
+        first_effect=det.first_effect,
+        second_effect=det.second_effect,
+    )
+
+    # --- Build goal and probability table ---
+    goal = LastTurnGoal(
+        min_will=args.min_will,
+        min_chaos=args.min_chaos,
+        exact_will=args.exact_will,
+        exact_chaos=args.exact_chaos,
+    )
+    pool = OptionPool()
+    prob_table = GoalProbabilityTable(goal, turns_total, pool)
+    p_current = prob_table.lookup(state, turns_left)
+
+    # --- Compute P(goal) for each option ---
+    option_probs = []
+    for opt in det.options:
+        kind, delta_val = determine_option_kind(
+            opt.name_key, opt.delta_key,
+            state.first_effect, state.second_effect,
+        )
+
+        next_state = state.clone()
+        if delta_val is not None and kind in ("will", "chaos", "first", "second"):
+            cur = getattr(next_state, kind)
+            setattr(next_state, kind, min(5, max(1, cur + delta_val)))
+
+        p_after = prob_table.lookup(next_state, turns_left - 1)
+        option_probs.append((opt, kind, delta_val, p_after))
+
+    best_idx = max(range(len(option_probs)), key=lambda i: option_probs[i][3])
+
+    # --- Format option display name ---
+    def fmt_option(opt, kind, delta_val):
+        kind_hint, _ = parse_delta(opt.delta_key)
+        if kind_hint == "effect_changed":
+            return f"{opt.name_key} EC"
+        if kind_hint == "maintained":
+            return "maintain"
+        if kind_hint == "cost":
+            return opt.delta_key  # "cost+100" or "cost-100"
+        if kind_hint == "reroll":
+            return opt.delta_key  # "reroll+1" or "reroll+2"
+        if opt.name_key and delta_val is not None:
+            sign = "+" if delta_val > 0 else ""
+            return f"{opt.name_key} {sign}{delta_val}"
+        return opt.name_key or "???"
+
+    # --- Print output ---
+    print("=== Astrogem Live Analysis ===")
+    print(f"Gem:        {gem_type_domain} ({rarity.capitalize()})")
+    print(f"Effects:    {det.first_effect} Lv.{det.first_level} / "
+          f"{det.second_effect} Lv.{det.second_level}")
+    print(f"State:      Will={state.will}  Chaos={state.chaos}  "
+          f"First={state.first}  Second={state.second}  "
+          f"(Total: {state.total_points()})")
+    print(f"Turn:       {current_turn}/{turns_total}  ({turns_left} turns left)")
+    print(f"Rerolls:    {reroll_count}")
+    reset_str = "yes" if args.reset_ticket else "no" if args.reset_ticket is False else "n/a"
+    print(f"Tickets:    reset={reset_str}  extra_reroll={'yes' if args.extra_ticket else 'no'}")
+    print()
+
+    goal_parts = []
+    if goal.min_will is not None:
+        goal_parts.append(f"min_will={goal.min_will}")
+    if goal.min_chaos is not None:
+        goal_parts.append(f"min_chaos={goal.min_chaos}")
+    if goal.exact_will is not None:
+        goal_parts.append(f"exact_will={goal.exact_will}")
+    if goal.exact_chaos is not None:
+        goal_parts.append(f"exact_chaos={goal.exact_chaos}")
+    print(f"Goal:       {', '.join(goal_parts) if goal_parts else '(none)'}")
+    print(f"P(goal):    {p_current:.1%}")
+    print()
+
+    print("Options:")
+    for i, (opt, kind, delta_val, p_after) in enumerate(option_probs):
+        label = fmt_option(opt, kind, delta_val)
+        best_marker = "  << best" if i == best_idx else ""
+        kind_note = ""
+        if kind in ("cost", "view", "other"):
+            kind_note = f"  ({kind}, no stat change)"
+        print(f"  {i+1}. {label:28s} -> P(goal) = {p_after:.1%}{kind_note}{best_marker}")
+    print()
+
+    if warnings:
+        print("Warnings (low confidence detections):")
+        for w in warnings:
+            print(w)
+        print()
+
+    # --- Optional Monte Carlo ---
+    if args.trials > 0:
+        astro_gem = AstroGem(gem_type_domain, state.first_effect,
+                             state.second_effect, args.optimize)
+        use_reset = args.reset_ticket if args.reset_ticket is not None else False
+        sim = GemSimulator(
+            rarity=rarity,
+            use_extra_ticket=args.extra_ticket,
+            use_reset_ticket=use_reset,
+            goal=goal,
+            side_node_threshold=args.side_threshold,
+            astro_gem=astro_gem,
+            optimize=args.optimize,
+            prob_reset_threshold=getattr(args, "prob_reset_threshold", 0.0),
+            bis_only=getattr(args, "bis_only", False),
+            dp_reroll_margin=getattr(args, "dp_reroll_margin", 0.03),
+            side_quality_weight=getattr(args, "side_quality", 0.0),
+            reset_min_coeff=getattr(args, "reset_min_coeff", 0),
+            reroll_min_coeff=getattr(args, "reroll_min_coeff", 0),
+        )
+        summary = GemAnalyzer.estimate_summary(
+            trials=args.trials, simulator=sim, seed=args.seed,
+        )
+        print(f"Monte Carlo ({args.trials} trials from turn 1): "
+              f"{summary['p_success']:.1%} success  "
+              f"[reset_rate={summary['reset_rate']:.1%}]")
+
+
 def cmd_read(args: argparse.Namespace) -> None:
     """Read the game screen and print recognized state."""
     from arkgrid.vision import (
@@ -372,5 +565,7 @@ def main() -> None:
         cmd_effects(args)
     elif args.command == "read":
         cmd_read(args)
+    elif args.command == "live":
+        cmd_live(args)
     else:
         parser.print_help()
