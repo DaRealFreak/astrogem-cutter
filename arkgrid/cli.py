@@ -134,6 +134,19 @@ def _build_parser() -> argparse.ArgumentParser:
     p_read.add_argument("--monitor", type=int, default=1,
                         help="Monitor index for live capture (default: 1 = primary)")
 
+    # ---- auto (automation) ----
+    p_auto = sub.add_parser("auto",
+                            help="Automate gem cutting: detect, decide, click")
+    add_common(p_auto)
+    p_auto.add_argument("--monitor", type=int, default=1,
+                        help="Monitor index for screen capture (default: 1 = primary)")
+    p_auto.add_argument("--animation-delay", type=float, default=1.0, metavar="SECS",
+                        help="Seconds to wait after each click for animation (default: 1.0)")
+    p_auto.add_argument("--dry-run", action="store_true", default=False,
+                        help="Analyze and print decisions without clicking")
+    p_auto.add_argument("--exact-dp", action="store_true", default=False,
+                        help="Use exact 4-draw-pick-1 DP for decisions")
+
     return parser
 
 
@@ -244,6 +257,9 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
     print()
 
 
+_SHARED_POOL = OptionPool()
+
+
 def _compute_dp_prob(
     goal: LastTurnGoal,
     rarity: str,
@@ -259,7 +275,7 @@ def _compute_dp_prob(
     When exact_draw=False: single-draw transition approximation (~20ms).
     When exact_draw=True: exact PPSWOR(4) pick-1 transitions (~1-4s).
     """
-    pool = OptionPool()
+    pool = _SHARED_POOL
     turns = GemSimulator.RARITY_TURNS[rarity]
 
     side_coeff_first, side_coeff_second = 0, 0
@@ -323,24 +339,6 @@ def cmd_stats(args: argparse.Namespace) -> None:
         label = "With reset ticket" if use_reset else "Without reset ticket"
         print(f"--- {label} ---")
         for rarity in rarities:
-            sim = GemSimulator(
-                rarity=rarity,
-                use_extra_ticket=args.extra_ticket,
-                use_reset_ticket=use_reset,
-                goal=goal,
-                side_node_threshold=args.side_threshold,
-                astro_gem=astro_gem,
-                optimize=args.optimize,
-                prob_reset_threshold=args.prob_reset_threshold,
-                bis_only=args.bis_only,
-                dp_reroll_margin=args.dp_reroll_margin,
-                side_quality_weight=args.side_quality,
-                reset_min_coeff=args.reset_min_coeff,
-                reroll_min_coeff=args.reroll_min_coeff,
-                min_side_coeff=args.min_side_coeff,
-                exact_draw=getattr(args, "exact_dp", False),
-            )
-
             dp_prob = _compute_dp_prob(
                 goal, rarity, astro_gem, args.optimize,
                 args.bis_only, args.min_side_coeff,
@@ -356,6 +354,23 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 summary["dp_exact_prob"] = exact_prob
 
             if args.trials > 0:
+                sim = GemSimulator(
+                    rarity=rarity,
+                    use_extra_ticket=args.extra_ticket,
+                    use_reset_ticket=use_reset,
+                    goal=goal,
+                    side_node_threshold=args.side_threshold,
+                    astro_gem=astro_gem,
+                    optimize=args.optimize,
+                    prob_reset_threshold=args.prob_reset_threshold,
+                    bis_only=args.bis_only,
+                    dp_reroll_margin=args.dp_reroll_margin,
+                    side_quality_weight=args.side_quality,
+                    reset_min_coeff=args.reset_min_coeff,
+                    reroll_min_coeff=args.reroll_min_coeff,
+                    min_side_coeff=args.min_side_coeff,
+                    exact_draw=getattr(args, "exact_dp", False),
+                )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
                 )
@@ -788,6 +803,35 @@ def cmd_read(args: argparse.Namespace) -> None:
             cv2.destroyAllWindows()
 
 
+def cmd_auto(args: argparse.Namespace) -> None:
+    """Automate gem cutting: detect, decide, click."""
+    from arkgrid.automation import run_auto
+    goal, astro_gem, rarities, reset_variants = _resolve_args(args)
+    _print_config(args, goal, astro_gem)
+
+    use_reset = reset_variants[-1]  # True if --reset-ticket, None if unset
+
+    run_auto(
+        monitor_index=args.monitor,
+        goal=goal,
+        extra_ticket=args.extra_ticket,
+        reset_ticket=use_reset,
+        dp_reroll_margin=args.dp_reroll_margin,
+        optimize=args.optimize,
+        bis_only=args.bis_only,
+        min_side_coeff=args.min_side_coeff,
+        exact_draw=getattr(args, "exact_dp", False),
+        prob_reset_threshold=args.prob_reset_threshold,
+        side_quality_weight=args.side_quality,
+        side_threshold=args.side_threshold,
+        animation_delay=args.animation_delay,
+        dry_run=args.dry_run,
+        astro_gem=astro_gem,
+        reset_min_coeff=args.reset_min_coeff,
+        reroll_min_coeff=args.reroll_min_coeff,
+    )
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -802,5 +846,7 @@ def main() -> None:
         cmd_read(args)
     elif args.command == "live":
         cmd_live(args)
+    elif args.command == "auto":
+        cmd_auto(args)
     else:
         parser.print_help()
