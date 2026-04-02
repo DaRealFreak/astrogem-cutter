@@ -10,7 +10,7 @@ source .venv/Scripts/activate   # Windows (Git Bash)
 source .venv/bin/activate       # Linux / macOS
 ```
 
-No external dependencies required for the simulator (stdlib only). Vision features (`live`, `read`) require `opencv-python` and `numpy`.
+No external dependencies required for the simulator (stdlib only). Vision features (`live`, `read`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows.
 
 ## Commands
 
@@ -45,6 +45,16 @@ Detect game state from a screenshot and show per-option goal probabilities with 
 ```bash
 python -m arkgrid live --screenshot FILE [options]
 ```
+
+### `auto` - Full automation (Windows only)
+
+Automate the gem cutting process: captures screen, detects state, makes decisions (reroll/process/reset/finish), and clicks the appropriate buttons.
+
+```bash
+python -m arkgrid auto --min-will 4 --min-chaos 4 [options]
+```
+
+Requires Lost Ark to be running and the Processing dialog to be open. Press Escape to stop at any time. Use `--dry-run` to test detection and decisions without clicking.
 
 ### `read` - Vision debug
 
@@ -115,6 +125,7 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--reroll-min-coeff N` | Only use extra reroll ticket when the sum of starting target-effect coefficients meets this threshold. Same logic as `--reset-min-coeff` but for the extra reroll ticket. `0` = always use. Default: `0`. |
 | `--dp-reroll-margin F` | Margin for DP-based reroll override. Controls how far below the baseline expected probability the current offers must be before spending a reroll. Default: `0.03`. |
 | `--side-quality F` | Weight side-node quality by coefficient in reroll decisions. `0` = off (max goal probability), `2` = mild, `12` = aggressive (~40% prob drop tolerated for +4 boss_damage). Default: `0`. |
+| `--early-finish-coeff N` | Risk tolerance for early finish when goal is already satisfied. `0` = always finish when met (safe). Higher values accept more risk for side upgrades. Formula: finish if `best_coeff_gain * P(miss) > N`. E.g. `750` continues for boss_damage+3 at 25% miss. `-1` = disabled. Default: `0`. |
 
 ### Stats-only options
 
@@ -137,10 +148,18 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--trials N` | Monte Carlo trials from current state. `0` = DP only. Default: `0`. |
 | `--seed N` | RNG seed for Monte Carlo. Default: `42`. |
 
+### Auto-only options
+
+| Flag | Description |
+|---|---|
+| `--monitor N` | Monitor index for screen capture. `1` = primary. Default: `1`. |
+| `--animation-delay SECS` | Seconds to wait after each click for animation. Default: `1.0`. |
+| `--dry-run` | Run full detection and decision loop without clicking. |
+
 ## Documentation
 
 - [Gem types & effects](documentation/gem_types.md) — gem types, effect pools, and priority rankings
-- [Decision-making strategy](documentation/strategy.md) — turn flow, reroll policy modes, reset logic, and DP probability table
+- [Decision-making strategy](documentation/strategy.md) — turn flow, reroll policy modes, reset logic, early finish, automation, and DP probability table
 - [Combat power formulas](documentation/calculation.md) — core coefficients and combat power calculations
 - [Official probability data](documentation/official_probability_info_en.md) — Smilegate's published probability disclosure
 
@@ -206,8 +225,27 @@ python -m arkgrid sim --min-will 4 --min-chaos 5 --rarity epic --seed 123
 python -m arkgrid sim --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \
   --first-effect boss_damage --second-effect additional_damage
 
+# Early finish: safe mode (default) — always finish when goal met
+python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic
+
+# Early finish: risk tolerance 750 — continue for boss_damage+3 at 25% miss
+python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --early-finish-coeff 750
+
+# Early finish disabled — always play all turns (old behaviour)
+python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --early-finish-coeff -1
+
 # Analyse a screenshot (requires opencv-python)
 python -m arkgrid live --screenshot screenshot.png --min-will 4 --min-chaos 5
+
+# Automate gem cutting (Windows only, requires Lost Ark running)
+python -m arkgrid auto --min-will 4 --min-chaos 4 --early-finish-coeff 750
+
+# Automation dry run (no clicks, just detection and decisions)
+python -m arkgrid auto --min-will 4 --min-chaos 4 --dry-run
+
+# Automation with exact DP and aggressive side quality
+python -m arkgrid auto --min-will 4 --min-chaos 4 --exact-dp --side-quality 2 \
+  --early-finish-coeff 1000
 ```
 
 ## Tests

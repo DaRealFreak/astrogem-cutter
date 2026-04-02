@@ -9,8 +9,9 @@ For each turn:
   1. Pre-turn checks (can reset or fail before seeing offers)
   2. Generate 4 offers from the weighted pool
   3. Reroll decision (may spend rerolls to re-draw offers)
-  4. Post-offer checks (can reset or fail after seeing final offers)
-  5. Pick one of the 4 offers uniformly at random (25% each)
+  4. Early finish check (goal already met? risk vs side gain)
+  5. Post-offer checks (can reset or fail after seeing final offers)
+  6. Pick one of the 4 offers uniformly at random (25% each)
 ```
 
 ## Pre-turn checks
@@ -138,15 +139,62 @@ Default margin is `0.03` (3%).
 
 ## Post-offer checks
 
-After the final set of offers is determined (after all rerolls), two more checks run:
+After the final set of offers is determined (after all rerolls), checks run in this order:
 
-1. **Probability-based early reset** (soft, only when `--prob-reset-threshold` > 0): If the expected goal probability *after clicking* (averaged across all 4 offers) drops below the threshold, reset.
+1. **Early finish** (when `--early-finish-coeff` >= 0): If the goal is already satisfied and the risk of losing it outweighs the potential side gains, finish early instead of clicking. See [Early finish](#early-finish) below.
 
-2. **Binary feasibility check** (hard): If no offer keeps the goal feasible (feasibility = 0%), reset if available, otherwise fail.
+2. **Probability-based early reset** (soft, only when `--prob-reset-threshold` > 0): If the expected goal probability *after clicking* (averaged across all 4 offers) drops below the threshold, reset.
+
+3. **Binary feasibility check** (hard): If no offer keeps the goal feasible (feasibility = 0%), reset if available, otherwise fail.
+
+4. **Last-turn fresh-start comparison**: On the final turn, if P(goal after clicking) < P(goal from initial state with full turns), resetting gives better odds. Checked only when reset ticket is still available.
 
 ## Pick resolution
 
 If all checks pass, one of the 4 offers is picked **uniformly at random** (25% each). The simulator does not choose the "best" offer — this models the in-game mechanic where you select a face-down option without knowing which is which.
+
+## Early finish
+
+When the goal is already satisfied mid-run, continuing risks losing it via stat decreases (will-1, chaos-1). The `--early-finish-coeff` parameter controls whether to finish early or continue for side-node upgrades.
+
+### Decision formula
+
+Given the 4 current offers:
+
+1. Compute **P(miss)** = fraction of offers that would break goal satisfaction (e.g. 1 of 4 = 25%)
+2. Compute **best_coeff_gain** = highest `delta * effect_coefficient` among side-node upgrades in the offers (e.g. additional_damage+3 = 3 × 700 = 2100)
+3. Compute **risk_score** = `best_coeff_gain * P(miss)`
+
+**Finish early** if `P(miss) > 0` AND either:
+- No side-node upgrade exists (`best_coeff_gain == 0`) — risk with no upside
+- `risk_score > threshold` — upside doesn't justify the risk
+
+**Continue** if `P(miss) == 0` (no risk) OR `risk_score <= threshold` (acceptable risk).
+
+### Examples
+
+| Offers | P(miss) | Best gain | Risk score | Coeff=0 | Coeff=750 |
+|---|---|---|---|---|---|
+| [will-1, boss_dmg+3, maintain, chaos-1] | 50% | 3000 | 1500 | finish | finish |
+| [will-1, add_dmg+3, maintain, chaos-1] | 25% | 2100 | 525 | finish | continue |
+| [will-1, boss_dmg+3, maintain, chaos+1] | 25% | 3000 | 750 | finish | continue |
+| [will+1, boss_dmg+2, maintain, chaos+1] | 0% | 2000 | 0 | continue | continue |
+| [will-1, maintain, cost+100, chaos-1] | 50% | 0 | 0 | finish | finish |
+
+### DP integration
+
+When early finish is enabled (coeff >= 0), the DP probability table sets P(success) = 1.0 for any state where the goal is already satisfied, regardless of turns remaining. This is correct because the player always has the *option* to stop — the threshold only controls the runtime decision.
+
+This increases the DP probability compared to the no-early-finish baseline. For example, `--min-will 3 --min-chaos 3 --rarity epic` might show 46.2% with early finish vs 43.6% without.
+
+### Parameter values
+
+| `--early-finish-coeff` | Behaviour |
+|---|---|
+| `0` (default) | Safe — always finish when goal met and any risk exists |
+| `750` | Continue for boss_damage+3 at 25% miss (3000×0.25=750) |
+| `2000` | Continue for boss_damage+4 at 50% miss (4000×0.50=2000) |
+| `-1` | Disabled — never finish early, always play all turns |
 
 ## Effect changes
 
@@ -166,9 +214,11 @@ The reset ticket allows one full restart to initial state (will=1, chaos=1, firs
 
 The reset triggers on (in priority order):
 
-1. **Last-turn fresh-start comparison**: on the final turn, after exhausting all rerolls, if P(goal after clicking) < P(goal from initial state with full turns), resetting gives better odds. This is always checked — no flag needed. Rerolls are used first to find the best possible offers before comparing.
-2. **Probability threshold** (`--prob-reset-threshold`): on any turn, if P(goal) drops below the configured threshold, reset proactively.
-3. **Binary infeasibility**: on any turn, if the goal is mathematically unreachable, reset.
+1. **Binary infeasibility** (pre-turn): if the goal is mathematically unreachable before offers are drawn, reset immediately.
+2. **Probability threshold** (`--prob-reset-threshold`, pre-turn): if the DP-estimated goal probability drops below the threshold, reset proactively.
+3. **Post-offer zero feasibility**: if no offer keeps the goal feasible after rerolls, reset.
+4. **Post-offer probability threshold**: if expected P(goal after clicking) drops below the threshold, reset.
+5. **Last-turn fresh-start comparison**: on the final turn, after exhausting all rerolls, if P(goal after clicking) < P(goal from initial state with full turns), resetting gives better odds.
 
 After a reset, the run restarts from turn 1 with the same gem but fresh stats. The reset ticket can only be used once per run.
 
@@ -214,6 +264,55 @@ A backward-induction probability table is precomputed once at startup (~20ms). I
 - The comfort signal for the reroll policy (comfortable vs desperate mode)
 - The DP-based reroll override (comparing current offers against baseline)
 - Probability-based early resets (when `--prob-reset-threshold` > 0)
-- The `P(goal)` and `P(click)` values shown in `sim` output
+- Early finish decisions (P=1.0 at goal-satisfied states when enabled)
+- The `P(goal)` and `P(click)` values shown in `sim`, `live`, and `auto` output
 
 The table uses single-draw transition probabilities (option weight / total eligible weight) as an approximation, since the actual 4-draw-without-replacement mechanic would make the state space too large.
+
+## Automation (`auto` command)
+
+The `auto` command runs a full automation loop: capture screen → detect state → decide → click → wait → repeat. It uses all the same decision logic described above, with these additions:
+
+### Screen detection
+
+Each iteration captures the game screen via `mss` and runs template matching (`template_recognizer.detect()`) to extract the current state: gem type, stats, effects, reroll count, turn/step, and 4 option cards. If detection fails (e.g. during animations), it retries up to 5 times with 0.5s delays.
+
+### Decision pipeline
+
+Per iteration, the automation checks (in order):
+
+1. **Early finish**: goal satisfied + risk exceeds tolerance → click Finish
+2. **Goal infeasibility**: goal unreachable → click Reset (if available)
+3. **Probability threshold**: P(goal) below threshold → click Reset
+4. **Zero feasibility**: no offer keeps goal feasible → click Reset
+5. **Last-turn comparison**: fresh start has better odds → click Reset
+6. **Reroll**: `RerollPolicy.should_reroll()` → click Reroll
+7. **Process** (default): → click Process
+
+### Button positions (at 1920×1080)
+
+| Button | Position | When clicked |
+|---|---|---|
+| Process | (1068, 765) | Accept current offers (random pick) |
+| Reroll | (1254, 595) | Re-draw all 4 offers |
+| Reset | (962, 255) | Use reset ticket to restart |
+| Finish | (831, 764) | Finish early when goal is met |
+| Ticket confirm | (906, 666) | Confirm ticket usage (0.5s after reset/ticket reroll) |
+
+Coordinates are scaled to actual monitor resolution for non-1080p displays.
+
+### Reroll tracking
+
+Reroll count is tracked internally rather than relying solely on OCR:
+- On new turns (after process or reset): seed from OCR detection
+- After rerolls: decrement internal counter
+
+This handles the edge case where a `view+1` or `view+2` option is randomly picked, adding rerolls that OCR might not immediately reflect.
+
+### Safety features
+
+- **Escape key**: stops automation at any time (polled each iteration)
+- **Focus check**: pauses when Lost Ark loses focus, resumes when it regains focus
+- **3-second countdown**: before first click, with Escape to abort
+- **`--dry-run`**: runs the full detection and decision loop without clicking
+- **Ticket gating**: `--reset-min-coeff` / `--reroll-min-coeff` disable tickets for low-coefficient gems
