@@ -37,54 +37,45 @@ ANCHOR_SIZE: Tuple[int, int] = (170, 22)  # expected template size
 # Format: (dx, dy, width, height)
 # ---------------------------------------------------------------------------
 
-# Subtitle line: "Chaos Astrogem: Corrosion"
-ROI_SUBTITLE = (-55, 100, 280, 60)
+# Gem type icon (chaos/order gem subtype)
+ROI_GEM_TYPE: Roi = (55, 68, 19, 23)
+
+# Current astrogem points text (e.g. "4 Astrogem Points")
+ROI_POINTS: Roi = (-11, 168, 140, 20)
 
 # Diamond stat display – individual stat positions
-# All offsets relative to anchor top-left (approx 895, 43)
-# Top gem = willpower number (single digit)
-ROI_STAT_WILLPOWER = (55, 312, 45, 15)
-# Left gem = first effect (full block: name + Lv)
-ROI_STAT_FIRST_FULL = (-80, 350, 145, 50)
-# Right gem = second effect (full block: name + Lv)
-ROI_STAT_SECOND_FULL = (120, 350, 155, 50)
-# Bottom gem = chaos/order points (full block: name + number)
-ROI_STAT_POINTS_FULL = (-5, 407, 145, 58)
-
-# "One of the following is randomly applied." text
-ROI_RANDOMLY_APPLIED = (-105, 487, 330, 25)
+# Willpower level (single digit, top of diamond)
+ROI_STAT_WILLPOWER: Roi = (56, 309, 16, 16)
+# First side node (left of diamond – effect name + Lv)
+ROI_STAT_FIRST: Roi = (-70, 336, 102, 57)
+# Second side node (right of diamond – effect name + Lv)
+ROI_STAT_SECOND: Roi = (98, 336, 102, 57)
+# Chaos/order points level (single digit, bottom of diamond)
+ROI_STAT_CHAOS: Roi = (56, 427, 16, 16)
 
 # ---------------------------------------------------------------------------
-# Option cards – 4 cards arranged horizontally
-# Each card has: option name (line 1) and delta/effect (line 2)
+# Option cards – 4 cards arranged horizontally, 117px each, adjacent
+# Centers: (781,598), (898,598), (1015,598), (1132,598)
 # ---------------------------------------------------------------------------
-OPTION_CARD_Y_OFFSET = 529  # dy from anchor top
-OPTION_CARD_HEIGHT = 48
+OPTION_CARD_Y_OFFSET = 520  # dy from anchor top (598 - 35 - 43)
+OPTION_CARD_HEIGHT = 70
 
 # (dx, width) for each card
 OPTION_CARD_POSITIONS = [
-    (-165, 130),  # Card 1
-    (-40, 130),   # Card 2
-    (80, 130),    # Card 3
-    (195, 130),   # Card 4
+    (-172, 117),  # Card 1: abs 723..840
+    (-55, 117),   # Card 2: abs 840..957
+    (62, 117),    # Card 3: abs 957..1074
+    (179, 117),   # Card 4: abs 1074..1191
 ]
-
-# Within each card, the name and delta sub-regions (relative to card top-left)
-CARD_NAME_ROI = (0, 11, 130, 17)   # option name text only (no icon)
-CARD_DELTA_ROI = (0, 32, 130, 16)  # delta / effect text
-
-# Reroll indicator
-ROI_REROLL = (295, 530, 40, 22)
 
 # ---------------------------------------------------------------------------
 # Bottom info area
 # ---------------------------------------------------------------------------
-ROI_PROCESSING_COST = (-125, 582, 440, 18)
-ROI_BALANCE = (-125, 602, 440, 18)
-ROI_STATUS_TEXT = (-140, 672, 340, 18)
+# Reroll count indicator
+ROI_REROLL: Roi = (340, 542, 56, 20)
 
-# Process button – contains "Process (X/Y)" text
-ROI_PROCESS_BUTTON = (50, 710, 180, 24)
+# Process button – contains "Process (X/Y)" text; only the step digit
+ROI_PROCESS_STEPS: Roi = (195, 714, 28, 18)
 
 # ---------------------------------------------------------------------------
 # Option name → internal key mapping

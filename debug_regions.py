@@ -17,19 +17,31 @@ from arkgrid.vision import constants as C
 from arkgrid.vision.templates import TemplateStore
 from arkgrid.vision.matcher import find_best_match
 
-# ── Proposed new values ──────────────────────────────────────────────
-# Uniform 125px card spacing, 120px card width (5px gap between cards)
-PROPOSED_CARD_Y_OFFSET = 528
-PROPOSED_CARD_HEIGHT = 52
+# ── Proposed new values (edit these, then re-run) ───────────────────
+# Format: (dx_from_anchor, width)
+# Anchor is at ~(895, 43) in all examples
+PROPOSED_CARD_Y_OFFSET = 520       # vertical offset from anchor top (598 - 35 - 43)
+PROPOSED_CARD_HEIGHT = 70          # card crop height
+# Centers: (781,598), (898,598), (1015,598), (1132,598) — 117px spacing
+# Width=117, boxes directly adjacent with no gap/overlap
 PROPOSED_CARD_POSITIONS = [
-    (-195, 120),   # Card 1: abs 700..820
-    (-70,  120),   # Card 2: abs 825..945
-    (55,   120),   # Card 3: abs 950..1070
-    (180,  120),   # Card 4: abs 1075..1195
+    (-172, 117),   # Card 1: abs 723..840  (center 781)
+    (-55,  117),   # Card 2: abs 840..957  (center 898)
+    (62,   117),   # Card 3: abs 957..1074 (center 1015)
+    (179,  117),   # Card 4: abs 1074..1191 (center 1132)
 ]
-# Sub-ROIs within each card (skip ~18px icon area on the left)
-PROPOSED_CARD_NAME_ROI = (18, 8, 100, 17)
-PROPOSED_CARD_DELTA_ROI = (18, 28, 100, 16)
+
+# Diamond stat boxes (anchor-relative: dx, dy, w, h)
+PROPOSED_SIDE_NODE_1 = (-70, 336, 102, 57)   # abs x=825 y=379
+PROPOSED_SIDE_NODE_2 = (98, 336, 102, 57)    # abs x=993 y=379
+PROPOSED_WILLPOWER   = (56, 309, 16, 16)     # abs x=951 y=352
+PROPOSED_CHAOS       = (56, 427, 16, 16)     # abs x=951 y=470
+
+# Gem info / UI boxes (anchor-relative: dx, dy, w, h)
+PROPOSED_GEM_TYPE    = (55, 68, 19, 23)      # abs x=950 y=111
+PROPOSED_POINTS      = (-11, 168, 140, 20)   # abs x=884 y=211
+PROPOSED_REROLLS     = (340, 542, 56, 20)    # abs x=1235 y=585
+PROPOSED_PROC_STEPS  = (195, 714, 28, 18)    # abs x=1090 y=757
 
 
 def find_anchor(gray, store):
@@ -86,26 +98,19 @@ def process_image(path, store, output_dir):
     cv2.putText(debug, f"ANCHOR {score:.2f}", (ax, ay - 5),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
-    # ── Stat ROIs (cyan family) ──
-    draw_anchor_roi(debug, ax, ay, C.ROI_SUBTITLE, "SUBTITLE", (255, 255, 0))
-    draw_anchor_roi(debug, ax, ay, C.ROI_STAT_WILLPOWER, "WILL", (0, 255, 255))
-    draw_anchor_roi(debug, ax, ay, C.ROI_STAT_FIRST_FULL, "1st_FULL", (0, 255, 200))
-    draw_anchor_roi(debug, ax, ay, C.ROI_STAT_SECOND_FULL, "2nd_FULL", (200, 255, 0))
-    draw_anchor_roi(debug, ax, ay, C.ROI_STAT_POINTS_FULL, "POINTS_FULL", (0, 200, 200))
-    draw_anchor_roi(debug, ax, ay, C.ROI_RANDOMLY_APPLIED, "RANDOMLY", (180, 180, 180))
+    # ── Gem info / UI ROIs ──
+    draw_anchor_roi(debug, ax, ay, PROPOSED_GEM_TYPE, "GEM_TYPE", (255, 255, 0))
+    draw_anchor_roi(debug, ax, ay, PROPOSED_POINTS, "POINTS", (255, 180, 0))
+    draw_anchor_roi(debug, ax, ay, PROPOSED_REROLLS, "REROLLS", (255, 0, 255))
+    draw_anchor_roi(debug, ax, ay, PROPOSED_PROC_STEPS, "STEPS", (200, 0, 255))
 
-    # ── CURRENT option card ROIs (RED - dashed style via thin lines) ──
-    for i, (dx, card_w) in enumerate(C.OPTION_CARD_POSITIONS):
-        card_x = ax + dx
-        card_y = ay + C.OPTION_CARD_Y_OFFSET
-        # Full card (red, thin)
-        cv2.rectangle(debug, (card_x, card_y),
-                      (card_x + card_w, card_y + C.OPTION_CARD_HEIGHT),
-                      (0, 0, 255), 1)
-        cv2.putText(debug, f"OLD_{i+1}", (card_x, card_y - 4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+    # ── Diamond stat ROIs ──
+    draw_anchor_roi(debug, ax, ay, PROPOSED_WILLPOWER, "WILL_LV", (0, 255, 255))
+    draw_anchor_roi(debug, ax, ay, PROPOSED_CHAOS, "CHAOS_LV", (0, 200, 200))
+    draw_anchor_roi(debug, ax, ay, PROPOSED_SIDE_NODE_1, "SIDE_1", (0, 255, 200))
+    draw_anchor_roi(debug, ax, ay, PROPOSED_SIDE_NODE_2, "SIDE_2", (200, 255, 0))
 
-    # ── PROPOSED option card ROIs (GREEN - thick) ──
+    # ── Option card ROIs ──
     card_colors = [
         (0, 255, 0),    # Card 1: green
         (255, 200, 0),  # Card 2: cyan-ish
@@ -121,33 +126,16 @@ def process_image(path, store, output_dir):
         cv2.rectangle(debug, (card_x, card_y),
                       (card_x + card_w, card_y + PROPOSED_CARD_HEIGHT),
                       color, 2)
-        cv2.putText(debug, f"NEW_{i+1}", (card_x, card_y + PROPOSED_CARD_HEIGHT + 12),
+        cv2.putText(debug, f"CARD_{i+1}", (card_x, card_y + PROPOSED_CARD_HEIGHT + 12),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.35, color, 1)
 
-        # Name sub-region (thin)
-        nx, ny, nw, nh = PROPOSED_CARD_NAME_ROI
-        cv2.rectangle(debug, (card_x + nx, card_y + ny),
-                      (card_x + nx + nw, card_y + ny + nh),
-                      color, 1)
 
-        # Delta sub-region (thin)
-        dx2, dy2, dw, dh = PROPOSED_CARD_DELTA_ROI
-        cv2.rectangle(debug, (card_x + dx2, card_y + dy2),
-                      (card_x + dx2 + dw, card_y + dy2 + dh),
-                      color, 1)
 
-    # ── Bottom info ROIs ──
-    draw_anchor_roi(debug, ax, ay, C.ROI_REROLL, "REROLL", (255, 0, 255))
-    draw_anchor_roi(debug, ax, ay, C.ROI_PROCESSING_COST, "PROC_COST", (200, 200, 0))
-    draw_anchor_roi(debug, ax, ay, C.ROI_BALANCE, "BALANCE", (200, 200, 0))
-    draw_anchor_roi(debug, ax, ay, C.ROI_PROCESS_BUTTON, "PROCESS_BTN", (255, 0, 255))
 
     # ── Info panel ──
     panel_x, panel_y = 10, 10
     lines = [
         f"Anchor: ({ax}, {ay})  score={score:.3f}",
-        "RED = current (broken)  |  COLORED = proposed (new)",
-        "",
     ]
     for i, (dx, cw) in enumerate(PROPOSED_CARD_POSITIONS):
         cx = ax + dx
@@ -172,7 +160,8 @@ def process_image(path, store, output_dir):
 def main():
     store = TemplateStore()
     examples_dir = os.path.join(os.path.dirname(__file__), "examples")
-    output_dir = examples_dir
+    output_dir = os.path.join(examples_dir, "debug_output")
+    os.makedirs(output_dir, exist_ok=True)
 
     images = sorted(
         glob.glob(os.path.join(examples_dir, "*.jpg"))
