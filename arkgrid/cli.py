@@ -408,7 +408,21 @@ def cmd_live(args: argparse.Namespace) -> None:
         exact_chaos=args.exact_chaos,
     )
     pool = OptionPool()
-    prob_table = GoalProbabilityTable(goal, turns_total, pool)
+
+    # Build BIS-aware probability table if --bis-only
+    bis_only = getattr(args, "bis_only", False)
+    target_effects: frozenset = frozenset()
+    if bis_only and gem_type_domain in GEM_TYPES:
+        from arkgrid.constants import DPS_EFFECTS, SUPPORT_EFFECTS
+        optimize = getattr(args, "optimize", "dps")
+        opt_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        gem_pool = set(GEM_TYPES[gem_type_domain])
+        target_effects = frozenset(gem_pool & opt_set)
+
+    prob_table = GoalProbabilityTable(
+        goal, turns_total, pool,
+        bis_only=bis_only, target_effects=target_effects,
+    )
     p_current = prob_table.lookup(state, turns_left)
 
     # --- Compute P(goal) for each option ---
@@ -419,12 +433,20 @@ def cmd_live(args: argparse.Namespace) -> None:
             state.first_effect, state.second_effect,
         )
 
-        next_state = state.clone()
-        if delta_val is not None and kind in ("will", "chaos", "first", "second"):
-            cur = getattr(next_state, kind)
-            setattr(next_state, kind, min(5, max(1, cur + delta_val)))
+        kind_hint, _ = parse_delta(opt.delta_key)
 
-        p_after = prob_table.lookup(next_state, turns_left - 1)
+        if kind_hint == "effect_changed" and bis_only:
+            # Probabilistic: new effect may or may not be target
+            slot = "first" if opt.name_key == state.first_effect else "second"
+            p_after = prob_table.lookup_after_effect_change(
+                state, slot, turns_left - 1)
+        else:
+            next_state = state.clone()
+            if delta_val is not None and kind in ("will", "chaos", "first", "second"):
+                cur = getattr(next_state, kind)
+                setattr(next_state, kind, min(5, max(1, cur + delta_val)))
+            p_after = prob_table.lookup(next_state, turns_left - 1)
+
         option_probs.append((opt, kind, delta_val, p_after))
 
     best_idx = max(range(len(option_probs)), key=lambda i: option_probs[i][3])
@@ -448,8 +470,14 @@ def cmd_live(args: argparse.Namespace) -> None:
     # --- Print output ---
     print("=== Astrogem Live Analysis ===")
     print(f"Gem:        {gem_type_domain} ({rarity.capitalize()})")
-    print(f"Effects:    {det.first_effect} Lv.{det.first_level} / "
-          f"{det.second_effect} Lv.{det.second_level}")
+    first_bis = "BIS" if state.first_effect in target_effects else ""
+    second_bis = "BIS" if state.second_effect in target_effects else ""
+    if bis_only:
+        print(f"Effects:    {det.first_effect} Lv.{det.first_level} {first_bis} / "
+              f"{det.second_effect} Lv.{det.second_level} {second_bis}")
+    else:
+        print(f"Effects:    {det.first_effect} Lv.{det.first_level} / "
+              f"{det.second_effect} Lv.{det.second_level}")
     print(f"State:      Will={state.will}  Chaos={state.chaos}  "
           f"First={state.first}  Second={state.second}  "
           f"(Total: {state.total_points()})")
@@ -472,6 +500,19 @@ def cmd_live(args: argparse.Namespace) -> None:
     print(f"P(goal):    {p_current:.1%}")
     print()
 
+    # --- Reroll recommendation ---
+    # Compare average offer probability against DP baseline (expected
+    # value over all possible offer draws).  If the average is more than
+    # dp_reroll_margin relatively worse than baseline, rerolling is advisable.
+    p_best_option = max(p for _, _, _, p in option_probs)
+    p_avg_offers = sum(p for _, _, _, p in option_probs) / len(option_probs)
+    dp_margin = getattr(args, "dp_reroll_margin", 0.03)
+    should_reroll = (reroll_count > 0
+                     and current_turn != 1  # can't reroll on turn 1
+                     and turns_left != 1    # can't reroll on last turn
+                     and p_current > 0
+                     and p_avg_offers < p_current * (1 - dp_margin))
+
     print("Options:")
     for i, (opt, kind, delta_val, p_after) in enumerate(option_probs):
         label = fmt_option(opt, kind, delta_val)
@@ -480,6 +521,20 @@ def cmd_live(args: argparse.Namespace) -> None:
         if kind in ("cost", "view", "other"):
             kind_note = f"  ({kind}, no stat change)"
         print(f"  {i+1}. {label:28s} -> P(goal) = {p_after:.1%}{kind_note}{best_marker}")
+
+    print()
+    reroll_threshold = p_current * (1 - dp_margin)
+    can_reroll = reroll_count > 0 and current_turn != 1 and turns_left != 1
+    print(f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline: {p_current:.1%}  "
+          f"|  Best pick: {p_best_option:.1%}"
+          f"  |  Reroll below: {reroll_threshold:.1%}" if can_reroll else
+          f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline: {p_current:.1%}  "
+          f"|  Best pick: {p_best_option:.1%}")
+    if should_reroll:
+        print(f"  >>> Reroll (offers {p_current - p_avg_offers:+.1%} below baseline, "
+              f"{reroll_count} rerolls available)")
+    else:
+        print(f"  >>> Process (best: option {best_idx + 1})")
     print()
 
     if warnings:
