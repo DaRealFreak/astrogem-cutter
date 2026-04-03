@@ -7,9 +7,11 @@ clicks the appropriate buttons.
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 if sys.platform != "win32":
@@ -69,6 +71,27 @@ _MOUSEEVENTF_LEFTUP = 0x0004
 
 MAX_DETECT_RETRIES = 5
 DETECT_RETRY_WAIT = 0.5
+
+
+class _TeeWriter:
+    """Duplicate writes to both the original stdout and a log file."""
+
+    def __init__(self, log_path: str):
+        self._stdout = sys.stdout
+        self._file = open(log_path, "w", encoding="utf-8")
+
+    def write(self, text: str) -> int:
+        self._stdout.write(text)
+        self._file.write(text)
+        self._file.flush()
+        return len(text)
+
+    def flush(self) -> None:
+        self._stdout.flush()
+        self._file.flush()
+
+    def close(self) -> None:
+        self._file.close()
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +412,23 @@ def run_auto(
     """Run the full automation loop: detect → decide → click → repeat."""
     from arkgrid.policy import RerollPolicy
 
+    # Set up logging — tee stdout to a per-run log file
+    os.makedirs("logs", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_path = os.path.join("logs", f"auto_{timestamp}.log")
+    tee = _TeeWriter(log_path)
+    _original_stdout = sys.stdout
+    sys.stdout = tee
+
+    # Log run parameters for context
+    print(f"[LOG] Run started at {timestamp}")
+    print(f"[LOG] Goal: min_will={goal.min_will} min_chaos={goal.min_chaos} "
+          f"min_first={goal.min_first} min_second={goal.min_second}")
+    print(f"[LOG] Settings: exact_draw={exact_draw} bis_only={bis_only} "
+          f"optimize={optimize} early_finish_coeff={early_finish_coeff}")
+    print(f"[LOG] Tickets: extra={extra_ticket} reset={reset_ticket}")
+    print()
+
     pool = OptionPool()
     monitor = _get_monitor(monitor_index)
 
@@ -423,6 +463,9 @@ def run_auto(
         for i in range(3, 0, -1):
             if _is_stop_pressed():
                 print("Aborted.")
+                sys.stdout = _original_stdout
+                tee.close()
+                print(f"Log saved to: {log_path}")
                 return
             print(f"  Starting in {i}...")
             time.sleep(1)
@@ -949,3 +992,8 @@ def run_auto(
               f"(total={s.total_points()})  "
               f"effects={s.first_effect}/{s.second_effect}")
     print(f"Reset used: {reset_used}")
+
+    # Close log file and restore stdout
+    sys.stdout = _original_stdout
+    tee.close()
+    print(f"Log saved to: {log_path}")
