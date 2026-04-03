@@ -599,7 +599,9 @@ def run_auto(
         action: Optional[str] = None
 
         # 0. Early finish: goal already satisfied, risk not worth it
+        # Never early finish while rerolls remain — use them first
         if (early_finish_coeff >= 0 and analysis.turns_left > 0
+                and analysis.reroll_count <= 0
                 and goal.satisfied(analysis.state.will, analysis.state.chaos,
                                    analysis.state.first, analysis.state.second)):
             miss_count = 0

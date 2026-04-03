@@ -422,7 +422,8 @@ class GemSimulator:
                             state, offers, turns_left - 1)
 
                 # Early finish: goal already satisfied, risk not worth it
-                if self.should_early_finish(state, offers):
+                # Never early finish while rerolls remain — use them first
+                if state.rerolls <= 0 and self.should_early_finish(state, offers):
                     if log:
                         entry["action"] = "EARLY_FINISH"
                         entry["state_after"] = {
