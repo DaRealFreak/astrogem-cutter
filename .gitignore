@@ -27,3 +27,5 @@ Desktop.ini
 # Distribution
 *.whl
 *.tar.gz
+
+logs
