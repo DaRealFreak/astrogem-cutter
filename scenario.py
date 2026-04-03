@@ -7,17 +7,16 @@ Usage:
 from tests.test_scenarios import ScenarioHelper, LastTurnGoal
 
 result = ScenarioHelper.evaluate(
-    gem_type="order_immutability",
-    first_effect="boss_damage",
-    second_effect="brand_power",
+    gem_type="order_solidity",
+    first_effect="additional_damage",
+    second_effect="attack_power",
     optimize="dps",
-    will=4, chaos=5, first=1, second=1,
-    rerolls=2,
+    will=5, chaos=5, first=3, second=3,
+    rerolls=1,
     rarity="epic",
-    turn=8,
-    offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
-    goal=LastTurnGoal(min_will=4, min_chaos=5),
-    min_side_coeff=3000,
+    turn=9,
+    offer_keys=("second-1", "first+1", "first-1", "chaos-1"),
+    goal=LastTurnGoal(min_will=4, min_chaos=4),
     early_finish_coeff=700,
 )
 

@@ -152,3 +152,16 @@ RARITY_TOTAL_STEPS = {"common": 5, "rare": 7, "epic": 9}
 
 # Total steps → rarity
 RARITY_FROM_TOTAL_STEPS = {5: "common", 7: "rare", 9: "epic"}
+
+# ---------------------------------------------------------------------------
+# Finish screen — 4 stat digits displayed vertically.
+# Absolute positions at 1920×1080 (no anchor on finish screen).
+# Order: willpower, chaos, first effect level, second effect level.
+# ---------------------------------------------------------------------------
+FINISH_STAT_POSITIONS: list = [
+    (1071, 407, 18, 18),  # willpower
+    (1071, 443, 18, 18),  # chaos
+    (1071, 479, 18, 18),  # first effect level
+    (1071, 515, 18, 18),  # second effect level
+]
+THRESHOLD_FINISH = 0.65

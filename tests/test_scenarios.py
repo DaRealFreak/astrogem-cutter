@@ -131,8 +131,14 @@ class ScenarioHelper:
             rerolls_remaining=rerolls,
         )
 
-        # --- Early finish ---
-        early = sim.should_early_finish(state, offers)
+        # --- Early finish / coefficient-aware reroll ---
+        early = sim.should_early_finish(state, offers, turns_left)
+        if early and rerolls > 0:
+            # Reroll instead of finishing when rerolls remain
+            should_reroll = True
+            if "coeff_early_finish" not in reroll_reasons:
+                reroll_reasons.append("coeff_early_finish")
+            early = False
 
         # --- Goal checks ---
         goal_sat = goal.satisfied(state.will, state.chaos,
@@ -298,11 +304,11 @@ class TestScenarioEarlyFinishWhenFullGoalMet(unittest.TestCase):
             will=4, chaos=5, first=3, second=1,
             rerolls=0,
             rarity="epic",
-            turn=7,
+            turn=9,
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
+            early_finish_coeff=800,
         )
 
     def test_goal_fully_satisfied(self) -> None:
@@ -310,9 +316,9 @@ class TestScenarioEarlyFinishWhenFullGoalMet(unittest.TestCase):
         self.assertTrue(self.result.goal_fully_satisfied)
 
     def test_early_finish_triggers(self) -> None:
-        """P(miss)=0.5 (will-1, chaos-1 break goal).
-        best_coeff_gain = 3*1000 = 3000 (first+3 boss_damage).
-        risk = 3000 * 0.5 = 1500 > 700 → early finish.
+        """P(miss)=0.5 (will-1, chaos-1 break goal). Last turn (turns_left=1).
+        avg_coeff = (0 + 0 + 3000 + 0) / 4 = 750.
+        expected = 750 * 1 = 750 <= 800 → early finish.
         """
         self.assertTrue(self.result.should_early_finish)
 

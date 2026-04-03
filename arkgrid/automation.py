@@ -38,8 +38,10 @@ from arkgrid.simulator import GemSimulator
 from arkgrid.vision.capture import grab_screen
 from arkgrid.vision.template_recognizer import (
     DetectionResult,
+    FinishDetectionResult,
     OptionDetection,
     detect,
+    detect_finish,
     determine_option_kind,
     parse_delta,
     parse_rerolls,
@@ -58,7 +60,7 @@ BTN_RESET = (962, 255)
 BTN_PROCESS = (1068, 765)
 BTN_REROLL = (1254, 595)
 BTN_FINISH = (831, 764)
-BTN_CONFIRM_TICKET = (906, 666)
+BTN_CONFIRM_TICKET = (897, 643)
 TICKET_CONFIRM_DELAY = 0.5
 
 _VK_ESCAPE = 0x1B
@@ -411,6 +413,8 @@ def run_auto(
     turn_history: List[dict] = []
     current_turn_rerolls = 0
     consecutive_failures = 0
+    waiting_for_change: Optional[Tuple[int, Optional[str]]] = None  # (turn, reroll_key)
+    finish_state: Optional[dict] = None  # Set from finish screen detection
 
     # Safety countdown
     print("=== Astrogem Auto Mode ===")
@@ -450,10 +454,43 @@ def run_auto(
             consecutive_failures += 1
             if (prev_action == "process" and prev_analysis
                     and prev_analysis.turns_left == 1):
-                # Last turn processed — gem cutting complete
+                # Last turn processed — try to detect finish screen
+                finish_det = None
+                for f_attempt in range(MAX_DETECT_RETRIES):
+                    f_frame = grab_screen(monitor_index)
+                    finish_det = detect_finish(f_frame)
+                    if finish_det.found:
+                        break
+                    if f_attempt < MAX_DETECT_RETRIES - 1:
+                        time.sleep(DETECT_RETRY_WAIT)
+
                 print()
                 print("--- Gem cutting complete! ---")
-                if prev_analysis:
+                if finish_det and finish_det.found:
+                    fw = finish_det.willpower or prev_analysis.state.will
+                    fc = finish_det.chaos or prev_analysis.state.chaos
+                    f1 = finish_det.first_level or prev_analysis.state.first
+                    f2 = finish_det.second_level or prev_analysis.state.second
+                    ft = fw + fc + f1 + f2
+                    finish_state = {
+                        "will": fw, "chaos": fc,
+                        "first": f1, "second": f2, "total": ft,
+                    }
+                    print(f"  Final: w={fw} c={fc} "
+                          f"1st={f1} 2nd={f2}  (total={ft})")
+                    turn_history.append({
+                        "turn": prev_analysis.current_turn,
+                        "rerolls_used": current_turn_rerolls,
+                        "state_after": {
+                            "will": fw, "chaos": fc,
+                            "first": f1, "second": f2,
+                            "total": ft,
+                            "effects": (f"{prev_analysis.state.first_effect}/"
+                                        f"{prev_analysis.state.second_effect}"),
+                        },
+                        "p_goal": 0.0,
+                    })
+                elif prev_analysis:
                     s = prev_analysis.state
                     print(f"  Last known state before final click: "
                           f"w={s.will} c={s.chaos} "
@@ -472,8 +509,23 @@ def run_auto(
         if (det.gem_type is None or det.willpower is None or det.chaos is None
                 or det.first_effect is None or det.second_effect is None
                 or det.current_step is None or det.total_steps is None):
-            print("  [error] Critical detection failure. Retrying...")
-            time.sleep(1.0)
+            if waiting_for_change is None:
+                print("  [error] Critical detection failure. Retrying...")
+            # Silent retry when waiting — expected during animations
+            time.sleep(DETECT_RETRY_WAIT)
+            continue
+
+        # --- Wait for state change (turn or reroll count) ---
+        if waiting_for_change is not None:
+            det_turn = det.total_steps - det.current_step + 1
+            wait_turn, wait_rerolls = waiting_for_change
+            if det_turn == wait_turn and det.rerolls == wait_rerolls:
+                time.sleep(animation_delay)
+                continue
+            waiting_for_change = None
+            internal_rerolls = None  # state changed: trust OCR
+            # Let UI fully settle before recapturing
+            time.sleep(0.5)
             continue
 
         # --- Build/reuse probability table ---
@@ -494,50 +546,59 @@ def run_auto(
             )
             rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
             base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
-
-            # Auto-detect gem on first detection (or when effects change)
-            if detected_gem is None or cached_effects != current_effects:
-                detected_gem = AstroGem(
-                    gem_type_domain, det.first_effect,
-                    det.second_effect, optimize,
-                )
-                # Gate tickets by coefficient thresholds (same as simulator)
-                if reset_min_coeff > 0 or reroll_min_coeff > 0:
-                    coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
-                    t_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
-                    total_coeff = sum(
-                        coeff_map.get(e, 0)
-                        for e in (det.first_effect, det.second_effect)
-                        if e in t_set
-                    )
-                    if reset_min_coeff > 0 and total_coeff < reset_min_coeff:
-                        reset_available = False
-                        print(f"  [info] Reset ticket disabled "
-                              f"(coeff {total_coeff} < {reset_min_coeff})")
-                    if reroll_min_coeff > 0 and total_coeff < reroll_min_coeff:
-                        extra_ticket_active = False
-                        print(f"  [info] Extra reroll ticket disabled "
-                              f"(coeff {total_coeff} < {reroll_min_coeff})")
-
-                # Build reroll policy with all parameters
-                reroll_policy = RerollPolicy(
-                    goal, side_threshold, detected_gem, bis_only,
-                    dp_reroll_margin=dp_reroll_margin,
-                    side_quality_weight=side_quality_weight,
-                )
-
-            cached_effects = current_effects
             p_fresh = prob_table.lookup(
                 GemState(will=1, chaos=1, first=1, second=1),
                 det.total_steps,
             )
 
+        # Re-detect gem and re-evaluate tickets when effects change
+        if detected_gem is None or cached_effects != current_effects:
+            detected_gem = AstroGem(
+                gem_type_domain, det.first_effect,
+                det.second_effect, optimize,
+            )
+            # Gate tickets by coefficient thresholds (same as simulator)
+            # Reset only checked on first detection (reset restores
+            # original effects). Reroll re-evaluated on effect changes.
+            if reset_min_coeff > 0 or reroll_min_coeff > 0:
+                coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+                t_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+                total_coeff = sum(
+                    coeff_map.get(e, 0)
+                    for e in (det.first_effect, det.second_effect)
+                    if e in t_set
+                )
+                if cached_effects is None:
+                    # First detection: gate reset ticket on starting effects
+                    if reset_min_coeff > 0 and total_coeff < reset_min_coeff:
+                        reset_available = False
+                        print(f"  [info] Reset ticket disabled "
+                              f"(coeff {total_coeff} < {reset_min_coeff})")
+                if reroll_min_coeff > 0 and total_coeff < reroll_min_coeff:
+                    extra_ticket_active = False
+                    print(f"  [info] Extra reroll ticket disabled "
+                          f"(coeff {total_coeff} < {reroll_min_coeff})")
+
+            # Build reroll policy with all parameters
+            reroll_policy = RerollPolicy(
+                goal, side_threshold, detected_gem, bis_only,
+                dp_reroll_margin=dp_reroll_margin,
+                side_quality_weight=side_quality_weight,
+            )
+
+            cached_effects = current_effects
+
         # --- Analyze ---
-        # After process/reset, use OCR for rerolls (new turn, state unknown).
-        # After reroll, use internal tracking (more reliable mid-turn).
+        # Use OCR for rerolls only when a new turn is detected (turn
+        # changed since last action).  Within the same turn keep internal
+        # tracking — in dry-run the screen doesn't update after our
+        # "clicks", so OCR would return stale values.
         reroll_override = internal_rerolls
         if prev_action in ("process", "reset"):
-            reroll_override = None
+            det_current_turn = det.total_steps - det.current_step + 1
+            if (prev_analysis is None
+                    or det_current_turn != prev_analysis.current_turn):
+                reroll_override = None
 
         analysis = _analyze_frame(
             det, goal, extra_ticket_active, dp_reroll_margin,
@@ -598,16 +659,14 @@ def run_auto(
         # --- Decision logic ---
         action: Optional[str] = None
 
-        # 0. Early finish: goal already satisfied, risk not worth it
-        # Never early finish while rerolls remain — use them first
+        # 0. Early finish / coefficient-aware reroll: goal already satisfied
         if (early_finish_coeff >= 0 and analysis.turns_left > 0
-                and analysis.reroll_count <= 0
                 and goal.satisfied(analysis.state.will, analysis.state.chaos,
                                    analysis.state.first, analysis.state.second)):
             miss_count = 0
-            best_coeff_gain = 0
             coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
             t_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+            total_coeff = 0
             for opt, kind, dv, p_after in analysis.option_probs:
                 ns = analysis.state.clone()
                 if dv is not None and kind in ("will", "chaos", "first", "second"):
@@ -615,22 +674,55 @@ def run_auto(
                     setattr(ns, kind, min(5, max(1, cur + dv)))
                 if not goal.satisfied(ns.will, ns.chaos, ns.first, ns.second):
                     miss_count += 1
-                if kind in ("first", "second") and dv is not None and dv > 0:
+                # Coefficient impact: side stat changes
+                if kind in ("first", "second") and dv is not None:
                     eff = getattr(analysis.state, f"{kind}_effect")
                     if eff in t_set:
-                        gain = dv * coeff_map[eff]
-                        best_coeff_gain = max(best_coeff_gain, gain)
+                        total_coeff += dv * coeff_map[eff]
+                else:
+                    # Effect change: losing current effect's coefficient
+                    kind_hint, _ = parse_delta(opt.delta_key)
+                    if kind_hint == "effect_changed":
+                        if opt.name_key == analysis.state.first_effect:
+                            eff = analysis.state.first_effect
+                            lvl = analysis.state.first
+                        elif opt.name_key == analysis.state.second_effect:
+                            eff = analysis.state.second_effect
+                            lvl = analysis.state.second
+                        else:
+                            eff, lvl = None, 0
+                        if eff and eff in t_set:
+                            total_coeff -= lvl * coeff_map[eff]
 
+            avg_coeff = total_coeff / len(analysis.option_probs) if analysis.option_probs else 0
+            expected_total = avg_coeff * analysis.turns_left
             p_miss = miss_count / len(analysis.option_probs) if analysis.option_probs else 0.0
-            if p_miss > 0:
-                if best_coeff_gain == 0 or best_coeff_gain * p_miss > early_finish_coeff:
-                    action = "finish"
-                    risk_score = best_coeff_gain * p_miss
-                    print(f"  action:  FINISH EARLY (goal satisfied, "
-                          f"risk={p_miss:.0%}, best_gain={best_coeff_gain}, "
-                          f"score={risk_score:.0f} > {early_finish_coeff})")
 
-        # 1. Goal infeasibility → reset
+            # Determine if options are bad enough to stop/reroll
+            should_stop = False
+            if p_miss > 0:
+                should_stop = (early_finish_coeff == 0
+                               or expected_total <= early_finish_coeff)
+            elif early_finish_coeff > 0 and avg_coeff < 0:
+                # No goal risk but net negative coefficient
+                # Only when user set a positive threshold (not safe-mode 0)
+                should_stop = True
+
+            if should_stop:
+                if analysis.reroll_count > 0:
+                    action = "reroll"
+                    print(f"  action:  reroll  "
+                          f"(goal satisfied, bad options: "
+                          f"risk={p_miss:.0%}, avg_coeff={avg_coeff:.0f}, "
+                          f"{analysis.reroll_count} rerolls left)")
+                else:
+                    action = "finish"
+                    print(f"  action:  FINISH EARLY (goal satisfied, "
+                          f"risk={p_miss:.0%}, avg_coeff={avg_coeff:.0f}, "
+                          f"expected={expected_total:.0f}, "
+                          f"threshold={early_finish_coeff})")
+
+        # 1. Goal infeasibility → reset or finish
         if not goal.feasible(analysis.state.will, analysis.state.chaos,
                              analysis.turns_left,
                              first=analysis.state.first,
@@ -639,7 +731,8 @@ def run_auto(
                 action = "reset"
                 print(f"  action:  RESET (goal infeasible)")
             else:
-                print(f"  [warn] Goal infeasible, no reset available")
+                action = "finish"
+                print(f"  action:  FINISH (goal infeasible, no reset available)")
 
         # 2. Probability threshold → reset
         if (action is None and prob_reset_threshold > 0
@@ -649,12 +742,16 @@ def run_auto(
                 print(f"  action:  RESET (P(goal)={analysis.p_current:.1%} "
                       f"< threshold {prob_reset_threshold:.1%})")
 
-        # 3. No offer keeps goal feasible → reset
+        # 3. No offer keeps goal feasible → reset or finish
         if action is None:
             feasible_count = sum(1 for _, _, _, p in analysis.option_probs if p > 0)
-            if feasible_count == 0 and reset_available and not reset_used:
-                action = "reset"
-                print(f"  action:  RESET (no offer keeps goal feasible)")
+            if feasible_count == 0:
+                if reset_available and not reset_used:
+                    action = "reset"
+                    print(f"  action:  RESET (no offer keeps goal feasible)")
+                elif analysis.reroll_count <= 0:
+                    action = "finish"
+                    print(f"  action:  FINISH (no option can reach goal)")
 
         # 4. Last turn: fresh start comparison → reset
         if (action is None and analysis.turns_left == 1
@@ -711,12 +808,23 @@ def run_auto(
                         "reset": "Reset", "finish": "Finish"}[action]
             print(f"  >>> [dry-run] Would click {btn_name}")
             print()
+            # Post-action tracking (must mirror non-dry-run path)
+            if action == "reset":
+                reset_used = True
+                reset_available = False
+                internal_rerolls = None
+                turn_history.append({
+                    "turn": analysis.current_turn,
+                    "rerolls_used": current_turn_rerolls,
+                    "action": "reset",
+                })
+                current_turn_rerolls = 0
+            # In dry-run no click happens, so wait for the game state
+            # to change (turn or reroll count) before re-evaluating.
+            waiting_for_change = (analysis.current_turn, det.rerolls)
             prev_analysis = analysis
             prev_action = action
             time.sleep(animation_delay)
-            if action == "finish":
-                print("--- Gem cutting complete (early finish)! ---")
-                break
             continue
 
         # Verify focus
@@ -798,6 +906,9 @@ def run_auto(
             })
             current_turn_rerolls = 0
 
+        if action in ("process", "reset"):
+            waiting_for_change = (analysis.current_turn, det.rerolls)
+
         prev_analysis = analysis
         prev_action = action
 
@@ -824,7 +935,14 @@ def run_auto(
                 print(line)
         print()
 
-    if prev_analysis:
+    if finish_state:
+        effects = (f"{prev_analysis.state.first_effect}/"
+                   f"{prev_analysis.state.second_effect}" if prev_analysis else "")
+        print(f"Final: w={finish_state['will']} c={finish_state['chaos']} "
+              f"1st={finish_state['first']} 2nd={finish_state['second']}  "
+              f"(total={finish_state['total']})  "
+              f"effects={effects}")
+    elif prev_analysis:
         s = prev_analysis.state
         print(f"Final: w={s.will} c={s.chaos} "
               f"1st={s.first} 2nd={s.second}  "

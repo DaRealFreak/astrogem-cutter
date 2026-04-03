@@ -188,12 +188,14 @@ class GemSimulator:
                 return False
         return True
 
-    def should_early_finish(self, state: GemState, offers: List[Option]) -> bool:
+    def should_early_finish(self, state: GemState, offers: List[Option],
+                           turns_left: int = 1) -> bool:
         """Decide whether to finish early when goal is already satisfied.
 
         Returns True if we should finish (stop processing turns).
         Uses the early_finish_coeff threshold:
           0 = finish if any risk, >0 = tolerate risk up to that level.
+        Scales expected gain by turns_left to account for future opportunities.
         """
         if self.early_finish_coeff < 0:
             return False
@@ -209,27 +211,37 @@ class GemSimulator:
                 miss_count += 1
         p_miss = miss_count / len(offers) if offers else 0.0
 
-        if p_miss == 0.0:
-            return False  # no risk, continue
-
-        # Compute best coefficient gain from side upgrades
-        best_coeff_gain = 0
+        # Compute average coefficient change across all offers
+        avg_coeff_change = 0
         if self.astro_gem:
             coeff_map = (DPS_COEFF if self.astro_gem.optimize == "dps"
                          else SUPPORT_COEFF)
             t_set = (DPS_EFFECTS if self.astro_gem.optimize == "dps"
                      else SUPPORT_EFFECTS)
+            total = 0
             for o in offers:
                 if o.kind in ("first", "second"):
                     eff = getattr(state, f"{o.kind}_effect")
-                    if eff in t_set and o.delta > 0:
-                        gain = o.delta * coeff_map[eff]
-                        best_coeff_gain = max(best_coeff_gain, gain)
+                    if eff in t_set:
+                        total += o.delta * coeff_map[eff]
+                elif o.key in ("change_first_effect", "change_second_effect"):
+                    slot = "first" if o.key == "change_first_effect" else "second"
+                    eff = getattr(state, f"{slot}_effect")
+                    if eff in t_set:
+                        lvl = getattr(state, slot)
+                        total -= lvl * coeff_map[eff]
+            avg_coeff_change = total / len(offers) if offers else 0
 
-        if best_coeff_gain == 0:
-            return True  # risk but no side gain, finish
+        if p_miss > 0:
+            expected_total = avg_coeff_change * turns_left
+            return self.early_finish_coeff == 0 or expected_total <= self.early_finish_coeff
 
-        return best_coeff_gain * p_miss > self.early_finish_coeff
+        # No goal risk but net negative coefficient → finish/reroll
+        # Only when user set a positive coeff threshold (not safe-mode 0)
+        if self.early_finish_coeff > 0 and avg_coeff_change < 0:
+            return True
+
+        return False
 
     def prob_goal_feasible_after_click(self, state: GemState, offers: List[Option], turns_left_after: int) -> float:
         if not offers:
@@ -422,8 +434,8 @@ class GemSimulator:
                             state, offers, turns_left - 1)
 
                 # Early finish: goal already satisfied, risk not worth it
-                # Never early finish while rerolls remain — use them first
-                if state.rerolls <= 0 and self.should_early_finish(state, offers):
+                # If rerolls remain, use them first (re-draw offers)
+                if self.should_early_finish(state, offers, turns_left) and state.rerolls <= 0:
                     if log:
                         entry["action"] = "EARLY_FINISH"
                         entry["state_after"] = {

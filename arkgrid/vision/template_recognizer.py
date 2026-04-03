@@ -34,6 +34,20 @@ class OptionDetection:
 
 
 @dataclass
+class FinishDetectionResult:
+    """Recognition output for the finish/result screen."""
+    found: bool = False
+    willpower: Optional[int] = None
+    willpower_score: float = 0.0
+    chaos: Optional[int] = None
+    chaos_score: float = 0.0
+    first_level: Optional[int] = None
+    first_level_score: float = 0.0
+    second_level: Optional[int] = None
+    second_level_score: float = 0.0
+
+
+@dataclass
 class DetectionResult:
     """Full recognition output for one frame."""
     found: bool = False
@@ -408,3 +422,69 @@ def determine_option_kind(
             return "second", delta_val
         # Fallback: can't determine
         return "other", delta_val
+
+
+# ---------------------------------------------------------------------------
+# Finish screen detection
+# ---------------------------------------------------------------------------
+
+def detect_finish(frame_bgr: np.ndarray) -> FinishDetectionResult:
+    """Detect finish screen stats from a BGR screenshot.
+
+    The finish screen is identified by the absence of the cutting anchor
+    and the presence of 4 stat digits at known absolute positions.
+    Returns FinishDetectionResult with found=True when >= 3 stats matched.
+    """
+    result = FinishDetectionResult()
+    tdir = str(_TEMPLATES_DIR)
+
+    # Normalize to FHD
+    h, w = frame_bgr.shape[:2]
+    if h != C.REF_HEIGHT or w != C.REF_WIDTH:
+        frame_bgr = cv2.resize(frame_bgr, (C.REF_WIDTH, C.REF_HEIGHT),
+                                interpolation=cv2.INTER_AREA)
+
+    if len(frame_bgr.shape) == 3:
+        gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = frame_bgr
+
+    # Verify anchor is NOT found (finish screen has no cutting UI)
+    store = _get_store()
+    anchors = store.get_anchor()
+    if anchors:
+        match = find_best_match(gray, anchors, roi=C.ANCHOR_SEARCH_ROI,
+                                threshold=C.THRESHOLD_ANCHOR)
+        if match is not None:
+            return result  # Still on cutting screen
+
+    # Load finish digit templates (1-5)
+    finish_templates = _load(tdir, "finish")
+    if not finish_templates:
+        return result
+
+    attrs = [
+        ("willpower", "willpower_score"),
+        ("chaos", "chaos_score"),
+        ("first_level", "first_level_score"),
+        ("second_level", "second_level_score"),
+    ]
+
+    matched_count = 0
+    fh, fw = gray.shape[:2]
+    for (attr, score_attr), (x, y, rw, rh) in zip(attrs, C.FINISH_STAT_POSITIONS):
+        cx = max(0, x)
+        cy = max(0, y)
+        cw = min(rw, fw - cx)
+        ch = min(rh, fh - cy)
+        if cw <= 0 or ch <= 0:
+            continue
+        crop = gray[cy:cy + ch, cx:cx + cw]
+        key, score = _match(crop, finish_templates)
+        if key and key.isdigit() and score >= C.THRESHOLD_FINISH:
+            setattr(result, attr, int(key))
+            setattr(result, score_attr, score)
+            matched_count += 1
+
+    result.found = matched_count >= 3
+    return result

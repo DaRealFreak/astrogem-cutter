@@ -537,6 +537,21 @@ def cmd_live(args: argparse.Namespace) -> None:
 
     det = detect(frame)
     if not det.found:
+        from arkgrid.vision.template_recognizer import detect_finish
+        finish_det = detect_finish(frame)
+        if finish_det.found:
+            w = finish_det.willpower
+            c = finish_det.chaos
+            f1 = finish_det.first_level
+            f2 = finish_det.second_level
+            total = sum(x for x in (w, c, f1, f2) if x)
+            print("=== Astrogem Finish Screen ===")
+            print(f"  Willpower:  {w}  (confidence: {finish_det.willpower_score:.2f})")
+            print(f"  Chaos:      {c}  (confidence: {finish_det.chaos_score:.2f})")
+            print(f"  1st effect: {f1}  (confidence: {finish_det.first_level_score:.2f})")
+            print(f"  2nd effect: {f2}  (confidence: {finish_det.second_level_score:.2f})")
+            print(f"  Total:      {total}")
+            return
         raise SystemExit("Anchor not found in screenshot — is the Processing dialog open?")
 
     # --- Validate detection ---
@@ -750,7 +765,7 @@ def cmd_live(args: argparse.Namespace) -> None:
         miss_count = sum(1 for _, _, _, p in option_probs if p < p_current * 0.5)
         # More precise: check if applying option breaks goal satisfaction
         miss_count = 0
-        best_coeff_gain = 0
+        total_coeff = 0
         optimize = getattr(args, "optimize", "dps")
         from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS
         coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
@@ -763,25 +778,23 @@ def cmd_live(args: argparse.Namespace) -> None:
                 setattr(ns, kind, min(5, max(1, cur + delta_val)))
             if not goal.satisfied(ns.will, ns.chaos, ns.first, ns.second):
                 miss_count += 1
-            # Coefficient gain from side upgrades
-            if kind in ("first", "second") and delta_val is not None and delta_val > 0:
+            # Coefficient impact from side stat changes
+            if kind in ("first", "second") and delta_val is not None:
                 eff = getattr(state, f"{kind}_effect")
                 if eff in opt_set_ef:
-                    gain = delta_val * coeff_map[eff]
-                    best_coeff_gain = max(best_coeff_gain, gain)
+                    total_coeff += delta_val * coeff_map[eff]
 
+        avg_coeff = total_coeff / len(option_probs) if option_probs else 0
+        expected_total = avg_coeff * turns_left
         p_miss = miss_count / len(option_probs) if option_probs else 0.0
         if p_miss > 0:
-            if best_coeff_gain == 0:
-                should_early_finish = True
-            else:
-                should_early_finish = best_coeff_gain * p_miss > early_finish_coeff
+            should_early_finish = (early_finish_coeff == 0
+                                   or expected_total <= early_finish_coeff)
 
     if should_early_finish:
         print(f"  >>> Finish early (goal satisfied, risk={p_miss:.0%}, "
-              f"best_gain={best_coeff_gain}, "
-              f"score={best_coeff_gain * p_miss:.0f} "
-              f"{'>' if should_early_finish else '<='} {early_finish_coeff})")
+              f"avg_coeff={avg_coeff:.0f}, expected={expected_total:.0f}, "
+              f"threshold={early_finish_coeff})")
     elif should_reroll:
         print(f"  >>> Reroll (offers {p_current - p_avg_offers:+.1%} below baseline, "
               f"{reroll_count} rerolls available)")
