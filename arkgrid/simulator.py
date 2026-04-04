@@ -76,13 +76,21 @@ class GemSimulator:
         self._side_coeff_second = side_coeff_second
         self.early_finish_coeff = early_finish_coeff
 
+        # When no gem is configured, coefficients are (0, 0) — don't pass
+        # min_side_coeff to the DP or it would think the goal is always
+        # impossible (0 < threshold).  The MC success check still applies
+        # min_side_coeff using the per-run random gem's actual coefficients.
+        dp_min_side_coeff = (min_side_coeff
+                             if side_coeff_first > 0 or side_coeff_second > 0
+                             else 0)
+
         # Reroll-aware DP table: extends state with reroll count so the
         # DP itself decides optimal reroll timing via backward induction.
         self.prob_table = GoalProbabilityTable(
             goal, self.turns_total, self.pool,
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
-            min_side_coeff=min_side_coeff,
+            min_side_coeff=dp_min_side_coeff,
             exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
             max_rerolls=self.base_rerolls,
@@ -94,7 +102,7 @@ class GemSimulator:
             goal, self.turns_total, self.pool,
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
-            min_side_coeff=min_side_coeff,
+            min_side_coeff=dp_min_side_coeff,
             exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
         )

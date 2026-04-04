@@ -245,11 +245,26 @@ Example: `--min-first 5` with `--first-effect boss_damage` means "boss_damage mu
 
 ### Coefficient-weighted total (`--min-side-coeff`)
 
-Requires `sum(level * coefficient)` across target-type side nodes to meet a threshold. Only target-type effects (matching `--optimize`) contribute. Requires a configured gem (`--gem-type` + `--first/second-effect`).
+Requires `sum(level * coefficient)` across target-type side nodes to meet a threshold. Only target-type effects (matching `--optimize`) contribute.
 
-The DP base case evaluates this from the known starting coefficients. In BIS mode with effect changes, the check uses the starting effect's coefficient as an approximation.
+When a gem is configured (`--first-effect` + `--second-effect`), the DP base case evaluates this from the known starting coefficients. In BIS mode with effect changes, the check uses the starting effect's coefficient as an approximation.
+
+When no gem is configured (random gems), the DP probability is averaged over all possible effect assignments (gem type x effect slot permutations, grouped by unique coefficient pairs using first/second symmetry). The MC simulation uses each trial's randomly assigned gem for the actual success check, so MC results are always correct. The DP tables used for reroll/reset decisions within the simulator don't include the side coefficient constraint for random gems (since coefficients vary per trial), so decisions are guided by the base goal only — slightly suboptimal but the MC success rate remains accurate.
 
 Example: `--min-side-coeff 5000` with boss_damage(1000) as first effect requires boss_damage at level 5 (1000*5=5000), or boss_damage at 3 + additional_damage(700) at 3 = 3000+2100=5100 also passes.
+
+## DP probability vs MC success rate
+
+The `stats` command shows both a **DP probability** and an **MC success rate**. The DP probability is the analytical probability of reaching the goal from the initial state through plain turn-by-turn transitions — it does **not** model rerolls, reset tickets, extra reroll tickets, or any smart policy decisions. It represents the baseline "how likely is this goal with pure luck?"
+
+The MC success rate is typically higher because each simulated trial benefits from:
+- **Rerolls** (epic has 2 base + 1 extra = 3 rerolls) — re-draw bad offers
+- **Reset ticket** — full restart when the run goes badly
+- **DP-optimal reroll timing** — save rerolls for late turns where they protect against negative nodes
+- **Early finish** — lock in a satisfied goal instead of risking it
+- **Relic+ overrides** — re-enable tickets mid-run when on track for 16+ points
+
+For example, a goal showing 5% DP probability might show 10% MC success rate — the extra mechanics roughly double the odds. The gap depends on the goal difficulty and which tickets/options are enabled.
 
 ## DP probability tables
 

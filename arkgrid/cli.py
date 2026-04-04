@@ -217,11 +217,6 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
         raise SystemExit("Both --first-effect and --second-effect are required")
 
     min_side_coeff = getattr(args, "min_side_coeff", 0)
-    if min_side_coeff > 0 and astro_gem is None:
-        raise SystemExit(
-            "--min-side-coeff requires a configured gem "
-            "(--first-effect and --second-effect)"
-        )
 
     rarities = args.rarity if args.rarity else ["common", "rare", "epic"]
 
@@ -271,6 +266,32 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
 _SHARED_POOL = OptionPool()
 
 
+def _enumerate_side_coeff_pairs(optimize: str):
+    """Enumerate all unique (coeff_first, coeff_second) -> count for random gems.
+
+    Iterates over all gem types × all ordered effect-pair assignments and
+    maps each to its (side_coeff_first, side_coeff_second) values.
+    Uses unordered grouping since first/second have symmetric pool weights,
+    so DP((a,b)) == DP((b,a)) from state (1,1,1,1).
+    Returns {(lo, hi): count}.
+    """
+    coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+    target_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+
+    pairs: dict = {}
+    for effects in GEM_TYPES.values():
+        for i, first in enumerate(effects):
+            for j, second in enumerate(effects):
+                if i == j:
+                    continue
+                cf = coeff_map[first] if first in target_set else 0
+                cs = coeff_map[second] if second in target_set else 0
+                # Canonical unordered key (symmetric pool weights)
+                key = (min(cf, cs), max(cf, cs))
+                pairs[key] = pairs.get(key, 0) + 1
+    return pairs
+
+
 def _compute_dp_prob(
     goal: LastTurnGoal,
     rarity: str,
@@ -286,6 +307,8 @@ def _compute_dp_prob(
     Does not model rerolls, reset tickets, or smart policy decisions.
     When exact_draw=False: single-draw transition approximation (~20ms).
     When exact_draw=True: exact PPSWOR(4) pick-1 transitions (~1-4s).
+    When astro_gem is None and min_side_coeff > 0: averages over all
+    possible random gem effect assignments.
     """
     pool = _SHARED_POOL
     turns = GemSimulator.RARITY_TURNS[rarity]
@@ -333,6 +356,24 @@ def _compute_dp_prob(
             early_finish=early_finish,
         )
         return table.lookup_bis_averaged(turns)
+    elif min_side_coeff > 0 and astro_gem is None:
+        # No configured gem — average DP probability over all possible
+        # random effect assignments (gem type × effect slot permutations).
+        pairs = _enumerate_side_coeff_pairs(optimize)
+        total_count = sum(pairs.values())
+        prob_sum = 0.0
+        initial = GemState(will=1, chaos=1, first=1, second=1)
+        for (cf, cs), count in pairs.items():
+            table = GoalProbabilityTable(
+                goal, turns, pool,
+                side_coeff_first=cf,
+                side_coeff_second=cs,
+                min_side_coeff=min_side_coeff,
+                exact_draw=exact_draw,
+                early_finish=early_finish,
+            )
+            prob_sum += table.lookup(initial, turns) * count
+        return prob_sum / total_count
     else:
         table = GoalProbabilityTable(
             goal, turns, pool,

@@ -76,7 +76,7 @@ python -m arkgrid read [--screenshot FILE] [--debug] [--save-debug FILE]
 | `--exact-chaos N` | Exact chaos target |
 | `--min-first N` | Minimum level for first side node (1-5) |
 | `--min-second N` | Minimum level for second side node (1-5) |
-| `--min-side-coeff N` | Minimum coefficient-weighted level total from target side nodes. Value = `sum(level * coefficient)`. E.g. boss_damage(1000) at level 5 = 5000. Requires `--first-effect` and `--second-effect`. Default: `0`. |
+| `--min-side-coeff N` | Minimum coefficient-weighted level total from target side nodes. Value = `sum(level * coefficient)`. E.g. boss_damage(1000) at level 5 = 5000. Works with or without `--first-effect`/`--second-effect` — without a configured gem, the DP probability is averaged over all possible random effect assignments and MC trials use each run's random gem for the check. Default: `0`. |
 
 At least one goal flag should be set. Flags can be combined (e.g. `--min-will 4 --min-chaos 5 --min-first 5`).
 
@@ -124,6 +124,9 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--reset-min-coeff N` | Only use reset ticket when the sum of starting target-effect coefficients meets this threshold (e.g. atk_power+additional_damage = 1100 passes, brand_power alone = 1050 does not). `0` = always use. Default: `0`. |
 | `--reroll-min-coeff N` | Only use extra reroll ticket when the sum of starting target-effect coefficients meets this threshold. Same logic as `--reset-min-coeff` but for the extra reroll ticket. `0` = always use. Default: `0`. |
 | `--early-finish-coeff N` | Risk tolerance for early finish when goal is already satisfied. `0` = always finish when met (safe). Higher values accept more risk for side upgrades. Formula: finish if `best_coeff_gain * P(miss) > N`. E.g. `750` continues for boss_damage+3 at 25% miss. `-1` = disabled. Default: `0`. |
+| `--relic-no-early-finish F` | Suppress early finish when P(relic+ >=16) from current state exceeds this threshold — chase 16+ total points even when goal is met. `0.0` = disabled. Default: `0.0`. |
+| `--relic-reroll-threshold F` | Re-enable extra reroll ticket mid-run when P(relic+ >=16) from current state exceeds this threshold, overriding `--reroll-min-coeff` gating. `0.0` = disabled. Default: `0.0`. |
+| `--exact-dp` | Use exact PPSWOR(4) inclusion probabilities instead of single-draw approximation. More accurate but slower (~1-4s vs ~20ms per table). Available on `stats`, `sim`, `live`, `auto`. |
 
 ### Stats-only options
 
@@ -194,6 +197,10 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \
 python -m arkgrid stats --min-will 4 --min-chaos 5 --min-side-coeff 5000 --rarity epic \
   --first-effect boss_damage --second-effect additional_damage
 
+# Coefficient-weighted side node goal with random gem (averaged over all possible effects)
+python -m arkgrid stats --min-will 4 --min-chaos 4 --min-side-coeff 3500 --rarity epic \
+  --optimize dps --reset-ticket
+
 # Combined: both side nodes at level 4+ with coefficient floor
 python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 4 --min-second 4 \
   --min-side-coeff 6000 --rarity epic \
@@ -230,8 +237,8 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 --early-finish-coeff 750
 # Automation dry run (no clicks, just detection and decisions)
 python -m arkgrid auto --min-will 4 --min-chaos 4 --dry-run
 
-# Automation with exact DP and aggressive side quality
-python -m arkgrid auto --min-will 4 --min-chaos 4 --exact-dp --side-quality 2 \
+# Automation with exact DP and risk tolerance
+python -m arkgrid auto --min-will 4 --min-chaos 4 --exact-dp \
   --early-finish-coeff 1000
 ```
 
