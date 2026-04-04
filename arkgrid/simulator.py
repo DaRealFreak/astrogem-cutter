@@ -36,6 +36,7 @@ class GemSimulator:
             min_side_coeff: int = 0,
             exact_draw: bool = False,
             early_finish_coeff: int = 0,
+            reroll_strategy: str = "baseline",
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -47,10 +48,13 @@ class GemSimulator:
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
         self.side_node_threshold = side_node_threshold
+        self.reroll_strategy = reroll_strategy
         self.reroll_policy = RerollPolicy(
             goal, side_node_threshold, astro_gem, bis_only,
             dp_reroll_margin=dp_reroll_margin,
             side_quality_weight=side_quality_weight,
+            reroll_strategy=reroll_strategy,
+            total_turns=self.RARITY_TURNS[rarity],
         )
 
         self.use_extra_ticket = use_extra_ticket
@@ -80,6 +84,7 @@ class GemSimulator:
         self._side_coeff_second = side_coeff_second
         self.early_finish_coeff = early_finish_coeff
 
+        max_rerolls = self.base_rerolls if reroll_strategy == "dp_extended" else 0
         self.prob_table = GoalProbabilityTable(
             goal, self.turns_total, self.pool,
             side_coeff_first=side_coeff_first,
@@ -87,7 +92,22 @@ class GemSimulator:
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
+            max_rerolls=max_rerolls,
         )
+        # Standard (non-reroll) DP for reset decisions — the reroll-aware
+        # DP overestimates p_fresh because the per-option max model
+        # overstates reroll value vs actual 4-draw-pick-1 mechanics.
+        if max_rerolls > 0:
+            self._reset_prob_table = GoalProbabilityTable(
+                goal, self.turns_total, self.pool,
+                side_coeff_first=side_coeff_first,
+                side_coeff_second=side_coeff_second,
+                min_side_coeff=min_side_coeff,
+                exact_draw=exact_draw,
+                early_finish=early_finish_coeff >= 0,
+            )
+        else:
+            self._reset_prob_table = self.prob_table
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -273,18 +293,27 @@ class GemSimulator:
             log_obj["reroll_reasons_history"] = []
 
         while turn != 1 and state.rerolls > 0:
-            goal_feasible_frac = self.prob_goal_feasible_after_click(state, offers, turns_left_after)
-            goal_success_prob: Optional[float] = None
-            dp_baseline: Optional[float] = None
-            if self.prob_table is not None:
-                goal_success_prob = self.prob_table.expected_prob_after_click(
+            # Strategy D: use DP-optimal reroll decision directly
+            if (self.reroll_strategy == "dp_extended"
+                    and self.prob_table is not None
+                    and self.prob_table._max_rerolls > 0):
+                should = self.prob_table.should_reroll_dp(
+                    state, offers, turns_left, state.rerolls)
+                reasons = ["dp_reroll_optimal"] if should else []
+            else:
+                goal_feasible_frac = self.prob_goal_feasible_after_click(
                     state, offers, turns_left_after)
-                dp_baseline = self.prob_table.lookup(state, turns_left)
-            should, reasons = self.reroll_policy.should_reroll(
-                offers, state, turns_left, goal_feasible_frac,
-                goal_success_prob=goal_success_prob,
-                dp_baseline=dp_baseline,
-                rerolls_remaining=state.rerolls)
+                goal_success_prob: Optional[float] = None
+                dp_baseline: Optional[float] = None
+                if self.prob_table is not None:
+                    goal_success_prob = self.prob_table.expected_prob_after_click(
+                        state, offers, turns_left_after)
+                    dp_baseline = self.prob_table.lookup(state, turns_left)
+                should, reasons = self.reroll_policy.should_reroll(
+                    offers, state, turns_left, goal_feasible_frac,
+                    goal_success_prob=goal_success_prob,
+                    dp_baseline=dp_baseline,
+                    rerolls_remaining=state.rerolls)
 
             if not should:
                 break
@@ -292,7 +321,9 @@ class GemSimulator:
             state.rerolls -= 1
             if log_obj is not None:
                 log_obj["reroll_reasons_history"].append(reasons)
-                log_obj.setdefault("reroll_feasible_history", []).append(goal_feasible_frac)
+                log_obj.setdefault("reroll_feasible_history", []).append(
+                    self.prob_goal_feasible_after_click(state, offers, turns_left_after)
+                    if reasons != ["dp_reroll_optimal"] else 0.0)
 
             offers = self.pool.generate_offers(state, turn, turns_left, rng)
             offers = self._resolve_effect_offers(offers, state, rng)
@@ -331,14 +362,16 @@ class GemSimulator:
 
         _log_pt = self.prob_table if log else None
 
+        run_rerolls = (self.RARITY_REROLLS[self.rarity]
+                       + (1 if extra_ticket_active else 0))
+
         # Fresh-start probability — reset is better when current odds drop below this
-        p_fresh = self.prob_table.lookup(
+        # Uses standard DP (not reroll-aware) for accurate reset value estimate.
+        p_fresh = self._reset_prob_table.lookup(
             GemState(will=1, chaos=1, first=1, second=1), self.turns_total)
 
         turn_log: List[Dict[str, Any]] = []
-
-        run_rerolls = (self.RARITY_REROLLS[self.rarity]
-                       + (1 if extra_ticket_active else 0))
+        rerolls_by_turn: Dict[int, int] = {}
 
         for attempt in range(1, 3):
             state = GemState(
@@ -354,7 +387,7 @@ class GemSimulator:
                 # Probability-based early reset (soft -- only triggers reset, never hard fail)
                 if (self.prob_reset_threshold > 0.0
                         and reset_available and not reset_used):
-                    p_goal = self.prob_table.lookup(state, turns_left)
+                    p_goal = self._reset_prob_table.lookup(state, turns_left)
                     if p_goal < self.prob_reset_threshold:
                         reset_used = True
                         if log:
@@ -387,7 +420,7 @@ class GemSimulator:
                             turn_log.append({
                                 "turn": turn,
                                 "turns_left": turns_left,
-                                "goal_prob": _log_pt.lookup(state, turns_left) if _log_pt else None,
+                                "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
                                 "rerolls_available": state.rerolls,
                                 "action": "RESET (goal infeasible before rolling)",
                                 "state_before_reset": {
@@ -411,19 +444,24 @@ class GemSimulator:
                         rerolls_left=state.rerolls,
                         extra_ticket_used=extra_ticket_active,
                         turn_log=turn_log if log else None,
+                        rerolls_by_turn=rerolls_by_turn,
                     )
 
                 if log:
                     entry: Optional[Dict[str, Any]] = {
                         "turn": turn,
                         "turns_left": turns_left,
-                        "goal_prob": _log_pt.lookup(state, turns_left) if _log_pt else None,
+                        "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
                         "rerolls_available": state.rerolls,
                         "eff_threshold": self.reroll_policy.effective_side_threshold(state),
                     }
                 else:
                     entry = None
+                rerolls_before = state.rerolls
                 offers = self.roll_offers_with_rerolls(state, turn, rng, entry if log else None)
+                rerolls_used = rerolls_before - state.rerolls
+                if rerolls_used > 0:
+                    rerolls_by_turn[turn] = rerolls_used
 
                 # Log probability info after offers are determined
                 if log:
@@ -431,7 +469,7 @@ class GemSimulator:
                         state, offers, turns_left - 1)
                     if _log_pt is not None:
                         entry["prob_after_click"] = _log_pt.expected_prob_after_click(
-                            state, offers, turns_left - 1)
+                            state, offers, turns_left - 1, rerolls=state.rerolls)
 
                 # Early finish: goal already satisfied, risk not worth it
                 # If rerolls remain, use them first (re-draw offers)
@@ -459,12 +497,13 @@ class GemSimulator:
                         rerolls_left=state.rerolls,
                         extra_ticket_used=extra_ticket_active,
                         turn_log=turn_log if log else None,
+                        rerolls_by_turn=rerolls_by_turn,
                     )
 
                 # after rerolls: probability-based early reset
                 if (self.prob_reset_threshold > 0.0
                         and reset_available and not reset_used):
-                    p_after = self.prob_table.expected_prob_after_click(
+                    p_after = self._reset_prob_table.expected_prob_after_click(
                         state, offers, turns_left - 1)
                     if p_after < self.prob_reset_threshold:
                         reset_used = True
@@ -529,11 +568,12 @@ class GemSimulator:
                         rerolls_left=state.rerolls,
                         extra_ticket_used=extra_ticket_active,
                         turn_log=turn_log if log else None,
+                        rerolls_by_turn=rerolls_by_turn,
                     )
 
                 # Last turn after rerolls: reset if fresh start has better odds
                 if (turns_left == 1 and reset_available and not reset_used):
-                    p_after = self.prob_table.expected_prob_after_click(
+                    p_after = self._reset_prob_table.expected_prob_after_click(
                         state, offers, turns_left - 1)
                     if p_after < p_fresh:
                         reset_used = True
@@ -570,7 +610,7 @@ class GemSimulator:
                         "rerolls": state.rerolls,
                         "first_effect": state.first_effect,
                         "second_effect": state.second_effect,
-                        "goal_prob": _log_pt.lookup(state, turns_left - 1) if _log_pt else None,
+                        "goal_prob": _log_pt.lookup(state, turns_left - 1, rerolls=state.rerolls) if _log_pt else None,
                     }
                     turn_log.append(entry)
 
@@ -604,6 +644,7 @@ class GemSimulator:
                     rerolls_left=state.rerolls,
                     extra_ticket_used=extra_ticket_active,
                     turn_log=turn_log if log else None,
+                    rerolls_by_turn=rerolls_by_turn,
                 )
 
             # reset used on attempt 1 -> retry
@@ -619,6 +660,7 @@ class GemSimulator:
                 rerolls_left=state.rerolls,
                 extra_ticket_used=extra_ticket_active,
                 turn_log=turn_log if log else None,
+                rerolls_by_turn=rerolls_by_turn,
             )
 
         raise RuntimeError("Simulation exceeded expected attempts")

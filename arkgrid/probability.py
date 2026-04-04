@@ -36,6 +36,7 @@ class GoalProbabilityTable:
         min_side_coeff: int = 0,
         exact_draw: bool = False,
         early_finish: bool = False,
+        max_rerolls: int = 0,
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
@@ -47,8 +48,11 @@ class GoalProbabilityTable:
         self._side_coeff_second = side_coeff_second
         self._min_side_coeff = min_side_coeff
         self.early_finish = early_finish
+        self._max_rerolls = max_rerolls
         self._dp: Dict[tuple, float] = {}
-        if bis_only:
+        if max_rerolls > 0 and not bis_only:
+            self._build_with_rerolls()
+        elif bis_only:
             self._build_bis()
         else:
             self._build()
@@ -229,6 +233,129 @@ class GoalProbabilityTable:
                             dp[(w, c, f, s, tl)] = val
 
     # ------------------------------------------------------------------
+    # Reroll-aware transitions and build
+    # ------------------------------------------------------------------
+
+    def _transitions_reroll(
+        self, w: int, c: int, f: int, s: int,
+        turn: int, turns_left: int,
+    ) -> List[Tuple[float, int, int, int, int, int]]:
+        """Return [(prob, nw, nc, nf, ns, view_delta)] per eligible option.
+
+        Like _transitions() but preserves per-option view deltas so the
+        reroll DP can track reroll count changes from view+N options.
+        """
+        state = GemState(will=w, chaos=c, first=f, second=s)
+        eligible = [o for o in self.pool.pool
+                    if self.pool.eligible(o, state, turn, turns_left)]
+        if not eligible:
+            return [(1.0, w, c, f, s, 0)]
+
+        probs = self._option_probs(eligible)
+        result: List[Tuple[float, int, int, int, int, int]] = []
+        for p, o in zip(probs, eligible):
+            nw, nc, nf, ns = w, c, f, s
+            vd = 0
+            if o.kind == "will":
+                nw = min(5, max(1, w + o.delta))
+            elif o.kind == "chaos":
+                nc = min(5, max(1, c + o.delta))
+            elif o.kind == "first":
+                nf = min(5, max(1, f + o.delta))
+            elif o.kind == "second":
+                ns = min(5, max(1, s + o.delta))
+            elif o.kind == "view":
+                vd = o.delta
+            # cost/other/maintain -> no stat change, no view delta
+            result.append((p, nw, nc, nf, ns, vd))
+        return result
+
+    def _build_with_rerolls(self) -> None:
+        """Build DP table with reroll count as extra state dimension.
+
+        State key: (w, c, f, s, r, turns_left) where r = rerolls available.
+
+        Transition: on turns > 1, with r > 0 rerolls available, the player
+        can choose to keep the current offers or reroll.  Under the
+        single-draw approximation:
+
+            V(s, r, tl) = max(
+                sum_i p_i * V(apply_i(s), r + vd_i, tl-1),   # keep
+                V(s, r-1, tl)                                  # reroll
+            )
+
+        Turn 1 never allows rerolling (hardcoded game rule).
+        """
+        dp = self._dp
+        mt = self.max_turns
+        max_r = self._max_rerolls
+
+        # Base case: turns_left == 0
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    for s in range(1, 6):
+                        sat = 1.0 if (self.goal.satisfied(w, c, f, s)
+                                      and self._coeff_satisfied(f, s)) else 0.0
+                        for r in range(0, max_r + 1):
+                            dp[(w, c, f, s, r, 0)] = sat
+
+        # Precompute transition tables (with view deltas)
+        TransEntry = List[Tuple[float, int, int, int, int, int]]
+        trans_cache: Dict[str, Dict[Tuple[int, int, int, int], TransEntry]] = {}
+        for label, turn, tl in [("first", 1, mt),
+                                ("last", mt, 1),
+                                ("middle", 2, mt - 1 if mt > 2 else 2)]:
+            cache: Dict[Tuple[int, int, int, int], TransEntry] = {}
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            cache[(w, c, f, s)] = self._transitions_reroll(
+                                w, c, f, s, turn, tl)
+            trans_cache[label] = cache
+
+        # Backward induction
+        for tl in range(1, mt + 1):
+            turn_number = mt - tl + 1
+            if turn_number == 1:
+                tc = trans_cache["first"]
+            elif tl == 1:
+                tc = trans_cache["last"]
+            else:
+                tc = trans_cache["middle"]
+
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            trans = tc[(w, c, f, s)]
+                            for r in range(0, max_r + 1):
+                                if (self.early_finish
+                                        and self.goal.satisfied(w, c, f, s)
+                                        and self._coeff_satisfied(f, s)):
+                                    dp[(w, c, f, s, r, tl)] = 1.0
+                                    continue
+
+                                # Reroll decision uses per-option max:
+                                # for each possible draw, keep if better
+                                # than rerolling, otherwise reroll.
+                                if r > 0 and turn_number != 1:
+                                    reroll_val = dp[(w, c, f, s, r - 1, tl)]
+                                    val = 0.0
+                                    for (p, nw, nc, nf, ns, vd) in trans:
+                                        nr = min(max_r, r + vd)
+                                        post = dp[(nw, nc, nf, ns, nr, tl - 1)]
+                                        val += p * max(post, reroll_val)
+                                    dp[(w, c, f, s, r, tl)] = val
+                                else:
+                                    val = 0.0
+                                    for (p, nw, nc, nf, ns, vd) in trans:
+                                        nr = min(max_r, r + vd)
+                                        val += p * dp[(nw, nc, nf, ns, nr, tl - 1)]
+                                    dp[(w, c, f, s, r, tl)] = val
+
+    # ------------------------------------------------------------------
     # BIS-aware transitions and build
     # ------------------------------------------------------------------
     # State key: (w, c, f, s, ft, st, tl)
@@ -358,7 +485,13 @@ class GoalProbabilityTable:
     # Public API
     # ------------------------------------------------------------------
 
-    def lookup(self, state: GemState, turns_left: int) -> float:
+    def lookup(self, state: GemState, turns_left: int,
+               rerolls: Optional[int] = None) -> float:
+        if self._max_rerolls > 0 and not self.bis_only:
+            r = min(self._max_rerolls, rerolls if rerolls is not None else 0)
+            return self._dp.get(
+                (state.will, state.chaos, state.first, state.second,
+                 r, turns_left), 0.0)
         if self.bis_only:
             ft = 1 if state.first_effect in self._target_effects else 0
             st = 1 if state.second_effect in self._target_effects else 0
@@ -410,7 +543,8 @@ class GoalProbabilityTable:
 
     def expected_prob_after_click(self, state: GemState,
                                   offers: List[Option],
-                                  turns_left_after: int) -> float:
+                                  turns_left_after: int,
+                                  rerolls: Optional[int] = None) -> float:
         """Average goal probability across the 4 offers (uniform 25% pick)."""
         if not offers:
             return 0.0
@@ -421,7 +555,13 @@ class GoalProbabilityTable:
             nf = min(5, max(1, state.first + o.delta)) if o.kind == "first" else state.first
             ns = min(5, max(1, state.second + o.delta)) if o.kind == "second" else state.second
 
-            if self.bis_only and o.key in ("change_first_effect", "change_second_effect"):
+            if self._max_rerolls > 0 and not self.bis_only:
+                r = rerolls if rerolls is not None else 0
+                vd = o.delta if o.kind == "view" else 0
+                nr = min(self._max_rerolls, r + vd)
+                total += self._dp.get(
+                    (nw, nc, nf, ns, nr, turns_left_after), 0.0)
+            elif self.bis_only and o.key in ("change_first_effect", "change_second_effect"):
                 next_state = GemState(will=nw, chaos=nc, first=nf, second=ns,
                                       first_effect=state.first_effect,
                                       second_effect=state.second_effect)
@@ -434,3 +574,25 @@ class GoalProbabilityTable:
             else:
                 total += self._dp.get((nw, nc, nf, ns, turns_left_after), 0.0)
         return total / len(offers)
+
+    def should_reroll_dp(self, state: GemState, offers: List[Option],
+                         turns_left: int, rerolls: int) -> bool:
+        """DP-optimal reroll decision for reroll-aware table.
+
+        Uses per-option comparison: for each of the 4 actual offers,
+        checks if keeping (uniform 25% pick) gives higher expected
+        value than rerolling.  Rerolls when the value with selective
+        rejection (keeping good offers, rerolling bad ones) exceeds
+        the keep-all average.
+
+        In practice this simplifies to: reroll if the average post-click
+        value of the offers is below the reroll value, since with
+        uniform pick the player can't select individual offers.
+        """
+        if self._max_rerolls <= 0 or rerolls <= 0:
+            return False
+        keep_val = self.expected_prob_after_click(
+            state, offers, turns_left - 1, rerolls=rerolls)
+        reroll_val = self.lookup(state, turns_left,
+                                 rerolls=rerolls - 1)
+        return reroll_val > keep_val

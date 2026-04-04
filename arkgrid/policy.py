@@ -21,11 +21,15 @@ class RerollPolicy:
                          "second+2", "second+3", "second+4"}
     ALL_DOWNGRADES = {"will-1", "chaos-1", "first-1", "second-1"}
 
+    STRATEGIES = ("baseline", "reserve", "progressive", "hybrid")
+
     def __init__(self, goal: LastTurnGoal, side_node_threshold: float = 0.5,
                  astro_gem: Optional[AstroGem] = None,
                  bis_only: bool = False,
                  dp_reroll_margin: float = 0.03,
-                 side_quality_weight: float = 0.0) -> None:
+                 side_quality_weight: float = 0.0,
+                 reroll_strategy: str = "baseline",
+                 total_turns: int = 9) -> None:
         self.goal = goal
         # When this fraction (or more) of offers keep the goal feasible,
         # also consider side-node upgrades as valuable instead of focusing
@@ -36,6 +40,8 @@ class RerollPolicy:
         self.bis_only = bis_only
         self.dp_reroll_margin = dp_reroll_margin
         self.side_quality_weight = side_quality_weight
+        self.reroll_strategy = reroll_strategy
+        self.total_turns = total_turns
 
     # ------------------------------------------------------------------
     # Target-aware helpers
@@ -152,6 +158,13 @@ class RerollPolicy:
             reasons.append("no_offer_keeps_goal_feasible")
             return True, reasons
 
+        # Strategy B/E: Reservation guard — keep at least 1 reroll for later
+        if self.reroll_strategy in ("reserve", "hybrid"):
+            reserve_boundary = (self.total_turns / 2 if self.reroll_strategy == "reserve"
+                                else self.total_turns / 3)
+            if rerolls_remaining <= 1 and turns_left > reserve_boundary:
+                return False, ["reserve_held"]
+
         if goal_met:
             # Goal achieved -- optimise side nodes, avoid any downgrades
             has_positive = (
@@ -191,8 +204,19 @@ class RerollPolicy:
 
             if has_goal_downgrade and not has_goal_big:
                 reasons.append("goal_downgrade_without_big_upgrade")
+
+            # Strategy C/E: In the first half, only reroll on no_goal_upgrade
+            # if there is also a negative node present.  Absence of will/chaos
+            # upgrade alone is not worth burning a reroll early.
             if not has_goal_upgrade:
-                reasons.append("no_goal_upgrade")
+                if self.reroll_strategy in ("progressive", "hybrid"):
+                    in_first_half = turns_left > self.total_turns / 2
+                    if in_first_half and not has_goal_downgrade:
+                        pass  # skip — not bad enough to reroll early
+                    else:
+                        reasons.append("no_goal_upgrade")
+                else:
+                    reasons.append("no_goal_upgrade")
 
         heuristic_reroll = len(reasons) > 0
         return self._dp_override(
@@ -263,9 +287,17 @@ class RerollPolicy:
         if self._HARD_CONSTRAINTS & set(reasons):
             return heuristic_reroll, reasons
 
-        # Margin scales down when rerolls are surplus (won't all be used)
-        effective_margin = self.dp_reroll_margin * min(
-            1.0, turns_left / max(1, rerolls_remaining))
+        # Margin computation depends on strategy
+        if self.reroll_strategy in ("progressive", "hybrid"):
+            # Progressive: margin scales quadratically with turn progress
+            # Early turns → near-zero margin (hard to trigger reroll)
+            # Late turns → approaches base margin
+            turn_progress = (self.total_turns - turns_left) / max(1, self.total_turns)
+            effective_margin = self.dp_reroll_margin * (turn_progress ** 2)
+        else:
+            # Baseline/reserve: margin scales down when rerolls are surplus
+            effective_margin = self.dp_reroll_margin * min(
+                1.0, turns_left / max(1, rerolls_remaining))
 
         # Side-node quality increases margin: a +4 boss_damage (quality=1.0)
         # doubles it, making the policy willing to accept offers further

@@ -156,3 +156,4 @@ class RunResult:
     rerolls_left: int
     extra_ticket_used: bool = True
     turn_log: Optional[List[Dict[str, Any]]] = None
+    rerolls_by_turn: Optional[Dict[int, int]] = None
