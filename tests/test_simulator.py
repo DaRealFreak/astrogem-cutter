@@ -253,46 +253,47 @@ class TestSimulator(unittest.TestCase):
 
 
 class TestDPRerollIntegration(unittest.TestCase):
-    def test_dp_reroll_logs_override_reason(self) -> None:
-        """DP override reasons should appear in the turn log."""
+    def test_dp_reroll_logs_optimal_reason(self) -> None:
+        """DP-optimal reroll reasons should appear in the turn log."""
         sim = GemSimulator(
             rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
-            dp_reroll_margin=0.03,
         )
-        # Run enough seeds to find at least one DP override
-        found_override = False
+        # Run enough seeds to find at least one DP-optimal reroll
+        found_reroll = False
         for seed in range(200):
             r = sim.simulate_one(seed=seed, log=True)
             for t in (r.turn_log or []):
                 for reasons in t.get("reroll_reasons_history", []):
-                    if any("dp_override" in r for r in reasons):
-                        found_override = True
+                    if "dp_reroll_optimal" in reasons:
+                        found_reroll = True
                         break
-                if found_override:
+                if found_reroll:
                     break
-            if found_override:
+            if found_reroll:
                 break
-        self.assertTrue(found_override,
-                        "Expected at least one DP override in 200 seeds")
+        self.assertTrue(found_reroll,
+                        "Expected at least one DP-optimal reroll in 200 seeds")
 
-    def test_dp_margin_affects_behavior(self) -> None:
-        """Different margins should produce different outcomes."""
+    def test_rerolls_saved_for_late_turns(self) -> None:
+        """DP-optimal rerolls should distribute more rerolls to late turns."""
         goal = LastTurnGoal(min_will=4, min_chaos=4)
-        sim_tight = GemSimulator(
-            rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
-            goal=goal, dp_reroll_margin=0.01,
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=True, use_reset_ticket=False,
+            goal=goal,
         )
-        sim_wide = GemSimulator(
-            rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
-            goal=goal, dp_reroll_margin=0.20,
-        )
-        diff_count = sum(
-            1 for seed in range(100)
-            if sim_tight.simulate_one(seed=seed).success != sim_wide.simulate_one(seed=seed).success
-        )
-        self.assertGreater(diff_count, 0,
-                           "Different margins should change at least one outcome in 100 seeds")
+        early_rerolls = 0
+        late_rerolls = 0
+        for seed in range(500):
+            r = sim.simulate_one(seed=seed)
+            if r.rerolls_by_turn:
+                for turn, count in r.rerolls_by_turn.items():
+                    if turn <= 3:
+                        early_rerolls += count
+                    elif turn >= 7:
+                        late_rerolls += count
+        self.assertGreater(late_rerolls, early_rerolls,
+                           "DP-optimal should use more rerolls late than early")
 
 
 class TestRandomAstroGem(unittest.TestCase):

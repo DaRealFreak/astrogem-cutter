@@ -84,8 +84,6 @@ class ScenarioHelper:
         use_extra_ticket: bool = False,
         use_reset_ticket: bool = False,
         side_node_threshold: float = 0.5,
-        dp_reroll_margin: float = 0.03,
-        side_quality_weight: float = 0.0,
         bis_only: bool = False,
         exact_draw: bool = False,
     ) -> ScenarioResult:
@@ -100,8 +98,6 @@ class ScenarioHelper:
             optimize=optimize,
             bis_only=bis_only,
             pool=cls.POOL,
-            dp_reroll_margin=dp_reroll_margin,
-            side_quality_weight=side_quality_weight,
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
             early_finish_coeff=early_finish_coeff,

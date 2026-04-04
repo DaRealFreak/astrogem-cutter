@@ -123,8 +123,6 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--bis-only` | Actively pursue target effects via `change_effect` offers in desperate mode. Side-node upgrades still use the coefficient-scaled threshold but are filtered to target-type slots only. In `stats`, only runs where both effects end up as target-type count as success. |
 | `--reset-min-coeff N` | Only use reset ticket when the sum of starting target-effect coefficients meets this threshold (e.g. atk_power+additional_damage = 1100 passes, brand_power alone = 1050 does not). `0` = always use. Default: `0`. |
 | `--reroll-min-coeff N` | Only use extra reroll ticket when the sum of starting target-effect coefficients meets this threshold. Same logic as `--reset-min-coeff` but for the extra reroll ticket. `0` = always use. Default: `0`. |
-| `--dp-reroll-margin F` | Margin for DP-based reroll override. Controls how far below the baseline expected probability the current offers must be before spending a reroll. Default: `0.03`. |
-| `--side-quality F` | Weight side-node quality by coefficient in reroll decisions. `0` = off (max goal probability), `2` = mild, `12` = aggressive (~40% prob drop tolerated for +4 boss_damage). Default: `0`. |
 | `--early-finish-coeff N` | Risk tolerance for early finish when goal is already satisfied. `0` = always finish when met (safe). Higher values accept more risk for side upgrades. Formula: finish if `best_coeff_gain * P(miss) > N`. E.g. `750` continues for boss_damage+3 at 25% miss. `-1` = disabled. Default: `0`. |
 
 ### Stats-only options
@@ -187,17 +185,6 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --side-threshol
 
 # BIS-only: pursue target effects, only invest in target-type side nodes
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --bis-only
-
-# Aggressive DP reroll override (lower margin = more willing to spend rerolls)
-python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity rare --dp-reroll-margin 0.01
-
-# Min-max side nodes: mild weighting (2x)
-python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 2 \
-  --first-effect boss_damage --second-effect attack_power
-
-# Aggressive min-max: tolerate big probability drops for +4 boss_damage
-python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --side-quality 12 \
-  --first-effect boss_damage --second-effect attack_power
 
 # Side node level goal: require boss_damage (first slot) at level 5
 python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 5 --rarity epic \

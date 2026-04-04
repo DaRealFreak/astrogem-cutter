@@ -56,7 +56,6 @@ def run_benchmark(
         reset_min_coeff=reset_min_coeff,
         reroll_min_coeff=reroll_min_coeff,
         pool=pool,
-        reroll_strategy=strategy,
     )
     build_time = time.time() - t0
 

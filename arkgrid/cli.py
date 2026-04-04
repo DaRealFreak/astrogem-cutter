@@ -51,8 +51,6 @@ def _build_parser() -> argparse.ArgumentParser:
                              "(0.0 = disabled, try 0.05-0.15)")
         p.add_argument("--bis-only", action="store_true", default=False,
                         help="Only value side nodes when effects are best-in-slot")
-        p.add_argument("--dp-reroll-margin", type=float, default=0.03, metavar="F",
-                        help="Margin for DP-based reroll override (default: 0.03)")
         p.add_argument("--reset-min-coeff", type=int, default=0, metavar="N",
                         help="Only use reset ticket when the sum of starting target-effect "
                              "coefficients meets this threshold (e.g. atk_power+additional_damage = "
@@ -62,10 +60,6 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Only use extra reroll ticket when the sum of starting target-effect "
                              "coefficients meets this threshold. Same logic as --reset-min-coeff "
                              "but for the extra reroll ticket. 0 = always use. Default: 0")
-        p.add_argument("--side-quality", type=float, default=0.0, metavar="F",
-                        help="Weight side-node quality by coefficient in reroll decisions. "
-                             "0 = off (max goal probability), 2 = mild, 12 = aggressive "
-                             "(tolerates ~40%% prob drop for +4 boss_damage). Default: 0")
         p.add_argument("--min-first", type=int, default=None, metavar="N",
                         help="Minimum level for first side node (1-5)")
         p.add_argument("--min-second", type=int, default=None, metavar="N",
@@ -379,8 +373,6 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     optimize=args.optimize,
                     prob_reset_threshold=args.prob_reset_threshold,
                     bis_only=args.bis_only,
-                    dp_reroll_margin=args.dp_reroll_margin,
-                    side_quality_weight=args.side_quality,
                     reset_min_coeff=args.reset_min_coeff,
                     reroll_min_coeff=args.reroll_min_coeff,
                     min_side_coeff=args.min_side_coeff,
@@ -410,8 +402,6 @@ def cmd_sim(args: argparse.Namespace) -> None:
         astro_gem=astro_gem,
         optimize=args.optimize,
         bis_only=args.bis_only,
-        dp_reroll_margin=args.dp_reroll_margin,
-        side_quality_weight=args.side_quality,
         reroll_min_coeff=args.reroll_min_coeff,
         min_side_coeff=args.min_side_coeff,
         exact_draw=getattr(args, "exact_dp", False),
@@ -728,17 +718,28 @@ def cmd_live(args: argparse.Namespace) -> None:
     print()
 
     # --- Reroll recommendation ---
-    # Compare average offer probability against DP baseline (expected
-    # value over all possible offer draws).  If the average is more than
-    # dp_reroll_margin relatively worse than baseline, rerolling is advisable.
+    # Build Option objects for DP-optimal reroll decision.
+    from arkgrid.models import Option as PoolOption
+    pool_options = []
+    for opt, kind, delta_val, _ in option_probs:
+        key = kind
+        if delta_val is not None and kind in ("will", "chaos", "first", "second"):
+            sign = "+" if delta_val > 0 else ""
+            key = f"{kind}{sign}{delta_val}"
+        elif kind == "view":
+            key = f"view+{delta_val}" if delta_val else "view+1"
+        elif kind == "cost":
+            key = opt.name_key
+        pool_options.append(PoolOption(key=key, weight=1.0, kind=kind,
+                                       delta=delta_val or 0))
+
     p_best_option = max(p for _, _, _, p in option_probs)
     p_avg_offers = sum(p for _, _, _, p in option_probs) / len(option_probs)
-    dp_margin = getattr(args, "dp_reroll_margin", 0.03)
     should_reroll = (reroll_count > 0
-                     and current_turn != 1  # can't reroll on turn 1
-                     and turns_left != 1    # can't reroll on last turn
-                     and p_current > 0
-                     and p_avg_offers < p_current * (1 - dp_margin))
+                     and current_turn != 1
+                     and turns_left != 1
+                     and prob_table.should_reroll_dp(
+                         state, pool_options, turns_left, reroll_count))
 
     print("Options:")
     for i, (opt, kind, delta_val, p_after) in enumerate(option_probs):
@@ -750,13 +751,13 @@ def cmd_live(args: argparse.Namespace) -> None:
         print(f"  {i+1}. {label:28s} -> P(goal) = {p_after:.1%}{kind_note}{best_marker}")
 
     print()
-    reroll_threshold = p_current * (1 - dp_margin)
     can_reroll = reroll_count > 0 and current_turn != 1 and turns_left != 1
+    reroll_val_str = ""
+    if can_reroll and reroll_count > 0:
+        reroll_val = prob_table.lookup(state, turns_left, rerolls=reroll_count - 1)
+        reroll_val_str = f"  |  Reroll value: {reroll_val:.1%}"
     print(f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline: {p_current:.1%}  "
-          f"|  Best pick: {p_best_option:.1%}"
-          f"  |  Reroll below: {reroll_threshold:.1%}" if can_reroll else
-          f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline: {p_current:.1%}  "
-          f"|  Best pick: {p_best_option:.1%}")
+          f"|  Best pick: {p_best_option:.1%}{reroll_val_str}")
     # --- Early finish check ---
     should_early_finish = False
     if (early_finish_coeff >= 0 and turns_left > 0
@@ -823,8 +824,6 @@ def cmd_live(args: argparse.Namespace) -> None:
             optimize=args.optimize,
             prob_reset_threshold=getattr(args, "prob_reset_threshold", 0.0),
             bis_only=getattr(args, "bis_only", False),
-            dp_reroll_margin=getattr(args, "dp_reroll_margin", 0.03),
-            side_quality_weight=getattr(args, "side_quality", 0.0),
             reset_min_coeff=getattr(args, "reset_min_coeff", 0),
             reroll_min_coeff=getattr(args, "reroll_min_coeff", 0),
             min_side_coeff=getattr(args, "min_side_coeff", 0),
@@ -889,13 +888,11 @@ def cmd_auto(args: argparse.Namespace) -> None:
         goal=goal,
         extra_ticket=args.extra_ticket,
         reset_ticket=use_reset,
-        dp_reroll_margin=args.dp_reroll_margin,
         optimize=args.optimize,
         bis_only=args.bis_only,
         min_side_coeff=args.min_side_coeff,
         exact_draw=getattr(args, "exact_dp", False),
         prob_reset_threshold=args.prob_reset_threshold,
-        side_quality_weight=args.side_quality,
         side_threshold=args.side_threshold,
         animation_delay=args.animation_delay,
         dry_run=args.dry_run,

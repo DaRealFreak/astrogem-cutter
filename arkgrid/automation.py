@@ -169,7 +169,6 @@ class FrameAnalysis:
     p_current: float
     p_avg_offers: float
     p_best_option: float
-    should_reroll: bool
 
     warnings: List[str]
 
@@ -203,6 +202,7 @@ def _build_prob_table(
     exact_draw: bool,
     gem_type_domain: str,
     early_finish: bool = False,
+    max_rerolls: int = 0,
 ) -> Tuple[GoalProbabilityTable, frozenset]:
     """Build the DP probability table."""
     target_effects: frozenset = frozenset()
@@ -228,6 +228,7 @@ def _build_prob_table(
         min_side_coeff=min_side_coeff,
         exact_draw=exact_draw,
         early_finish=early_finish,
+        max_rerolls=max_rerolls,
     )
     return table, target_effects
 
@@ -236,7 +237,6 @@ def _analyze_frame(
     det: DetectionResult,
     goal: LastTurnGoal,
     extra_ticket: bool,
-    dp_reroll_margin: float,
     prob_table: GoalProbabilityTable,
     target_effects: frozenset,
     bis_only: bool,
@@ -312,12 +312,6 @@ def _analyze_frame(
     p_avg_offers = (sum(p for _, _, _, p in option_probs) / len(option_probs)
                     if option_probs else 0.0)
 
-    should_reroll = (reroll_count > 0
-                     and current_turn != 1
-                     and turns_left != 1
-                     and p_current > 0
-                     and p_avg_offers < p_current * (1 - dp_reroll_margin))
-
     return FrameAnalysis(
         gem_type_domain=gem_type_domain,
         rarity=rarity,
@@ -332,7 +326,6 @@ def _analyze_frame(
         p_current=p_current,
         p_avg_offers=p_avg_offers,
         p_best_option=p_best_option,
-        should_reroll=should_reroll,
         warnings=warnings,
     )
 
@@ -342,11 +335,11 @@ def _detected_to_options(
     option_probs: list,
     state: GemState,
 ) -> List[Option]:
-    """Convert detected options to Option objects for RerollPolicy."""
+    """Convert detected options to Option objects for DP reroll decisions."""
     result = []
     for (opt, kind, delta_val, _p), det_opt in zip(option_probs, det_options):
         kind_hint, _ = parse_delta(det_opt.delta_key)
-        # Build a key matching RerollPolicy's expected format
+        # Build a key matching the Option format expected by should_reroll_dp
         if kind in ("will", "chaos", "first", "second") and delta_val is not None:
             key = f"{kind}{delta_val:+d}"
         elif kind_hint == "cost":
@@ -394,13 +387,11 @@ def run_auto(
     goal: LastTurnGoal,
     extra_ticket: bool,
     reset_ticket: Optional[bool],
-    dp_reroll_margin: float,
     optimize: str,
     bis_only: bool,
     min_side_coeff: int,
     exact_draw: bool,
     prob_reset_threshold: float,
-    side_quality_weight: float,
     side_threshold: float,
     animation_delay: float,
     dry_run: bool,
@@ -410,7 +401,6 @@ def run_auto(
     early_finish_coeff: int = 0,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
-    from arkgrid.policy import RerollPolicy
 
     # Set up logging — tee stdout to a per-run log file
     os.makedirs("logs", exist_ok=True)
@@ -440,7 +430,6 @@ def run_auto(
 
     # Auto-detected gem (from first screen capture)
     detected_gem: Optional[AstroGem] = astro_gem
-    reroll_policy: Optional[RerollPolicy] = None
 
     # Internal state tracking
     reset_available = bool(reset_ticket)
@@ -495,9 +484,9 @@ def run_auto(
 
         if det is None or not det.found:
             consecutive_failures += 1
-            if (prev_action == "process" and prev_analysis
-                    and prev_analysis.turns_left == 1):
-                # Last turn processed — try to detect finish screen
+            if (prev_action in ("process", "finish") and prev_analysis
+                    and prev_analysis.turns_left <= 1):
+                # Last turn processed or finish clicked — try to detect finish screen
                 finish_det = None
                 for f_attempt in range(MAX_DETECT_RETRIES):
                     f_frame = grab_screen(monitor_index)
@@ -582,14 +571,23 @@ def run_auto(
                 first_effect=det.first_effect,
                 second_effect=det.second_effect,
             )
+            rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
+            base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
+            total_rerolls = base_rerolls + (1 if extra_ticket_active else 0)
             prob_table, target_effects = _build_prob_table(
                 goal, det.total_steps, pool, temp_state,
                 bis_only, optimize, min_side_coeff, exact_draw,
                 gem_type_domain, early_finish=early_finish_coeff >= 0,
+                max_rerolls=total_rerolls,
             )
-            rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
-            base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
-            p_fresh = prob_table.lookup(
+            # Use standard (non-reroll) DP for p_fresh — the reroll-aware
+            # DP overestimates fresh start probability.
+            _reset_table = GoalProbabilityTable(
+                goal, det.total_steps, pool,
+                exact_draw=exact_draw,
+                early_finish=early_finish_coeff >= 0,
+            )
+            p_fresh = _reset_table.lookup(
                 GemState(will=1, chaos=1, first=1, second=1),
                 det.total_steps,
             )
@@ -622,13 +620,6 @@ def run_auto(
                     print(f"  [info] Extra reroll ticket disabled "
                           f"(coeff {total_coeff} < {reroll_min_coeff})")
 
-            # Build reroll policy with all parameters
-            reroll_policy = RerollPolicy(
-                goal, side_threshold, detected_gem, bis_only,
-                dp_reroll_margin=dp_reroll_margin,
-                side_quality_weight=side_quality_weight,
-            )
-
             cached_effects = current_effects
 
         # --- Analyze ---
@@ -644,7 +635,7 @@ def run_auto(
                 reroll_override = None
 
         analysis = _analyze_frame(
-            det, goal, extra_ticket_active, dp_reroll_margin,
+            det, goal, extra_ticket_active,
             prob_table, target_effects, bis_only,
             override_reroll_count=reroll_override,
         )
@@ -804,29 +795,19 @@ def run_auto(
                 print(f"  action:  RESET (last turn avg {analysis.p_avg_offers:.1%} "
                       f"< fresh start {p_fresh:.1%})")
 
-        # 5. Reroll (use full RerollPolicy when available)
+        # 5. Reroll (DP-optimal decision)
         if action is None and analysis.reroll_count > 0 and analysis.current_turn != 1:
             should_reroll = False
             reroll_reasons: List[str] = []
 
-            if reroll_policy and prob_table:
+            if prob_table:
                 pool_opts = _detected_to_options(
                     det.options, analysis.option_probs, analysis.state)
-                goal_feasible = sum(
-                    1 for _, _, _, p in analysis.option_probs if p > 0
-                ) / len(analysis.option_probs) if analysis.option_probs else 0.0
-                should_reroll, reroll_reasons = reroll_policy.should_reroll(
-                    pool_opts, analysis.state, analysis.turns_left,
-                    goal_feasible,
-                    goal_success_prob=analysis.p_avg_offers,
-                    dp_baseline=analysis.p_current,
-                    rerolls_remaining=analysis.reroll_count,
-                )
-            else:
-                # Fallback: simple DP-margin check
-                should_reroll = analysis.should_reroll
+                should_reroll = prob_table.should_reroll_dp(
+                    analysis.state, pool_opts,
+                    analysis.turns_left, analysis.reroll_count)
                 if should_reroll:
-                    reroll_reasons = ["dp_margin"]
+                    reroll_reasons = ["dp_reroll_optimal"]
 
             if should_reroll:
                 action = "reroll"

@@ -29,14 +29,11 @@ class GemSimulator:
             prob_reset_threshold: float = 0.0,
             bis_only: bool = False,
             pool: Optional[OptionPool] = None,
-            dp_reroll_margin: float = 0.03,
-            side_quality_weight: float = 0.0,
             reset_min_coeff: int = 0,
             reroll_min_coeff: int = 0,
             min_side_coeff: int = 0,
             exact_draw: bool = False,
             early_finish_coeff: int = 0,
-            reroll_strategy: str = "baseline",
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -48,13 +45,8 @@ class GemSimulator:
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
         self.side_node_threshold = side_node_threshold
-        self.reroll_strategy = reroll_strategy
         self.reroll_policy = RerollPolicy(
             goal, side_node_threshold, astro_gem, bis_only,
-            dp_reroll_margin=dp_reroll_margin,
-            side_quality_weight=side_quality_weight,
-            reroll_strategy=reroll_strategy,
-            total_turns=self.RARITY_TURNS[rarity],
         )
 
         self.use_extra_ticket = use_extra_ticket
@@ -65,8 +57,6 @@ class GemSimulator:
         self.pool = pool or OptionPool()
 
         # DP probability table (built once, reused across all trials)
-        # Always built so the reroll policy can use DP probability as
-        # its comfort signal instead of binary feasibility fraction.
         self.prob_reset_threshold = prob_reset_threshold
         self.reset_min_coeff = reset_min_coeff
         self.reroll_min_coeff = reroll_min_coeff
@@ -84,7 +74,8 @@ class GemSimulator:
         self._side_coeff_second = side_coeff_second
         self.early_finish_coeff = early_finish_coeff
 
-        max_rerolls = self.base_rerolls if reroll_strategy == "dp_extended" else 0
+        # Reroll-aware DP table: extends state with reroll count so the
+        # DP itself decides optimal reroll timing via backward induction.
         self.prob_table = GoalProbabilityTable(
             goal, self.turns_total, self.pool,
             side_coeff_first=side_coeff_first,
@@ -92,22 +83,19 @@ class GemSimulator:
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
-            max_rerolls=max_rerolls,
+            max_rerolls=self.base_rerolls,
         )
         # Standard (non-reroll) DP for reset decisions — the reroll-aware
         # DP overestimates p_fresh because the per-option max model
         # overstates reroll value vs actual 4-draw-pick-1 mechanics.
-        if max_rerolls > 0:
-            self._reset_prob_table = GoalProbabilityTable(
-                goal, self.turns_total, self.pool,
-                side_coeff_first=side_coeff_first,
-                side_coeff_second=side_coeff_second,
-                min_side_coeff=min_side_coeff,
-                exact_draw=exact_draw,
-                early_finish=early_finish_coeff >= 0,
-            )
-        else:
-            self._reset_prob_table = self.prob_table
+        self._reset_prob_table = GoalProbabilityTable(
+            goal, self.turns_total, self.pool,
+            side_coeff_first=side_coeff_first,
+            side_coeff_second=side_coeff_second,
+            min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
+            early_finish=early_finish_coeff >= 0,
+        )
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -293,37 +281,18 @@ class GemSimulator:
             log_obj["reroll_reasons_history"] = []
 
         while turn != 1 and state.rerolls > 0:
-            # Strategy D: use DP-optimal reroll decision directly
-            if (self.reroll_strategy == "dp_extended"
-                    and self.prob_table is not None
-                    and self.prob_table._max_rerolls > 0):
-                should = self.prob_table.should_reroll_dp(
-                    state, offers, turns_left, state.rerolls)
-                reasons = ["dp_reroll_optimal"] if should else []
-            else:
-                goal_feasible_frac = self.prob_goal_feasible_after_click(
-                    state, offers, turns_left_after)
-                goal_success_prob: Optional[float] = None
-                dp_baseline: Optional[float] = None
-                if self.prob_table is not None:
-                    goal_success_prob = self.prob_table.expected_prob_after_click(
-                        state, offers, turns_left_after)
-                    dp_baseline = self.prob_table.lookup(state, turns_left)
-                should, reasons = self.reroll_policy.should_reroll(
-                    offers, state, turns_left, goal_feasible_frac,
-                    goal_success_prob=goal_success_prob,
-                    dp_baseline=dp_baseline,
-                    rerolls_remaining=state.rerolls)
+            # DP-optimal reroll decision: the reroll-aware DP table
+            # compares keep vs reroll value via backward induction.
+            should = self.prob_table.should_reroll_dp(
+                state, offers, turns_left, state.rerolls)
 
             if not should:
                 break
 
             state.rerolls -= 1
             if log_obj is not None:
-                log_obj["reroll_reasons_history"].append(reasons)
-                log_obj.setdefault("reroll_feasible_history", []).append(
-                    self.prob_goal_feasible_after_click(state, offers, turns_left_after)
-                    if reasons != ["dp_reroll_optimal"] else 0.0)
+                log_obj["reroll_reasons_history"].append(["dp_reroll_optimal"])
+                log_obj.setdefault("reroll_feasible_history", []).append(0.0)
 
             offers = self.pool.generate_offers(state, turn, turns_left, rng)
             offers = self._resolve_effect_offers(offers, state, rng)

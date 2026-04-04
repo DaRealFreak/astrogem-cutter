@@ -1,6 +1,6 @@
 # Decision-making process
 
-Each turn follows a fixed pipeline of checks and decisions. The simulator never looks ahead manually — it relies on a precomputed DP probability table and a heuristic reroll policy.
+Each turn follows a fixed pipeline of checks and decisions. The simulator uses a precomputed DP probability table with two layers: a **reroll-aware DP** (for optimal reroll timing) and a **standard DP** (for reset decisions and probability display).
 
 ## Turn flow
 
@@ -30,112 +30,60 @@ The pool generates 4 unique offers via weighted sampling without replacement, dr
 - **Stat at cap (5)**: corresponding +N options excluded
 - **Stat at floor (1)**: corresponding -1 option excluded
 
-Rerolls are never used on turn 1 (since no prior state exists to judge). On subsequent turns, the **reroll policy** decides whether to spend a reroll based on the current offers. Rerolls re-draw all 4 offers from the pool.
+Rerolls are never used on turn 1 (since no prior state exists to judge). On subsequent turns, the **reroll-aware DP table** decides whether to spend a reroll based on the current offers. Rerolls re-draw all 4 offers from the pool.
 
-## Reroll policy
+## Reroll strategy: DP-optimal reroll timing
 
-The policy operates in three modes, selected by a **comfort signal**. The comfort signal is the DP-estimated probability of reaching the goal from the current state (falling back to binary feasibility fraction if no DP table is available). The `--side-threshold` parameter controls the base boundary between comfortable and desperate modes.
+The simulator uses a reroll-aware DP table that extends the standard DP state with the number of available rerolls. At each state `(will, chaos, first, second, rerolls, turns_left)`, the DP computes the optimal keep-vs-reroll decision via backward induction.
 
-### Coefficient-scaled effective threshold
+### How it works
 
-The base `--side-threshold` is scaled by the combat power coefficient of the gem's best target-side effect. High-value effects (e.g. boss_damage, coeff 1000) keep the base threshold unchanged, while low-value effects (e.g. attack_power, coeff 400) raise it — making the policy stay in desperate mode longer since investing turns in a weak side effect is less worthwhile.
+The reroll-aware DP uses a **per-option keep-vs-reroll max** during backward induction:
 
-Formula: `effective = threshold + (1 - threshold) * (1 - quality)`, where `quality = max target coeff on gem / max coeff in set`.
+```
+V(state, rerolls, turns_left) =
+  for each eligible option i with probability p_i:
+    post_click_value = V(apply(state, option_i), rerolls + view_delta_i, turns_left - 1)
+    reroll_value = V(state, rerolls - 1, turns_left)
+    contribution = p_i * max(post_click_value, reroll_value)
+  V = sum of contributions
+```
 
-With `--side-threshold 0.5` and DPS optimization:
+This captures the variance-based value of rerolls: for each possible draw, you keep it if its value exceeds the reroll value, otherwise reroll. This naturally produces optimal reroll timing — rerolls are saved for later turns where they have higher marginal value (protecting against negative nodes like will-1, chaos-1).
 
-| Best target effect on gem | Coeff | Quality | Effective threshold |
-|---|---|---|---|
-| boss_damage | 1000 | 1.0 | 50% |
-| additional_damage | 700 | 0.7 | 65% |
-| attack_power | 400 | 0.4 | 80% |
+At runtime, `should_reroll_dp()` compares the expected value of keeping the current 4 offers (uniform 25% pick) against the value of rerolling (same state, one fewer reroll). Reroll if rerolling is strictly better.
 
-With `--side-threshold 0.5` and support optimization:
+### Why two DP tables
 
-| Best target effect on gem | Coeff | Quality | Effective threshold |
-|---|---|---|---|
-| ally_attack | 1500 | 1.0 | 50% |
-| brand_power | 1050 | 0.7 | 65% |
-| ally_damage | 600 | 0.4 | 80% |
+The simulator builds two DP tables:
 
-If the gem has no target-type effects at all (e.g. both slots are support on a DPS-optimized gem), the effective threshold is 100% — side nodes are never valued.
+1. **Reroll-aware DP** (`prob_table`): State includes reroll count. Used for reroll decisions via `should_reroll_dp()`. Build time: ~50ms single-draw, ~1s exact-draw.
 
-### BIS-only mode (`--bis-only`)
+2. **Standard DP** (`_reset_prob_table`): State does not include rerolls. Used for reset decisions and `p_fresh` comparison.
 
-When `--bis-only` is enabled:
+The reroll-aware DP slightly **overestimates** the value of rerolls because the per-option max treats each option draw as an independent accept/reject decision, while the actual game draws 4 options together with uniform random pick. This overestimation inflates the fresh-start probability (`p_fresh`), which would cause excessive resets if used for reset decisions. The standard DP gives accurate reset value estimates.
 
-- Good `change_effect` offers (ones that resolve to a target effect) are treated as goal upgrades in desperate mode, actively pursuing optimal effects.
-- In `stats` mode, success requires **both** effect slots to be target-type at the end of the run (not just meeting the will/chaos goal). Runs that meet the goal but have non-target effects count as failures.
+### Reroll distribution
 
-The coefficient-scaled threshold applies normally regardless of whether effects are BIS. Side-node upgrades are always filtered by `_target_side_sets` to only target-type slots — so if one slot has a DPS effect and the other has a support effect (with `--optimize dps`), only the DPS slot's upgrades are valued in comfortable mode.
+With the DP-optimal strategy, rerolls are distributed heavily toward late turns:
 
-The effective threshold is shown as `threshold=` in the `sim` turn log.
+| Turn range (epic, 9 turns) | Avg rerolls used (baseline heuristic) | Avg rerolls used (DP-optimal) |
+|---|---|---|
+| Early (turns 1-3) | 1.87 | 0.14 |
+| Mid (turns 4-6) | 1.14 | 0.60 |
+| Late (turns 7-9) | 0.38 | 1.90 |
 
-### Forced rerolls (always, before mode selection)
+This produces higher success rates across all rarities and lower reset usage.
 
-- **Last turn, goal not met**: always reroll — nothing to lose.
-- **No offer keeps goal feasible** (feasibility fraction = 0%): always reroll — every option would make the goal unreachable.
+### Fallback: heuristic reroll policy
 
-### Goal-met mode (goal already satisfied)
+When the reroll-aware DP is not available (e.g. in automation before the table is built), the `RerollPolicy` heuristic serves as a fallback. It operates in three modes selected by a **comfort signal** (DP-estimated goal probability):
 
-Activated when all goal constraints are satisfied — willpower, chaos, and any side-node level requirements (`--min-first`, `--min-second`). Focus shifts entirely to maximising total points via side-node upgrades.
+- **Goal-met mode**: optimise side nodes, avoid downgrades
+- **Comfortable mode** (comfort signal >= effective threshold): accept any positive upgrade
+- **Desperate mode** (comfort signal < threshold): focus purely on will/chaos upgrades
 
-Reroll if:
-- Any offer contains a downgrade (will-1, chaos-1, first-1, second-1) **and** no big upgrade (+2/+3/+4) is available
-- No offer provides any positive stat change or beneficial effect change
-
-### Comfortable mode (comfort signal >= effective threshold)
-
-Activated when the goal probability is at or above the effective threshold. The policy values **both** goal upgrades and side-node upgrades, accepting any positive progress.
-
-Reroll if:
-- Any downgrade is present **and** no big upgrade (goal or side) compensates
-- No useful upgrade exists at all (no goal upgrade, no side upgrade, no good effect change)
-
-Side-node upgrades are filtered by `--optimize`: only effects matching the DPS or support target are valued. For example, with `--optimize dps`, upgrading a support-effect slot doesn't count as useful.
-
-### Desperate mode (comfort signal < effective threshold)
-
-Activated when the goal probability drops below the effective threshold. The policy ignores side nodes entirely and focuses purely on willpower and chaos upgrades.
-
-Reroll if:
-- A goal downgrade (will-1 or chaos-1) is present **and** no big goal upgrade compensates
-- No goal upgrade (will+N or chaos+N) exists in the offers
-
-### DP-based reroll override (`--dp-reroll-margin`)
-
-After the heuristic makes its reroll decision, a DP-based override layer can adjust it. This compares the expected goal probability from the current 4 offers against the baseline expected probability from a random draw:
-
-- **p_current** = average of `dp[state_after_each_offer, turns_left - 1]` across the 4 offers (25% each)
-- **p_baseline** = `dp[state, turns_left]` — the DP recurrence value, which is the weighted average over all possible single-option draws
-
-The override works bidirectionally:
-
-1. **Heuristic says don't reroll, but offers are below baseline**: If `p_current < p_baseline * (1 - margin)`, override to reroll. This catches cases like `[maintain, view+1, cost+100, will+1]` where only 1 of 4 options provides stat progress.
-
-2. **Heuristic says reroll, but offers are above baseline**: If `p_current >= p_baseline`, override to NOT reroll. This prevents wasting rerolls when the heuristic is too picky but the offers are actually better than average.
-
-**Hard constraints are never overridden**: the forced rerolls for `last_turn_goal_not_met` and `no_offer_keeps_goal_feasible` always take priority.
-
-The margin accounts for the opportunity cost of spending a reroll token (can't use it on a future bad draw). It scales with the reroll/turn ratio: `effective_margin = margin * min(1.0, turns_left / rerolls_remaining)`. When rerolls are surplus (more rerolls than turns remaining), the margin shrinks — surplus rerolls have lower marginal value, so the policy is more willing to spend them.
-
-#### Side-node quality adjustment (`--side-quality`)
-
-When `--side-quality` is set to a value > 0 and an astro gem is configured, the margin is further adjusted by the best target-type side-node upgrade in the current offers. The value controls the multiplier: `side_adjustment = quality * margin * weight`. Default `0` = off (max goal probability). Use higher values for min-maxing specific gems on mains. The quality formula is `(delta / 4) * (coeff / max_coeff)`, producing a value in [0.0, 1.0]:
-
-| Offer | Quality | Weight=2 margin adj. | Weight=12 margin adj. |
-|---|---|---|---|
-| +4 boss_damage (1000) | 1.0 | +0.06 → 0.09 | +0.36 → 0.39 |
-| +2 boss_damage | 0.5 | +0.03 → 0.06 | +0.18 → 0.21 |
-| +4 attack_power (400) | 0.4 | +0.024 → 0.054 | +0.144 → 0.174 |
-| +2 attack_power | 0.2 | +0.012 → 0.042 | +0.072 → 0.102 |
-| +1 attack_power | 0.1 | +0.006 → 0.036 | +0.036 → 0.066 |
-
-Higher margin = lower reroll threshold = more tolerant of below-baseline goal probability. At weight=12, a +4 boss_damage makes the policy tolerate a ~40% probability drop to keep the upgrade. At weight=2, the tolerance is ~9%.
-
-The same side quality also lowers the bar for case 2 (suppressing heuristic rerolls).
-
-Default margin is `0.03` (3%).
+A DP-based override layer can adjust the heuristic decision by comparing offer quality against baseline. See `policy.py` for details.
 
 ## Post-offer checks
 
@@ -258,16 +206,29 @@ The DP base case evaluates this from the known starting coefficients. In BIS mod
 
 Example: `--min-side-coeff 5000` with boss_damage(1000) as first effect requires boss_damage at level 5 (1000*5=5000), or boss_damage at 3 + additional_damage(700) at 3 = 3000+2100=5100 also passes.
 
-## DP probability table
+## DP probability tables
 
-A backward-induction probability table is precomputed once at startup (~20ms). It stores P(reach goal | will, chaos, first, second, turns_left) for all 6,250 possible states. When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space. This table drives:
-- The comfort signal for the reroll policy (comfortable vs desperate mode)
-- The DP-based reroll override (comparing current offers against baseline)
-- Probability-based early resets (when `--prob-reset-threshold` > 0)
-- Early finish decisions (P=1.0 at goal-satisfied states when enabled)
+Two backward-induction probability tables are precomputed once at startup:
+
+### Reroll-aware DP (primary)
+
+State: `(will, chaos, first, second, rerolls, turns_left)` — ~25,000 entries for epic with 3 rerolls. Build time: ~50ms single-draw, ~1s exact-draw. This table drives:
+- **Optimal reroll timing** via `should_reroll_dp()` — compares keep-vs-reroll value at each state
 - The `P(goal)` and `P(click)` values shown in `sim`, `live`, and `auto` output
 
-The table uses single-draw transition probabilities (option weight / total eligible weight) as an approximation, since the actual 4-draw-without-replacement mechanic would make the state space too large.
+The per-option max model captures the value of selective rejection (keep good draws, reroll bad ones), naturally saving rerolls for late turns where they protect against negative nodes.
+
+### Standard DP (for reset decisions)
+
+State: `(will, chaos, first, second, turns_left)` — 6,250 entries for epic. Build time: ~20ms single-draw, ~1s exact-draw. This table drives:
+- Probability-based early resets (when `--prob-reset-threshold` > 0)
+- Fresh-start probability (`p_fresh`) for last-turn reset comparison
+- Early finish decisions (P=1.0 at goal-satisfied states when enabled)
+- The fallback comfort signal for the heuristic `RerollPolicy`
+
+The standard DP is used for reset decisions because the reroll-aware DP overestimates `p_fresh` (fresh start with full rerolls appears ~2x more valuable than it actually is, due to the per-option max approximation vs actual 4-draw-pick-1 mechanics).
+
+Both tables use single-draw transition probabilities (option weight / total eligible weight) as a base approximation, with exact PPSWOR(4) inclusion probabilities available via `--exact-dp`. When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space.
 
 ## Automation (`auto` command)
 
@@ -286,7 +247,7 @@ Per iteration, the automation checks (in order):
 3. **Probability threshold**: P(goal) below threshold → click Reset
 4. **Zero feasibility**: no offer keeps goal feasible → click Reset
 5. **Last-turn comparison**: fresh start has better odds → click Reset
-6. **Reroll**: `RerollPolicy.should_reroll()` → click Reroll
+6. **Reroll**: `GoalProbabilityTable.should_reroll_dp()` (DP-optimal) → click Reroll
 7. **Process** (default): → click Process
 
 ### Button positions (at 1920×1080)
