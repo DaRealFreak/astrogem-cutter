@@ -84,6 +84,8 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
         if "dp_exact_prob" in result:
             line += f"  (exact draw: {result['dp_exact_prob'] * 100:.2f}%)"
         print(line)
+    if "relic_dp_prob" in result:
+        print(f"  DP relic+ (>=16): {result['relic_dp_prob'] * 100:.2f}%")
     if "p_success" in result:
         print(
             f"  Success rate: {result['p_success'] * 100:.2f}% "

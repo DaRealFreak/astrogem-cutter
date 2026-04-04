@@ -43,6 +43,31 @@ class TestLastTurnGoal(unittest.TestCase):
         g = LastTurnGoal(min_will=6)
         self.assertFalse(g.feasible(1, 1, 9))
 
+    def test_satisfied_min_total(self) -> None:
+        g = LastTurnGoal(min_total=16)
+        self.assertTrue(g.satisfied(4, 4, 4, 4))   # total=16
+        self.assertTrue(g.satisfied(5, 5, 3, 3))   # total=16
+        self.assertTrue(g.satisfied(5, 5, 5, 5))   # total=20
+        self.assertFalse(g.satisfied(4, 4, 4, 3))  # total=15
+        self.assertFalse(g.satisfied(3, 3, 3, 3))  # total=12
+
+    def test_satisfied_min_total_combined(self) -> None:
+        g = LastTurnGoal(min_will=4, min_chaos=5, min_total=16)
+        self.assertTrue(g.satisfied(4, 5, 4, 3))   # will/chaos ok, total=16
+        self.assertFalse(g.satisfied(3, 5, 4, 4))  # will too low
+        self.assertFalse(g.satisfied(4, 5, 3, 3))  # total=15
+
+    def test_feasible_min_total(self) -> None:
+        g = LastTurnGoal(min_total=16)
+        # starts at 4, need +12, max +4/turn => 3 turns
+        self.assertTrue(g.feasible(1, 1, 3, first=1, second=1))
+        # starts at 4, need +12, but only 2 turns => max +8 => 12 < 16
+        self.assertFalse(g.feasible(1, 1, 2, first=1, second=1))
+        # already at 16
+        self.assertTrue(g.feasible(4, 4, 0, first=4, second=4))
+        # cap at 20: starts at 8, +4*3=12 => 20 >= 16
+        self.assertTrue(g.feasible(2, 2, 3, first=2, second=2))
+
 
 class TestGemState(unittest.TestCase):
     def test_clone_independence(self) -> None:

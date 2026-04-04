@@ -25,6 +25,7 @@ class LastTurnGoal:
     exact_total_will_chaos: Optional[int] = None
     min_first: Optional[int] = None
     min_second: Optional[int] = None
+    min_total: Optional[int] = None
 
     def satisfied(self, will: int, chaos: int,
                   first: int = 5, second: int = 5) -> bool:
@@ -46,6 +47,9 @@ class LastTurnGoal:
         if self.min_first is not None and first < self.min_first:
             return False
         if self.min_second is not None and second < self.min_second:
+            return False
+
+        if self.min_total is not None and (will + chaos + first + second) < self.min_total:
             return False
 
         return True
@@ -106,6 +110,12 @@ class LastTurnGoal:
         if self.min_total_will_chaos is not None:
             req_total = self.min_total_will_chaos - total
             if math.ceil(max(0, req_total) / 4) > turns_left:
+                return False
+
+        if self.min_total is not None:
+            current_total = will + chaos + first + second
+            max_possible = min(20, current_total + 4 * turns_left)
+            if max_possible < self.min_total:
                 return False
 
         return True

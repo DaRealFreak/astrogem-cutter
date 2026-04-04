@@ -43,6 +43,8 @@ class ScenarioResult:
     feasible_frac: float          # Fraction of offers keeping goal feasible
     # Per-offer analysis
     per_offer: List[dict]         # [{key, state_after, dp_after, goal_still_met, coeff_after}]
+    # Relic+ probability
+    relic_prob: Optional[float] = None  # P(relic+ >=16) from current state
 
 
 class ScenarioHelper:
@@ -86,6 +88,8 @@ class ScenarioHelper:
         side_node_threshold: float = 0.5,
         bis_only: bool = False,
         exact_draw: bool = False,
+        relic_no_early_finish: float = 0.0,
+        relic_reroll_threshold: float = 0.0,
     ) -> ScenarioResult:
         astro_gem = AstroGem(gem_type, first_effect, second_effect, optimize)
         sim = GemSimulator(
@@ -101,6 +105,8 @@ class ScenarioHelper:
             min_side_coeff=min_side_coeff,
             exact_draw=exact_draw,
             early_finish_coeff=early_finish_coeff,
+            relic_no_early_finish=relic_no_early_finish,
+            relic_reroll_threshold=relic_reroll_threshold,
         )
 
         turns_total = GemSimulator.RARITY_TURNS[rarity]
@@ -165,6 +171,10 @@ class ScenarioHelper:
                 "side_coeff": coeff_total,
             })
 
+        relic_prob = None
+        if sim._relic_prob_table is not None:
+            relic_prob = sim._relic_prob_table.lookup(state, turns_left)
+
         return ScenarioResult(
             should_reroll=should_reroll,
             reroll_reasons=reroll_reasons,
@@ -176,6 +186,7 @@ class ScenarioHelper:
             dp_baseline=dp_baseline,
             feasible_frac=feasible_frac,
             per_offer=per_offer,
+            relic_prob=relic_prob,
         )
 
     @classmethod
@@ -189,6 +200,8 @@ class ScenarioHelper:
         print(f"Feasible fraction:      {result.feasible_frac:.2f}")
         print(f"Should reroll:          {result.should_reroll}  {result.reroll_reasons}")
         print(f"Should early finish:    {result.should_early_finish}")
+        if result.relic_prob is not None:
+            print(f"P(relic+ >=16):         {result.relic_prob:.4f}")
         print(f"\nPer-offer breakdown:")
         for o in result.per_offer:
             print(f"  {o['key']:>12s} -> {o['state_after']}  "
@@ -377,6 +390,179 @@ class TestScenarioDesperateMode(unittest.TestCase):
 
     def test_print_details(self) -> None:
         ScenarioHelper.print_result(self.result)
+
+
+class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
+    """Turn 7/9, will=4 chaos=5 first=3 second=3 (total=15).
+    Goal met, risky offers → early finish would trigger in safe mode.
+    But P(relic+) is high (only need +1 in 3 turns) → override suppresses it.
+    """
+
+    def setUp(self) -> None:
+        # Without relic+ override: early finish triggers
+        self.result_no_override = ScenarioHelper.evaluate(
+            gem_type="order_immutability",
+            first_effect="boss_damage",
+            second_effect="brand_power",
+            optimize="dps",
+            will=4, chaos=5, first=3, second=3,
+            rerolls=0,
+            rarity="epic",
+            turn=7,
+            offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
+            goal=LastTurnGoal(min_will=4, min_chaos=5),
+            early_finish_coeff=0,
+        )
+        # With relic+ override: early finish suppressed
+        self.result_with_override = ScenarioHelper.evaluate(
+            gem_type="order_immutability",
+            first_effect="boss_damage",
+            second_effect="brand_power",
+            optimize="dps",
+            will=4, chaos=5, first=3, second=3,
+            rerolls=0,
+            rarity="epic",
+            turn=7,
+            offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
+            goal=LastTurnGoal(min_will=4, min_chaos=5),
+            early_finish_coeff=0,
+            relic_no_early_finish=0.3,
+        )
+
+    def test_early_finish_without_override(self) -> None:
+        """Safe mode + risky offers → early finish triggers normally."""
+        self.assertTrue(self.result_no_override.should_early_finish)
+
+    def test_relic_overrides_early_finish(self) -> None:
+        """P(relic+) from state (4,5,3,3) with 3 turns exceeds 0.3 → no early finish."""
+        self.assertFalse(self.result_with_override.should_early_finish)
+
+    def test_relic_prob_above_threshold(self) -> None:
+        """P(relic+ >=16) from (4,5,3,3) with 3 turns left should be well above 0.3."""
+        self.assertGreater(self.result_with_override.relic_prob, 0.3)
+
+    def test_print_details(self) -> None:
+        print("\n--- Without relic+ override ---")
+        ScenarioHelper.print_result(self.result_no_override)
+        print("--- With relic+ override ---")
+        ScenarioHelper.print_result(self.result_with_override)
+
+
+class TestScenarioRelicNoEarlyFinishBelowThreshold(unittest.TestCase):
+    """Turn 8/9, will=4 chaos=5 first=1 second=1 (total=11).
+    Goal met, risky offers → early finish would trigger.
+    P(relic+) is low (need +5 in 2 turns) → override does NOT suppress.
+    """
+
+    def setUp(self) -> None:
+        self.result = ScenarioHelper.evaluate(
+            gem_type="order_immutability",
+            first_effect="boss_damage",
+            second_effect="brand_power",
+            optimize="dps",
+            will=4, chaos=5, first=1, second=1,
+            rerolls=0,
+            rarity="epic",
+            turn=8,
+            offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
+            goal=LastTurnGoal(min_will=4, min_chaos=5),
+            early_finish_coeff=0,
+            relic_no_early_finish=0.3,
+        )
+
+    def test_early_finish_still_triggers(self) -> None:
+        """P(relic+) from (4,5,1,1) with 2 turns is too low → early finish still fires."""
+        self.assertTrue(self.result.should_early_finish)
+
+    def test_relic_prob_below_threshold(self) -> None:
+        """Need +5 total in 2 turns — P(relic+) should be below 0.3."""
+        self.assertLess(self.result.relic_prob, 0.3)
+
+    def test_print_details(self) -> None:
+        ScenarioHelper.print_result(self.result)
+
+
+class TestScenarioRelicRerollTicketOverride(unittest.TestCase):
+    """Verify that relic_reroll_threshold grants the extra ticket mid-run.
+
+    Uses simulate_one() with a fixed seed to confirm that a gem whose
+    effect coefficients are below --reroll-min-coeff still gets the
+    extra reroll when P(relic+) crosses the threshold during the run.
+    """
+
+    def test_extra_ticket_granted_mid_run(self) -> None:
+        """Low-coeff gem with relic override should use extra ticket."""
+        goal = LastTurnGoal(min_will=4, min_chaos=5)
+        astro_gem = AstroGem(
+            "order_immutability", "boss_damage", "brand_power", "dps")
+        # boss_damage=1000 is the only DPS effect → total_coeff=1000 < 2000
+        sim = GemSimulator(
+            rarity="epic",
+            use_extra_ticket=True,
+            use_reset_ticket=False,
+            goal=goal,
+            astro_gem=astro_gem,
+            optimize="dps",
+            pool=ScenarioHelper.POOL,
+            reroll_min_coeff=2000,
+            relic_reroll_threshold=0.25,
+        )
+        # Without relic override: extra ticket disabled (coeff 1000 < 2000)
+        sim_no_relic = GemSimulator(
+            rarity="epic",
+            use_extra_ticket=True,
+            use_reset_ticket=False,
+            goal=goal,
+            astro_gem=astro_gem,
+            optimize="dps",
+            pool=ScenarioHelper.POOL,
+            reroll_min_coeff=2000,
+        )
+        # Run many trials and compare extra ticket usage
+        relic_tickets = 0
+        no_relic_tickets = 0
+        trials = 500
+        for seed in range(1, trials + 1):
+            r = sim.simulate_one(seed=seed)
+            if r.extra_ticket_used:
+                relic_tickets += 1
+            r2 = sim_no_relic.simulate_one(seed=seed)
+            if r2.extra_ticket_used:
+                no_relic_tickets += 1
+
+        # Without relic override: ticket should never be used
+        self.assertEqual(no_relic_tickets, 0)
+        # With relic override: ticket should be used in some runs
+        # (when P(relic+) crosses 0.25 mid-run)
+        self.assertGreater(relic_tickets, 0)
+
+    def test_print_details(self) -> None:
+        """Print a single logged run showing the relic+ ticket grant."""
+        goal = LastTurnGoal(min_will=4, min_chaos=5)
+        astro_gem = AstroGem(
+            "order_immutability", "boss_damage", "brand_power", "dps")
+        sim = GemSimulator(
+            rarity="epic",
+            use_extra_ticket=True,
+            use_reset_ticket=False,
+            goal=goal,
+            astro_gem=astro_gem,
+            optimize="dps",
+            pool=ScenarioHelper.POOL,
+            reroll_min_coeff=2000,
+            relic_reroll_threshold=0.25,
+        )
+        r = sim.simulate_one(seed=42, log=True)
+        print(f"\n{'='*60}")
+        print(f"Extra ticket used: {r.extra_ticket_used}")
+        print(f"Result: {'SUCCESS' if r.success else 'FAIL'} ({r.reason})")
+        print(f"Total points: {r.total_points}")
+        for t in (r.turn_log or []):
+            relic_str = f"  P(r+)={t['relic_prob']:.1%}" if t.get('relic_prob') is not None else ""
+            print(f"  Turn {t['turn']} (left={t['turns_left']})"
+                  f"  rerolls={t['rerolls_available']}{relic_str}"
+                  f"  {t['action']}")
+        print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":

@@ -7,11 +7,12 @@ Each turn follows a fixed pipeline of checks and decisions. The simulator uses a
 ```
 For each turn:
   1. Pre-turn checks (can reset or fail before seeing offers)
-  2. Generate 4 offers from the weighted pool
-  3. Reroll decision (may spend rerolls to re-draw offers)
-  4. Early finish check (goal already met? risk vs side gain)
-  5. Post-offer checks (can reset or fail after seeing final offers)
-  6. Pick one of the 4 offers uniformly at random (25% each)
+  2. Relic+ reroll ticket check (grant extra ticket mid-run if P(relic+) crosses threshold)
+  3. Generate 4 offers from the weighted pool
+  4. Reroll decision (may spend rerolls to re-draw offers)
+  5. Early finish check (goal already met? risk vs side gain; relic+ can override)
+  6. Post-offer checks (can reset or fail after seeing final offers)
+  7. Pick one of the 4 offers uniformly at random (25% each)
 ```
 
 ## Pre-turn checks
@@ -144,6 +145,50 @@ This increases the DP probability compared to the no-early-finish baseline. For 
 | `2000` | Continue for boss_damage+4 at 50% miss (4000×0.50=2000) |
 | `-1` | Disabled — never finish early, always play all turns |
 
+### Relic+ override
+
+When `--relic-no-early-finish F` is set, the early finish decision is checked against P(relic+ >=16) from the current state. If P(relic+) exceeds the threshold, early finish is suppressed regardless of the risk calculation. This allows chasing 16+ total points even when the primary goal is already met and at risk. See [Relic+ tracking and overrides](#relic-tracking-and-overrides) for details.
+
+## Relic+ tracking and overrides
+
+A separate DP table computes P(total_points >= 16) — the probability of achieving relic+ grade — from the current state at each turn. This enables two optional overrides controlled by independent thresholds.
+
+### Display
+
+P(relic+) is shown alongside P(goal) in:
+- `sim` turn log headers and state lines (as `P(r+)=X%`)
+- `live` analysis output (as `P(relic+): X%`)
+- `auto` turn headers and state lines
+- `stats` output (as `DP relic+ (>=16): X%`)
+
+### Early finish override (`--relic-no-early-finish F`)
+
+When the primary goal is satisfied and early finish would normally trigger (risky offers, safe mode), this override checks P(relic+ >=16) from the current state. If P(relic+) exceeds the threshold, early finish is suppressed — the simulator continues playing to chase 16+ total points.
+
+This intentionally accepts risk to the primary goal in exchange for a shot at relic+. The threshold should be set high enough that the trade-off is worthwhile.
+
+| `--relic-no-early-finish` | Behaviour |
+|---|---|
+| `0.0` (default) | Disabled — early finish is not affected |
+| `0.3` | Continue if P(relic+) > 30% — moderate relic+ chase |
+| `0.5` | Continue if P(relic+) > 50% — conservative, only chase when likely |
+
+### Extra reroll ticket override (`--relic-reroll-threshold F`)
+
+The `--reroll-min-coeff` flag disables the extra reroll ticket for gems whose starting effect coefficients are too low. This override re-enables the ticket mid-run when P(relic+ >=16) from the current state crosses the threshold.
+
+Unlike the initial coefficient gate (checked once at run start), the relic+ check is evaluated **each turn**. The extra reroll is granted the first turn that P(relic+) meets the threshold — this means a gem that starts with low-value effects can still benefit from the extra reroll once it's on track for relic+.
+
+| `--relic-reroll-threshold` | Behaviour |
+|---|---|
+| `0.0` (default) | Disabled — reroll ticket gating is not affected |
+| `0.1` | Re-enable at P(relic+) > 10% — early grant, most epic runs benefit |
+| `0.25` | Re-enable at P(relic+) > 25% — moderate, grants mid-run when on track |
+
+### DP table cost
+
+The relic+ DP table uses `LastTurnGoal(min_total=16)` with no side coefficients, BIS awareness, or reroll tracking. State space is `5^4 * max_turns` = 5,625 entries for epic. Build time: ~20ms. Negligible compared to the primary tables.
+
 ## Effect changes
 
 When a `change_first_effect` or `change_second_effect` option appears, the game **pre-determines** the new effect (randomly drawn from the available pool) and **shows it to the player**. Each gem type has 4 effects, and with 2 already assigned, 2 remain with equal (50%) probability each.
@@ -230,6 +275,10 @@ The standard DP is used for reset decisions because the reroll-aware DP overesti
 
 Both tables use single-draw transition probabilities (option weight / total eligible weight) as a base approximation, with exact PPSWOR(4) inclusion probabilities available via `--exact-dp`. When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space.
 
+### Relic+ DP (optional)
+
+State: `(will, chaos, first, second, turns_left)` — same as standard DP. Goal: `min_total=16` (will+chaos+first+second >= 16). Built when `--relic-no-early-finish` or `--relic-reroll-threshold` is set. No reroll awareness, no side coefficients — purely tracks the probability of achieving 16+ total points. Used for relic+ display and the two relic+ overrides (early finish suppression, extra reroll ticket gating). Build time: ~20ms.
+
 ## Automation (`auto` command)
 
 The `auto` command runs a full automation loop: capture screen → detect state → decide → click → wait → repeat. It uses all the same decision logic described above, with these additions:
@@ -242,7 +291,8 @@ Each iteration captures the game screen via `mss` and runs template matching (`t
 
 Per iteration, the automation checks (in order):
 
-1. **Early finish**: goal satisfied + risk exceeds tolerance → click Finish
+0. **Relic+ reroll ticket**: if `--relic-reroll-threshold` is set and P(relic+) from current state crosses threshold, re-enable extra reroll ticket
+1. **Early finish**: goal satisfied + risk exceeds tolerance → click Finish (suppressed if `--relic-no-early-finish` and P(relic+) exceeds threshold)
 2. **Goal infeasibility**: goal unreachable → click Reset (if available)
 3. **Probability threshold**: P(goal) below threshold → click Reset
 4. **Zero feasibility**: no offer keeps goal feasible → click Reset
@@ -276,4 +326,4 @@ This handles the edge case where a `view+1` or `view+2` option is randomly picke
 - **Focus check**: pauses when Lost Ark loses focus, resumes when it regains focus
 - **3-second countdown**: before first click, with Escape to abort
 - **`--dry-run`**: runs the full detection and decision loop without clicking
-- **Ticket gating**: `--reset-min-coeff` / `--reroll-min-coeff` disable tickets for low-coefficient gems
+- **Ticket gating**: `--reset-min-coeff` / `--reroll-min-coeff` disable tickets for low-coefficient gems. `--relic-reroll-threshold` can re-enable the extra reroll ticket mid-run when P(relic+) crosses the threshold

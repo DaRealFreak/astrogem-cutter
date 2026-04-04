@@ -34,6 +34,8 @@ class GemSimulator:
             min_side_coeff: int = 0,
             exact_draw: bool = False,
             early_finish_coeff: int = 0,
+            relic_no_early_finish: float = 0.0,
+            relic_reroll_threshold: float = 0.0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -96,6 +98,17 @@ class GemSimulator:
             exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
         )
+
+        # Relic+ (>=16 total points) DP table for probability tracking
+        # and decision overrides.
+        self.relic_no_early_finish = relic_no_early_finish
+        self.relic_reroll_threshold = relic_reroll_threshold
+        self._relic_prob_table: Optional[GoalProbabilityTable] = None
+        if relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0:
+            self._relic_prob_table = GoalProbabilityTable(
+                LastTurnGoal(min_total=16), self.turns_total, self.pool,
+                exact_draw=exact_draw, early_finish=False,
+            )
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -209,6 +222,12 @@ class GemSimulator:
             return False
         if not self._goal_fully_satisfied(state):
             return False
+
+        # Relic+ override: don't early-finish if we have a good shot at 16+ total
+        if self.relic_no_early_finish > 0.0 and self._relic_prob_table is not None:
+            p_relic = self._relic_prob_table.lookup(state, turns_left)
+            if p_relic > self.relic_no_early_finish:
+                return False
 
         # Compute P(miss) = fraction of offers that would break the goal
         miss_count = 0
@@ -327,6 +346,15 @@ class GemSimulator:
             if extra_ticket_active and self.reroll_min_coeff > 0:
                 if total_coeff < self.reroll_min_coeff:
                     extra_ticket_active = False
+
+        # Track whether the extra reroll ticket was disabled by coeff gating
+        # but could be re-enabled mid-run by relic+ override.
+        relic_reroll_pending = (
+            not extra_ticket_active and self.use_extra_ticket
+            and self.relic_reroll_threshold > 0.0
+            and self._relic_prob_table is not None
+        )
+
         reset_used = False
 
         _log_pt = self.prob_table if log else None
@@ -416,11 +444,21 @@ class GemSimulator:
                         rerolls_by_turn=rerolls_by_turn,
                     )
 
+                # Relic+ override: grant the extra reroll ticket mid-run
+                # when P(relic+ | current state) crosses the threshold.
+                if relic_reroll_pending:
+                    p_relic = self._relic_prob_table.lookup(state, turns_left)
+                    if p_relic >= self.relic_reroll_threshold:
+                        state.rerolls += 1
+                        extra_ticket_active = True
+                        relic_reroll_pending = False
+
                 if log:
                     entry: Optional[Dict[str, Any]] = {
                         "turn": turn,
                         "turns_left": turns_left,
                         "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
+                        "relic_prob": self._relic_prob_table.lookup(state, turns_left) if self._relic_prob_table else None,
                         "rerolls_available": state.rerolls,
                         "eff_threshold": self.reroll_policy.effective_side_threshold(state),
                     }
@@ -580,6 +618,7 @@ class GemSimulator:
                         "first_effect": state.first_effect,
                         "second_effect": state.second_effect,
                         "goal_prob": _log_pt.lookup(state, turns_left - 1, rerolls=state.rerolls) if _log_pt else None,
+                        "relic_prob": self._relic_prob_table.lookup(state, turns_left - 1) if self._relic_prob_table else None,
                     }
                     turn_log.append(entry)
 

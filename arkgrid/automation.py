@@ -399,6 +399,8 @@ def run_auto(
     reset_min_coeff: int,
     reroll_min_coeff: int,
     early_finish_coeff: int = 0,
+    relic_no_early_finish: float = 0.0,
+    relic_reroll_threshold: float = 0.0,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
 
@@ -416,6 +418,8 @@ def run_auto(
           f"min_first={goal.min_first} min_second={goal.min_second}")
     print(f"[LOG] Settings: exact_draw={exact_draw} bis_only={bis_only} "
           f"optimize={optimize} early_finish_coeff={early_finish_coeff}")
+    print(f"[LOG] Relic+: no_early_finish={relic_no_early_finish} "
+          f"reroll_threshold={relic_reroll_threshold}")
     print(f"[LOG] Tickets: extra={extra_ticket} reset={reset_ticket}")
     print()
 
@@ -427,6 +431,9 @@ def run_auto(
     target_effects: frozenset = frozenset()
     cached_effects: Optional[Tuple[str, str]] = None
     p_fresh: Optional[float] = None
+
+    # Relic+ (>=16 total points) probability table — built on first detection
+    relic_table: Optional[GoalProbabilityTable] = None
 
     # Auto-detected gem (from first screen capture)
     detected_gem: Optional[AstroGem] = astro_gem
@@ -580,6 +587,13 @@ def run_auto(
                 gem_type_domain, early_finish=early_finish_coeff >= 0,
                 max_rerolls=total_rerolls,
             )
+            # Build relic+ table once (doesn't depend on effects)
+            if relic_table is None and (
+                    relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0):
+                relic_table = GoalProbabilityTable(
+                    LastTurnGoal(min_total=16), det.total_steps, pool,
+                    exact_draw=exact_draw, early_finish=False,
+                )
             # Use standard (non-reroll) DP for p_fresh — the reroll-aware
             # DP overestimates fresh start probability.
             _reset_table = GoalProbabilityTable(
@@ -620,6 +634,8 @@ def run_auto(
                     print(f"  [info] Extra reroll ticket disabled "
                           f"(coeff {total_coeff} < {reroll_min_coeff})")
 
+            # Relic+ override is checked per-turn below (not here)
+
             cached_effects = current_effects
 
         # --- Analyze ---
@@ -646,11 +662,15 @@ def run_auto(
             picked = _infer_picked(prev_analysis.state, analysis.state)
             print(f"  picked:  {picked}")
             s = analysis.state
-            print(f"  state:   w={s.will} c={s.chaos} "
-                  f"1st={s.first} 2nd={s.second}  "
-                  f"(total={s.total_points()})  "
-                  f"effects={s.first_effect}/{s.second_effect}  "
-                  f"P(goal)={analysis.p_current:.1%}")
+            state_line = (f"  state:   w={s.will} c={s.chaos} "
+                          f"1st={s.first} 2nd={s.second}  "
+                          f"(total={s.total_points()})  "
+                          f"effects={s.first_effect}/{s.second_effect}  "
+                          f"P(goal)={analysis.p_current:.1%}")
+            if relic_table is not None:
+                p_r = relic_table.lookup(s, analysis.turns_left)
+                state_line += f"  P(r+)={p_r:.1%}"
+            print(state_line)
             print()
 
             # Update internal reroll tracking from detected state
@@ -675,14 +695,32 @@ def run_auto(
             internal_rerolls = None
             current_turn_rerolls = 0
 
+        # --- Relic+ reroll ticket override (per-turn check) ---
+        if (not extra_ticket_active and extra_ticket
+                and relic_reroll_threshold > 0.0 and relic_table is not None):
+            p_relic_cur = relic_table.lookup(
+                analysis.state, analysis.turns_left)
+            if p_relic_cur >= relic_reroll_threshold:
+                extra_ticket_active = True
+                # Grant +1 reroll to internal tracking
+                if internal_rerolls is not None:
+                    internal_rerolls += 1
+                print(f"  [info] Extra reroll ticket re-enabled "
+                      f"(P(relic+)={p_relic_cur:.1%} >= "
+                      f"{relic_reroll_threshold:.1%})")
+
         # --- Print turn header ---
         note = ""
         if (prev_action == "reroll" and prev_analysis
                 and analysis.current_turn == prev_analysis.current_turn):
             note = "  [after reroll]"
+        relic_info = ""
+        if relic_table is not None:
+            p_r = relic_table.lookup(analysis.state, analysis.turns_left)
+            relic_info = f"  P(r+)={p_r:.1%}"
         print(f"Turn {analysis.current_turn}/{analysis.turns_total} "
               f"(left={analysis.turns_left})  "
-              f"P(goal)={analysis.p_current:.1%}  "
+              f"P(goal)={analysis.p_current:.1%}{relic_info}  "
               f"rerolls={analysis.reroll_count}{note}")
         print(f"  options: [{', '.join(analysis.option_labels)}]")
 
@@ -741,6 +779,15 @@ def run_auto(
                 # No goal risk but net negative coefficient
                 # Only when user set a positive threshold (not safe-mode 0)
                 should_stop = True
+
+            # Relic+ override: don't early-finish if relic+ is achievable
+            if (should_stop and relic_no_early_finish > 0.0
+                    and relic_table is not None):
+                p_r = relic_table.lookup(analysis.state, analysis.turns_left)
+                if p_r > relic_no_early_finish:
+                    should_stop = False
+                    print(f"  [info] Relic+ override: not finishing early "
+                          f"(P(r+)={p_r:.1%} > {relic_no_early_finish:.1%})")
 
             if should_stop:
                 if analysis.reroll_count > 0:

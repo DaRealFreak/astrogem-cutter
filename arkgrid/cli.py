@@ -74,6 +74,15 @@ def _build_parser() -> argparse.ArgumentParser:
                              "0 = always finish when met (safe). "
                              "E.g. 750 = continue for boss_damage+3 at 25%% miss "
                              "(3000*0.25=750). Default: 0")
+        p.add_argument("--relic-no-early-finish", type=float, default=0.0, metavar="F",
+                        help="Don't finish early when P(relic+ >=16 total) from the current "
+                             "state exceeds this threshold. Keeps playing to chase relic+ "
+                             "even when the primary goal is satisfied. "
+                             "0.0 = disabled. Try 0.2-0.5. Default: 0.0")
+        p.add_argument("--relic-reroll-threshold", type=float, default=0.0, metavar="F",
+                        help="Use extra reroll ticket even when --reroll-min-coeff would "
+                             "disable it, if P(relic+ >=16 total) from the current state "
+                             "exceeds this threshold. 0.0 = disabled. Try 0.1-0.3. Default: 0.0")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type (auto-resolved from effects if unambiguous)")
@@ -362,6 +371,15 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 )
                 summary["dp_exact_prob"] = exact_prob
 
+            # Relic+ DP probability (from initial state)
+            relic_dp = _compute_dp_prob(
+                LastTurnGoal(min_total=16), rarity, astro_gem, args.optimize,
+                bis_only=False, min_side_coeff=0,
+                early_finish=False,
+                exact_draw=getattr(args, "exact_dp", False),
+            )
+            summary["relic_dp_prob"] = relic_dp
+
             if args.trials > 0:
                 sim = GemSimulator(
                     rarity=rarity,
@@ -378,6 +396,8 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     min_side_coeff=args.min_side_coeff,
                     exact_draw=getattr(args, "exact_dp", False),
                     early_finish_coeff=args.early_finish_coeff,
+                    relic_no_early_finish=args.relic_no_early_finish,
+                    relic_reroll_threshold=args.relic_reroll_threshold,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -406,6 +426,8 @@ def cmd_sim(args: argparse.Namespace) -> None:
         min_side_coeff=args.min_side_coeff,
         exact_draw=getattr(args, "exact_dp", False),
         early_finish_coeff=args.early_finish_coeff,
+        relic_no_early_finish=args.relic_no_early_finish,
+        relic_reroll_threshold=args.relic_reroll_threshold,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -423,6 +445,8 @@ def cmd_sim(args: argparse.Namespace) -> None:
         hdr = f"Turn {t['turn']} (left={t['turns_left']})"
         if t.get("goal_prob") is not None:
             hdr += f"  P(goal)={t['goal_prob']:.1%}"
+        if t.get("relic_prob") is not None:
+            hdr += f"  P(r+)={t['relic_prob']:.1%}"
         if "rerolls_available" in t:
             hdr += f"  rerolls={t['rerolls_available']}"
         if "eff_threshold" in t:
@@ -454,6 +478,8 @@ def cmd_sim(args: argparse.Namespace) -> None:
                           f"effects={sa['first_effect']}/{sa['second_effect']}")
             if sa.get("goal_prob") is not None:
                 state_line += f"  P(goal)={sa['goal_prob']:.1%}"
+            if sa.get("relic_prob") is not None:
+                state_line += f"  P(r+)={sa['relic_prob']:.1%}"
             print(state_line)
         print()
 
@@ -715,6 +741,14 @@ def cmd_live(args: argparse.Namespace) -> None:
         goal_parts.append(f"min_side_coeff={min_side_coeff}")
     print(f"Goal:       {', '.join(goal_parts) if goal_parts else '(none)'}")
     print(f"P(goal):    {p_current:.1%}")
+
+    # Relic+ (>=16 total points) probability from current state
+    relic_table = GoalProbabilityTable(
+        LastTurnGoal(min_total=16), turns_total, pool,
+        exact_draw=exact_draw, early_finish=False,
+    )
+    p_relic = relic_table.lookup(state, turns_left)
+    print(f"P(relic+):  {p_relic:.1%}")
     print()
 
     # --- Reroll recommendation ---
@@ -900,6 +934,8 @@ def cmd_auto(args: argparse.Namespace) -> None:
         reset_min_coeff=args.reset_min_coeff,
         reroll_min_coeff=args.reroll_min_coeff,
         early_finish_coeff=args.early_finish_coeff,
+        relic_no_early_finish=args.relic_no_early_finish,
+        relic_reroll_threshold=args.relic_reroll_threshold,
     )
 
 
