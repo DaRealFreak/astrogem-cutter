@@ -76,6 +76,36 @@ With the DP-optimal strategy, rerolls are distributed heavily toward late turns:
 
 This produces higher success rates across all rarities and lower reset usage.
 
+### Forced reroll on no-progress turns
+
+Flag: `--force-reroll-no-progress N` (coefficient threshold; `0` disables).
+
+The DP's reroll decision is myopic in a specific way: it compares the keep-value of the *actual 4 offers* (uniform pick) against the value of rerolling. When none of the 4 options advances the goal (no positive will/chaos, no positive side level that's needed, no side-coefficient gain), the DP still sometimes favours `process` because the four "useless" offers can marginally increase DP value through **pool-dilution effects** — e.g. a `first+2` on an irrelevant side effect narrows the future eligible pool (fewer `first+N` options remain eligible in later turns) and concentrates draw weight on chaos/will options. That upside, while real, comes at the cost of a turn that contributed nothing to the goal directly.
+
+The `--force-reroll-no-progress` heuristic overrides this. Before calling the DP, it checks: **does any offer increase a stat the goal still needs?** If not, and a reroll is available, it forces a reroll immediately.
+
+#### Coefficient gating
+
+The threshold is compared against the sum of the gem's **starting** target-effect coefficients (`DPS_COEFF` or `SUPPORT_COEFF` depending on `--optimize`). The rationale: on gems with good side nodes, hitting the main goal matters more than accumulating relic+ / total-points upside, so skip "free" side progression on irrelevant turns. On gems with weak side nodes, the DP's default (keep the pool-dilution upside) is preferred.
+
+Typical thresholds:
+
+- `1050` on support (any gem with `brand_power` or `ally_attack`)
+- `1500` on support (any gem with `ally_attack`)
+- `1400+` on DPS (any gem with `boss_damage` or `additional_damage`)
+
+#### Trade-off (MC, 100k trials, epic + extra ticket, random support gem, goal = will 4 + chaos 4)
+
+| Threshold | Success | Relic+ | Avg total | Avg coeff |
+|---|---|---|---|---|
+| 0 (off) | 46.49% | 24.47% | 13.81 | 3282 |
+| 1050 | **48.14%** (+1.65pp) | 21.65% | 13.62 | 3180 |
+| 1500 | 47.59% | 22.63% | 13.69 | 3214 |
+| 2000 | 46.79% | 23.93% | 13.78 | 3260 |
+| 2500 | 46.64% | 24.18% | 13.79 | 3268 |
+
+Higher thresholds preserve more relic+ upside at the cost of less main-goal gain. Pick based on priority: if relic+ doesn't matter to you, go with the lowest threshold that matches "acceptable" gems.
+
 ### Fallback: heuristic reroll policy
 
 When the reroll-aware DP is not available (e.g. in automation before the table is built), the `RerollPolicy` heuristic serves as a fallback. It operates in three modes selected by a **comfort signal** (DP-estimated goal probability):

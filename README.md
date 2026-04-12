@@ -126,6 +126,7 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--early-finish-coeff N` | Risk tolerance for early finish when goal is already satisfied. `0` = always finish when met (safe). Higher values accept more risk for side upgrades. Formula: finish if `best_coeff_gain * P(miss) > N`. E.g. `750` continues for boss_damage+3 at 25% miss. `-1` = disabled. Default: `0`. |
 | `--relic-no-early-finish F` | Suppress early finish when P(relic+ >=16) from current state exceeds this threshold — chase 16+ total points even when goal is met. `0.0` = disabled. Default: `0.0`. |
 | `--relic-reroll-threshold F` | Re-enable extra reroll ticket mid-run when P(relic+ >=16) from current state exceeds this threshold, overriding `--reroll-min-coeff` gating. `0.0` = disabled. Default: `0.0`. |
+| `--force-reroll-no-progress N` | Heuristic override: when the gem's starting target-effect coefficient is ≥ `N`, force a reroll (if rerolls remain) on any turn where no offer progresses the goal (no will/chaos/needed side level/coefficient increase). Bypasses the DP's marginal keep-vs-reroll calculation. On high-coeff gems this boosts main-goal success at some cost to relic+ / total-points upside. `0` = disabled. Try `1050+` on support, `1400+` on DPS. Default: `0`. See [strategy: forced reroll](documentation/strategy.md#forced-reroll-on-no-progress-turns). |
 | `--exact-dp` | Use exact PPSWOR(4) inclusion probabilities instead of single-draw approximation. More accurate but slower (~1-4s vs ~20ms per table). Available on `stats`, `sim`, `live`, `auto`. |
 
 ### Stats-only options
@@ -227,6 +228,10 @@ python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --early-finish-
 
 # Early finish disabled — always play all turns (old behaviour)
 python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --early-finish-coeff -1
+
+# Force reroll on no-progress turns for high-coeff support gems (≥1050 coeff)
+python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --optimize support \
+  --force-reroll-no-progress 1050
 
 # Analyse a screenshot (requires opencv-python)
 python -m arkgrid live --screenshot screenshot.png --min-will 4 --min-chaos 5

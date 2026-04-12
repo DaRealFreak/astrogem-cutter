@@ -83,6 +83,14 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Use extra reroll ticket even when --reroll-min-coeff would "
                              "disable it, if P(relic+ >=16 total) from the current state "
                              "exceeds this threshold. 0.0 = disabled. Try 0.1-0.3. Default: 0.0")
+        p.add_argument("--force-reroll-no-progress", type=int, default=0, metavar="N",
+                        help="Heuristic override: when the gem's starting target-effect "
+                             "coefficient is >= N, force a reroll (if rerolls available) "
+                             "on any turn where no offer progresses the goal — i.e. none "
+                             "increases will/chaos/needed side levels or side coefficient. "
+                             "On high-coeff gems this boosts main-goal success at some "
+                             "cost to relic+ / total-points upside. "
+                             "0 = disabled. Try 1050+ on support, 1400+ on DPS. Default: 0.")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type (auto-resolved from effects if unambiguous)")
@@ -155,6 +163,11 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Analyze and print decisions without clicking")
     p_auto.add_argument("--exact-dp", action="store_true", default=False,
                         help="Use exact 4-draw-pick-1 DP for decisions")
+    p_auto.add_argument("--all", action="store_true", default=False,
+                        dest="all_gems",
+                        help="Continuously cut gems: after finishing, confirm the "
+                             "processed gem and select the next one from the "
+                             "inventory. Stops when no new gem is detected.")
 
     return parser
 
@@ -439,6 +452,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     early_finish_coeff=args.early_finish_coeff,
                     relic_no_early_finish=args.relic_no_early_finish,
                     relic_reroll_threshold=args.relic_reroll_threshold,
+                    force_reroll_no_progress=args.force_reroll_no_progress,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -469,6 +483,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         early_finish_coeff=args.early_finish_coeff,
         relic_no_early_finish=args.relic_no_early_finish,
         relic_reroll_threshold=args.relic_reroll_threshold,
+        force_reroll_no_progress=args.force_reroll_no_progress,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -904,6 +919,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             min_side_coeff=getattr(args, "min_side_coeff", 0),
             exact_draw=exact_draw,
             early_finish_coeff=early_finish_coeff,
+            force_reroll_no_progress=getattr(args, "force_reroll_no_progress", False),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,
@@ -977,6 +993,8 @@ def cmd_auto(args: argparse.Namespace) -> None:
         early_finish_coeff=args.early_finish_coeff,
         relic_no_early_finish=args.relic_no_early_finish,
         relic_reroll_threshold=args.relic_reroll_threshold,
+        force_reroll_no_progress=args.force_reroll_no_progress,
+        all_gems=args.all_gems,
     )
 
 

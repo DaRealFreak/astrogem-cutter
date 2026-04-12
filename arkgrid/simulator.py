@@ -36,6 +36,7 @@ class GemSimulator:
             early_finish_coeff: int = 0,
             relic_no_early_finish: float = 0.0,
             relic_reroll_threshold: float = 0.0,
+            force_reroll_no_progress: int = 0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -111,6 +112,8 @@ class GemSimulator:
         # and decision overrides.
         self.relic_no_early_finish = relic_no_early_finish
         self.relic_reroll_threshold = relic_reroll_threshold
+        self.force_reroll_no_progress = force_reroll_no_progress
+        self._force_reroll_active = False  # set per-run in simulate_one
         self._relic_prob_table: Optional[GoalProbabilityTable] = None
         if relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0:
             self._relic_prob_table = GoalProbabilityTable(
@@ -290,6 +293,43 @@ class GemSimulator:
                 ok += 1
         return ok / len(offers)
 
+    def _has_progress_offer(self, offers: List[Option], state: GemState) -> bool:
+        """Check if any offer progresses an unmet goal constraint.
+
+        Returns True if at least one offer gives positive will/chaos
+        (for min_will/min_chaos goals), positive side-node level
+        (for min_first/min_second or min_side_coeff targets), or any
+        positive stat (for min_total goals).
+        """
+        g = self.goal
+        need_total = g.min_total is not None and (
+            state.will + state.chaos + state.first + state.second) < g.min_total
+        need_wc_total = g.min_total_will_chaos is not None and (
+            state.will + state.chaos) < g.min_total_will_chaos
+        need_will = g.min_will is not None and state.will < g.min_will
+        need_chaos = g.min_chaos is not None and state.chaos < g.min_chaos
+        need_first = g.min_first is not None and state.first < g.min_first
+        need_second = g.min_second is not None and state.second < g.min_second
+        need_coeff_first = (self.min_side_coeff > 0
+                            and self._side_coeff_first > 0
+                            and state.first < 5)
+        need_coeff_second = (self.min_side_coeff > 0
+                             and self._side_coeff_second > 0
+                             and state.second < 5)
+
+        for o in offers:
+            if o.delta <= 0:
+                continue
+            if o.kind == "will" and (need_will or need_wc_total or need_total):
+                return True
+            if o.kind == "chaos" and (need_chaos or need_wc_total or need_total):
+                return True
+            if o.kind == "first" and (need_first or need_coeff_first or need_total):
+                return True
+            if o.kind == "second" and (need_second or need_coeff_second or need_total):
+                return True
+        return False
+
     def roll_offers_with_rerolls(
             self,
             state: GemState,
@@ -308,17 +348,22 @@ class GemSimulator:
             log_obj["reroll_reasons_history"] = []
 
         while turn != 1 and state.rerolls > 0:
-            # DP-optimal reroll decision: the reroll-aware DP table
-            # compares keep vs reroll value via backward induction.
-            should = self.prob_table.should_reroll_dp(
-                state, offers, turns_left, state.rerolls)
-
-            if not should:
-                break
+            forced = (self._force_reroll_active
+                      and not self._has_progress_offer(offers, state))
+            if forced:
+                reason = "forced_no_progress"
+            else:
+                # DP-optimal reroll decision: the reroll-aware DP table
+                # compares keep vs reroll value via backward induction.
+                should = self.prob_table.should_reroll_dp(
+                    state, offers, turns_left, state.rerolls)
+                if not should:
+                    break
+                reason = "dp_reroll_optimal"
 
             state.rerolls -= 1
             if log_obj is not None:
-                log_obj["reroll_reasons_history"].append(["dp_reroll_optimal"])
+                log_obj["reroll_reasons_history"].append([reason])
                 log_obj.setdefault("reroll_feasible_history", []).append(0.0)
 
             offers = self.pool.generate_offers(state, turn, turns_left, rng)
@@ -340,20 +385,22 @@ class GemSimulator:
 
         reset_available = bool(self.use_reset_ticket)
         extra_ticket_active = bool(self.use_extra_ticket)
-        if reset_available or (extra_ticket_active and self.reroll_min_coeff > 0):
-            coeff = (DPS_COEFF if run_gem.optimize == "dps"
-                     else SUPPORT_COEFF)
-            target = (DPS_EFFECTS if run_gem.optimize == "dps"
-                      else SUPPORT_EFFECTS)
-            total_coeff = sum(coeff.get(e, 0)
-                              for e in (run_gem.first_effect, run_gem.second_effect)
-                              if e in target)
-            if reset_available and self.reset_min_coeff > 0:
-                if total_coeff < self.reset_min_coeff:
-                    reset_available = False
-            if extra_ticket_active and self.reroll_min_coeff > 0:
-                if total_coeff < self.reroll_min_coeff:
-                    extra_ticket_active = False
+        coeff = (DPS_COEFF if run_gem.optimize == "dps"
+                 else SUPPORT_COEFF)
+        target = (DPS_EFFECTS if run_gem.optimize == "dps"
+                  else SUPPORT_EFFECTS)
+        total_coeff = sum(coeff.get(e, 0)
+                          for e in (run_gem.first_effect, run_gem.second_effect)
+                          if e in target)
+        if reset_available and self.reset_min_coeff > 0:
+            if total_coeff < self.reset_min_coeff:
+                reset_available = False
+        if extra_ticket_active and self.reroll_min_coeff > 0:
+            if total_coeff < self.reroll_min_coeff:
+                extra_ticket_active = False
+        self._force_reroll_active = (
+            self.force_reroll_no_progress > 0
+            and total_coeff >= self.force_reroll_no_progress)
 
         # Track whether the extra reroll ticket was disabled by coeff gating
         # but could be re-enabled mid-run by relic+ override.
