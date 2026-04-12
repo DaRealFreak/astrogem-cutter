@@ -476,7 +476,7 @@ def run_auto(
     monitor_index: int,
     goal: LastTurnGoal,
     extra_ticket: bool,
-    reset_ticket: Optional[bool],
+    reset_ticket,  # bool | str (rarity threshold: common/rare/epic) | None
     optimize: str,
     bis_only: bool,
     min_side_coeff: int,
@@ -557,6 +557,8 @@ def run_auto(
         detected_gem: Optional[AstroGem] = astro_gem
 
         # Internal state tracking
+        # Resolved against the gem's rarity once detection succeeds; until
+        # then we optimistically enable it (any truthy --reset-ticket value).
         reset_available = bool(reset_ticket)
         extra_ticket_active = bool(extra_ticket)
         force_reroll_active = False  # gated by starting coeff, set on first detection
@@ -569,7 +571,13 @@ def run_auto(
         turn_history: List[dict] = []
         current_turn_rerolls = 0
         consecutive_failures = 0
-        waiting_for_change: Optional[Tuple[int, Optional[str]]] = None  # (turn, reroll_key)
+        # (turn, reroll_key, target_turn). If target_turn is set, wait until
+        # det_turn == target_turn (used for reset which always returns to
+        # turn 1 — avoids clearing on mid-animation frames where the reroll
+        # counter has already decremented but the turn hasn't flipped yet).
+        waiting_for_change: Optional[
+            Tuple[int, Optional[str], Optional[int]]
+        ] = None
         finish_state: Optional[dict] = None  # Set from finish screen detection
         gem_completed = False
 
@@ -684,8 +692,17 @@ def run_auto(
             # --- Wait for state change (turn or reroll count) ---
             if waiting_for_change is not None:
                 det_turn = det.total_steps - det.current_step + 1
-                wait_turn, wait_rerolls = waiting_for_change
-                if det_turn == wait_turn and det.rerolls == wait_rerolls:
+                wait_turn, wait_rerolls, target_turn = waiting_for_change
+                if target_turn is not None:
+                    # Reset flow: hold until the turn indicator flips to
+                    # target_turn (reset always returns to turn 1). The
+                    # reroll counter decrements before the reset animation
+                    # finishes, so relying on a generic "anything changed"
+                    # check would release too early on a mid-animation frame.
+                    if det_turn != target_turn:
+                        time.sleep(animation_delay)
+                        continue
+                elif det_turn == wait_turn and det.rerolls == wait_rerolls:
                     time.sleep(animation_delay)
                     continue
                 waiting_for_change = None
@@ -771,6 +788,22 @@ def run_auto(
                               f"(coeff {total_coeff} vs {force_reroll_no_progress})")
                 else:
                     force_reroll_active = False
+
+                # Rarity threshold on --reset-ticket (common/rare/epic). If
+                # the gem's rarity is below the threshold, disable reset for
+                # this run. Evaluated once on first detection — the rarity
+                # can't change mid-run.
+                if (cached_effects is None and reset_available
+                        and isinstance(reset_ticket, str)):
+                    rarity_name = RARITY_FROM_TOTAL_STEPS.get(
+                        det.total_steps, "rare")
+                    rarity_level = {"common": 1, "rare": 2, "epic": 3}
+                    if (rarity_level.get(rarity_name, 0)
+                            < rarity_level[reset_ticket]):
+                        reset_available = False
+                        print(f"  [info] Reset ticket disabled "
+                              f"(rarity {rarity_name} below "
+                              f"--reset-ticket {reset_ticket})")
 
                 # Relic+ override is checked per-turn below (not here)
 
@@ -1061,7 +1094,8 @@ def run_auto(
                     current_turn_rerolls = 0
                 # In dry-run no click happens, so wait for the game state
                 # to change (turn or reroll count) before re-evaluating.
-                waiting_for_change = (analysis.current_turn, det.rerolls)
+                target = 1 if action == "reset" else None
+                waiting_for_change = (analysis.current_turn, det.rerolls, target)
                 prev_analysis = analysis
                 prev_action = action
                 prev_action_reason = action_reason
@@ -1153,7 +1187,8 @@ def run_auto(
                 current_turn_rerolls = 0
 
             if action in ("process", "reset"):
-                waiting_for_change = (analysis.current_turn, det.rerolls)
+                target = 1 if action == "reset" else None
+                waiting_for_change = (analysis.current_turn, det.rerolls, target)
 
             prev_analysis = analysis
             prev_action = action

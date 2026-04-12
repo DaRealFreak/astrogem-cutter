@@ -17,6 +17,30 @@ from arkgrid.analyzer import GemAnalyzer, pprint_result
 
 ALL_EFFECTS = sorted(DPS_EFFECTS | SUPPORT_EFFECTS)
 
+_RARITY_LEVEL = {"common": 1, "rare": 2, "epic": 3}
+
+
+def _parse_reset_ticket(value: str) -> str:
+    v = value.lower()
+    if v in _RARITY_LEVEL:
+        return v
+    raise argparse.ArgumentTypeError(
+        f"--reset-ticket value must be one of common/rare/epic (got {value!r})"
+    )
+
+
+def _reset_enabled_for_rarity(value, rarity: str) -> bool:
+    """Resolve a --reset-ticket value (True/False/None/rarity string) against
+    a gem rarity. Rarity strings act as a minimum threshold — pass "rare" to
+    enable reset on rare and epic gems; pass "epic" to enable it only on
+    epic gems.
+    """
+    if value is True:
+        return True
+    if not value:
+        return False
+    return _RARITY_LEVEL.get(rarity, 0) >= _RARITY_LEVEL[value]
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -41,8 +65,13 @@ def _build_parser() -> argparse.ArgumentParser:
         p.add_argument("--extra-ticket", action="store_true", default=True,
                         help="Use extra reroll ticket (default: yes)")
         p.add_argument("--no-extra-ticket", action="store_false", dest="extra_ticket")
-        p.add_argument("--reset-ticket", action="store_true", default=None,
-                        help="Use reset ticket (default: run both with/without)")
+        p.add_argument("--reset-ticket", nargs="?", const=True, default=None,
+                        type=_parse_reset_ticket, metavar="RARITY",
+                        help="Use reset ticket. Bare flag enables it for every "
+                             "gem. Pass a rarity (common/rare/epic) to use "
+                             "the ticket only on gems of that rarity or "
+                             "higher (e.g. 'epic' = epic-only, 'rare' = rare "
+                             "and epic). Default: run both with/without.")
         p.add_argument("--no-reset-ticket", action="store_false", dest="reset_ticket")
         p.add_argument("--side-threshold", type=float, default=0.5, metavar="F",
                         help="Goal-feasibility fraction above which side nodes are valued (default: 0.5)")
@@ -234,7 +263,7 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
     rarities = args.rarity if args.rarity else ["common", "rare", "epic"]
 
     if args.reset_ticket is None:
-        reset_variants: List[Optional[bool]] = [False, True]
+        reset_variants: List = [False, True]
     else:
         reset_variants = [args.reset_ticket]
 
@@ -405,9 +434,15 @@ def cmd_stats(args: argparse.Namespace) -> None:
     _print_config(args, goal, astro_gem)
 
     for use_reset in reset_variants:
-        label = "With reset ticket" if use_reset else "Without reset ticket"
+        if isinstance(use_reset, str):
+            label = f"With reset ticket ({use_reset}+ only)"
+        elif use_reset:
+            label = "With reset ticket"
+        else:
+            label = "Without reset ticket"
         print(f"--- {label} ---")
         for rarity in rarities:
+            resolved_reset = _reset_enabled_for_rarity(use_reset, rarity)
             ef = args.early_finish_coeff >= 0
             dp_prob = _compute_dp_prob(
                 goal, rarity, astro_gem, args.optimize,
@@ -438,7 +473,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 sim = GemSimulator(
                     rarity=rarity,
                     use_extra_ticket=args.extra_ticket,
-                    use_reset_ticket=use_reset,
+                    use_reset_ticket=resolved_reset,
                     goal=goal,
                     side_node_threshold=args.side_threshold,
                     astro_gem=astro_gem,
@@ -465,7 +500,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
 def cmd_sim(args: argparse.Namespace) -> None:
     goal, astro_gem, rarities, reset_variants = _resolve_args(args)
     rarity = rarities[0]
-    use_reset = reset_variants[-1]
+    use_reset = _reset_enabled_for_rarity(reset_variants[-1], rarity)
     _print_config(args, goal, astro_gem)
 
     sim = GemSimulator(
@@ -776,7 +811,13 @@ def cmd_live(args: argparse.Namespace) -> None:
           f"(Total: {state.total_points()})")
     print(f"Turn:       {current_turn}/{turns_total}  ({turns_left} turns left)")
     print(f"Rerolls:    {reroll_count}")
-    reset_str = "yes" if args.reset_ticket else "no" if args.reset_ticket is False else "n/a"
+    if args.reset_ticket is None:
+        reset_str = "n/a"
+    elif isinstance(args.reset_ticket, str):
+        enabled = _reset_enabled_for_rarity(args.reset_ticket, rarity)
+        reset_str = f"yes ({args.reset_ticket}+)" if enabled else f"no ({args.reset_ticket}+)"
+    else:
+        reset_str = "yes" if args.reset_ticket else "no"
     print(f"Tickets:    reset={reset_str}  extra_reroll={'yes' if args.extra_ticket else 'no'}")
     print()
 
@@ -903,7 +944,7 @@ def cmd_live(args: argparse.Namespace) -> None:
     if args.trials > 0:
         astro_gem = AstroGem(gem_type_domain, state.first_effect,
                              state.second_effect, args.optimize)
-        use_reset = args.reset_ticket if args.reset_ticket is not None else False
+        use_reset = _reset_enabled_for_rarity(args.reset_ticket, rarity)
         sim = GemSimulator(
             rarity=rarity,
             use_extra_ticket=args.extra_ticket,
@@ -972,7 +1013,9 @@ def cmd_auto(args: argparse.Namespace) -> None:
     goal, astro_gem, rarities, reset_variants = _resolve_args(args)
     _print_config(args, goal, astro_gem)
 
-    use_reset = reset_variants[-1]  # True if --reset-ticket, None if unset
+    # Pass the raw --reset-ticket value through (True/False/None or a rarity
+    # string); run_auto resolves against the detected gem's rarity per run.
+    use_reset = reset_variants[-1]
 
     run_auto(
         monitor_index=args.monitor,
