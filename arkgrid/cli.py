@@ -138,6 +138,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_stats.add_argument("--exact-dp", action="store_true", default=False,
                          help="Also compute exact 4-draw-pick-1 DP probability "
                               "(slower but more accurate, ~5-15s build time)")
+    p_stats.add_argument("--effect-aware-dp", action="store_true", default=False,
+                         help="Show effect-aware DP probability alongside the "
+                              "standard one. Models change_effect transitions "
+                              "so min_side_coeff is correctly priced when "
+                              "starting effects lock out the target side.")
 
     # ---- sim ----
     p_sim = sub.add_parser("sim", help="Run a single simulation with turn-by-turn log")
@@ -197,6 +202,13 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Continuously cut gems: after finishing, confirm the "
                              "processed gem and select the next one from the "
                              "inventory. Stops when no new gem is detected.")
+    p_auto.add_argument("--effect-aware-dp", action="store_true", default=False,
+                        help="Use effect-aware DP that models change_effect "
+                             "transitions (first/second effect identity tracked "
+                             "in state). Higher accuracy for --min-side-coeff "
+                             "when starting effects lock out the target side, "
+                             "since change_effect rescues are priced in. Build "
+                             "is slower (~1-3s) but cached per gem type.")
 
     return parser
 
@@ -343,6 +355,7 @@ def _compute_dp_prob(
     min_side_coeff: int,
     exact_draw: bool = False,
     early_finish: bool = False,
+    effect_aware: bool = False,
 ) -> float:
     """Compute analytical DP probability from initial state.
 
@@ -370,7 +383,49 @@ def _compute_dp_prob(
             target_effects = frozenset(
                 set(GEM_TYPES[astro_gem.gem_type]) & target_set)
 
-    if bis_only and astro_gem:
+    if effect_aware and astro_gem and astro_gem.gem_type in GEM_TYPES:
+        table = GoalProbabilityTable(
+            goal, turns, pool,
+            min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
+            early_finish=early_finish,
+            effect_aware=True,
+            gem_type=astro_gem.gem_type,
+            optimize=optimize,
+        )
+        initial = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=astro_gem.first_effect,
+            second_effect=astro_gem.second_effect,
+        )
+        return table.lookup(initial, turns)
+    elif effect_aware and astro_gem is None:
+        # Effect-aware over a random gem: average one table per gem type
+        # across all valid (first, second) starts.
+        total_p = 0.0
+        n_configs = 0
+        for gem_type, effs in GEM_TYPES.items():
+            table = GoalProbabilityTable(
+                goal, turns, pool,
+                min_side_coeff=min_side_coeff,
+                exact_draw=exact_draw,
+                early_finish=early_finish,
+                effect_aware=True,
+                gem_type=gem_type,
+                optimize=optimize,
+            )
+            for fi in range(len(effs)):
+                for si in range(len(effs)):
+                    if fi == si:
+                        continue
+                    initial = GemState(
+                        will=1, chaos=1, first=1, second=1,
+                        first_effect=effs[fi], second_effect=effs[si],
+                    )
+                    total_p += table.lookup(initial, turns)
+                    n_configs += 1
+        return total_p / n_configs if n_configs else 0.0
+    elif bis_only and astro_gem:
         table = GoalProbabilityTable(
             goal, turns, pool,
             bis_only=True,
@@ -460,6 +515,16 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 )
                 summary["dp_exact_prob"] = exact_prob
 
+            if getattr(args, "effect_aware_dp", False):
+                ea_prob = _compute_dp_prob(
+                    goal, rarity, astro_gem, args.optimize,
+                    args.bis_only, args.min_side_coeff,
+                    exact_draw=getattr(args, "exact_dp", False),
+                    early_finish=ef,
+                    effect_aware=True,
+                )
+                summary["dp_effect_aware_prob"] = ea_prob
+
             # Relic+ DP probability (from initial state)
             relic_dp = _compute_dp_prob(
                 LastTurnGoal(min_total=16), rarity, astro_gem, args.optimize,
@@ -488,6 +553,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     relic_no_early_finish=args.relic_no_early_finish,
                     relic_reroll_threshold=args.relic_reroll_threshold,
                     force_reroll_no_progress=args.force_reroll_no_progress,
+                    effect_aware=getattr(args, "effect_aware_dp", False),
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -1038,6 +1104,7 @@ def cmd_auto(args: argparse.Namespace) -> None:
         relic_reroll_threshold=args.relic_reroll_threshold,
         force_reroll_no_progress=args.force_reroll_no_progress,
         all_gems=args.all_gems,
+        effect_aware_dp=getattr(args, "effect_aware_dp", False),
     )
 
 

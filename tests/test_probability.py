@@ -171,5 +171,114 @@ class TestEarlyReset(unittest.TestCase):
         self.assertTrue(should_prob)
 
 
+class TestEffectAwareDP(unittest.TestCase):
+    """Effect-aware DP tracks first/second effect identity and models
+    change_effect as a probabilistic transition between effect indices.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.pool = OptionPool()
+        cls.goal = LastTurnGoal(min_will=4, min_chaos=4)
+
+    def test_support_start_dps_optimize_not_zero(self) -> None:
+        """Regression: standard DP reports 0% when min_side_coeff is
+        blocked by wrong-side starting effects; EA correctly reports >0%
+        since change_effect rescues are modelled.
+        """
+        # order_fortitude: attack_power, boss_damage, ally_damage, ally_attack
+        # Start on the two support effects, optimize DPS.
+        st = GemState(will=1, chaos=1, first=1, second=1,
+                      first_effect="ally_damage",
+                      second_effect="ally_attack")
+        standard = GoalProbabilityTable(
+            self.goal, 9, self.pool, min_side_coeff=2000,
+            side_coeff_first=0, side_coeff_second=0,
+        )
+        ea = GoalProbabilityTable(
+            self.goal, 9, self.pool, min_side_coeff=2000,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        self.assertAlmostEqual(standard.lookup(st, 8), 0.0)
+        self.assertGreater(ea.lookup(st, 8), 0.0)
+        # With 8 turns and pool weight 3.25/100 per change_effect,
+        # a non-trivial success probability is expected.
+        self.assertGreater(ea.lookup(st, 8), 0.01)
+
+    def test_effect_indices_resolve_correctly(self) -> None:
+        ea = GoalProbabilityTable(
+            self.goal, 5, self.pool, min_side_coeff=2000,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        # order_fortitude effects: attack_power, boss_damage, ally_damage, ally_attack
+        st = GemState(first_effect="attack_power", second_effect="ally_attack")
+        idx = ea._effect_indices(st)
+        self.assertEqual(idx, (0, 3))
+
+    def test_change_dests_always_two(self) -> None:
+        """change_effect destinations are always the 2 non-equipped effects."""
+        ea = GoalProbabilityTable(
+            self.goal, 3, self.pool, min_side_coeff=0,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        for (fi, si), dests in ea._change_dests.items():
+            self.assertEqual(len(dests), 2)
+            self.assertNotIn(fi, dests)
+            self.assertNotIn(si, dests)
+
+    def test_change_effect_transitions_sum_to_one(self) -> None:
+        """Transition probabilities out of any state sum to 1.0."""
+        ea = GoalProbabilityTable(
+            self.goal, 3, self.pool, min_side_coeff=0,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        # Sample transitions at a middle turn
+        trans = ea._effect_aware_transitions(3, 3, 3, 3, turn=2, turns_left=2)
+        total = sum(p for (p, _key, _kind, _nw, _nc, _nf, _ns, _vd) in trans)
+        self.assertAlmostEqual(total, 1.0, places=6)
+
+    def test_no_coeff_constraint_matches_standard(self) -> None:
+        """When min_side_coeff=0, EA's numerical output should match
+        the standard DP closely (change_effect is modeled differently
+        but doesn't affect w/c/f/s progression). Small delta is expected
+        because standard treats change_effect as a no-op while EA
+        routes level/effect probabilistically.
+        """
+        goal = LastTurnGoal(min_will=4, min_chaos=4)
+        st = GemState(will=1, chaos=1, first=1, second=1,
+                      first_effect="attack_power",
+                      second_effect="boss_damage")
+        standard = GoalProbabilityTable(goal, 9, self.pool, min_side_coeff=0)
+        ea = GoalProbabilityTable(
+            goal, 9, self.pool, min_side_coeff=0,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        # Without side-coeff constraint, both should reach the same ballpark.
+        # Level changes on first/second still matter for min_first etc, but
+        # for this goal (min_will/min_chaos only), effect identity is irrelevant.
+        self.assertAlmostEqual(standard.lookup(st, 9), ea.lookup(st, 9),
+                               places=4)
+
+    def test_ea_with_rerolls_builds(self) -> None:
+        """Sanity: reroll-aware effect-aware build completes and reports
+        higher probability than the no-reroll variant."""
+        goal = LastTurnGoal(min_will=4, min_chaos=4)
+        st = GemState(will=1, chaos=1, first=1, second=1,
+                      first_effect="ally_damage",
+                      second_effect="ally_attack")
+        no_rerolls = GoalProbabilityTable(
+            goal, 9, self.pool, min_side_coeff=2000,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        with_rerolls = GoalProbabilityTable(
+            goal, 9, self.pool, min_side_coeff=2000,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+            max_rerolls=3,
+        )
+        p0 = no_rerolls.lookup(st, 8)
+        p3 = with_rerolls.lookup(st, 8, rerolls=3)
+        self.assertGreater(p3, p0)
+
+
 if __name__ == "__main__":
     unittest.main()

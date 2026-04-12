@@ -37,6 +37,7 @@ class GemSimulator:
             relic_no_early_finish: float = 0.0,
             relic_reroll_threshold: float = 0.0,
             force_reroll_no_progress: int = 0,
+            effect_aware: bool = False,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -44,6 +45,10 @@ class GemSimulator:
         self.optimize = optimize
         self.bis_only = bis_only
         self.min_side_coeff = min_side_coeff
+        self.effect_aware = effect_aware
+        self._exact_draw = exact_draw
+        self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
+        self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
@@ -120,6 +125,36 @@ class GemSimulator:
                 LastTurnGoal(min_total=16), self.turns_total, self.pool,
                 exact_draw=exact_draw, early_finish=False,
             )
+
+    def _get_ea_tables(self, gem_type: str) -> tuple:
+        """Build or fetch cached effect-aware (reroll, reset) DP tables
+        for the given gem type. Used only when effect_aware is True.
+        """
+        if gem_type in self._ea_table_cache:
+            return (self._ea_table_cache[gem_type],
+                    self._ea_reset_table_cache[gem_type])
+        reroll_tbl = GoalProbabilityTable(
+            self.goal, self.turns_total, self.pool,
+            min_side_coeff=self.min_side_coeff,
+            exact_draw=self._exact_draw,
+            early_finish=self.early_finish_coeff >= 0,
+            max_rerolls=self.base_rerolls,
+            effect_aware=True,
+            gem_type=gem_type,
+            optimize=self.optimize,
+        )
+        reset_tbl = GoalProbabilityTable(
+            self.goal, self.turns_total, self.pool,
+            min_side_coeff=self.min_side_coeff,
+            exact_draw=self._exact_draw,
+            early_finish=self.early_finish_coeff >= 0,
+            effect_aware=True,
+            gem_type=gem_type,
+            optimize=self.optimize,
+        )
+        self._ea_table_cache[gem_type] = reroll_tbl
+        self._ea_reset_table_cache[gem_type] = reset_tbl
+        return reroll_tbl, reset_tbl
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -383,6 +418,15 @@ class GemSimulator:
         self.astro_gem = run_gem
         self.reroll_policy.astro_gem = run_gem
 
+        # Effect-aware DP mode: swap in per-gem-type tables so the
+        # decisions account for change_effect transitions and correctly
+        # enforce min_side_coeff even when the starting effects don't
+        # contribute to the target side.
+        if self.effect_aware and run_gem.gem_type in GEM_TYPES:
+            ea_reroll, ea_reset = self._get_ea_tables(run_gem.gem_type)
+            self.prob_table = ea_reroll
+            self._reset_prob_table = ea_reset
+
         reset_available = bool(self.use_reset_ticket)
         extra_ticket_active = bool(self.use_extra_ticket)
         coeff = (DPS_COEFF if run_gem.optimize == "dps"
@@ -419,8 +463,13 @@ class GemSimulator:
 
         # Fresh-start probability — reset is better when current odds drop below this
         # Uses standard DP (not reroll-aware) for accurate reset value estimate.
+        # EA mode: include starting effects so the lookup resolves indices;
+        # reset reverts to the gem's original effects, matching this state.
         p_fresh = self._reset_prob_table.lookup(
-            GemState(will=1, chaos=1, first=1, second=1), self.turns_total)
+            GemState(will=1, chaos=1, first=1, second=1,
+                     first_effect=run_gem.first_effect,
+                     second_effect=run_gem.second_effect),
+            self.turns_total)
 
         turn_log: List[Dict[str, Any]] = []
         rerolls_by_turn: Dict[int, int] = {}

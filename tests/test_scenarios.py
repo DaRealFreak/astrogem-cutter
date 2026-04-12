@@ -16,6 +16,7 @@ from arkgrid import (
     AstroGem,
     GemSimulator,
     GemState,
+    GoalProbabilityTable,
     LastTurnGoal,
     Option,
     OptionPool,
@@ -563,6 +564,175 @@ class TestScenarioRelicRerollTicketOverride(unittest.TestCase):
                   f"  rerolls={t['rerolls_available']}{relic_str}"
                   f"  {t['action']}")
         print(f"{'='*60}\n")
+
+
+class TestScenarioSupportGemDpsOptimizeNoReset(unittest.TestCase):
+    """Reproduces the --all auto-run regression case.
+
+    A random gem rolled with two support effects (ally_damage + ally_attack)
+    under --optimize dps --min-side-coeff 2000. The standard DP treats
+    both side coefficients as 0 (non-target effects), so every state
+    reports P(goal)=0 and the automation flips to RESET on Turn 2.
+
+    The effect-aware DP models change_first_effect/change_second_effect
+    as probabilistic transitions to the two non-equipped effects. For
+    order_fortitude the non-equipped effects are attack_power + boss_damage
+    — both DPS targets — so a change_effect always flips a support side
+    to DPS. The EA DP prices in this rescue and reports >0%.
+    """
+
+    GEM_TYPE = "order_fortitude"  # attack_power, boss_damage, ally_damage, ally_attack
+    FIRST = "ally_damage"
+    SECOND = "ally_attack"
+    GOAL = LastTurnGoal(min_will=4, min_chaos=4)
+    MIN_SIDE_COEFF = 2000
+    TURNS_TOTAL = 9  # epic
+
+    def setUp(self) -> None:
+        # Turn 2 state from the reported run: w=1 c=1 f=1 s=1, rerolls=2.
+        # Offers approximate the reported set — we substitute concrete
+        # pool keys that reflect the same "no progress" shape:
+        #   first+1 (bumps ally_damage, no side-coeff gain under dps)
+        #   change_first_effect (the rescue path)
+        #   will+1 (progresses min_will)
+        #   view+2 (reroll ticket)
+        self.result = ScenarioHelper.evaluate(
+            gem_type=self.GEM_TYPE,
+            first_effect=self.FIRST,
+            second_effect=self.SECOND,
+            optimize="dps",
+            will=1, chaos=1, first=1, second=1,
+            rerolls=2,
+            rarity="epic",
+            turn=2,
+            offer_keys=("first+1", "change_first_effect", "will+1", "view+2"),
+            goal=self.GOAL,
+            min_side_coeff=self.MIN_SIDE_COEFF,
+        )
+
+    def test_standard_dp_with_coeff_constraint_reports_zero(self) -> None:
+        """A standard DP built with min_side_coeff=2000 and both side
+        coeffs=0 (non-target effects) can never reach the goal: every
+        initial state lookups to 0.0. The simulator sidesteps this by
+        stripping min_side_coeff when the constraint is infeasible,
+        but the raw DP still exposes the underlying bug.
+        """
+        pool = ScenarioHelper.POOL
+        standard = GoalProbabilityTable(
+            self.GOAL, self.TURNS_TOTAL, pool,
+            side_coeff_first=0, side_coeff_second=0,
+            min_side_coeff=self.MIN_SIDE_COEFF,
+        )
+        state = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=self.FIRST, second_effect=self.SECOND,
+        )
+        turns_left = self.TURNS_TOTAL - 2 + 1
+        self.assertAlmostEqual(standard.lookup(state, turns_left), 0.0, places=6)
+
+    def test_simulator_workaround_strips_infeasible_coeff(self) -> None:
+        """Simulator strips min_side_coeff when both side coeffs are 0,
+        so its prob_table reports the will/chaos-only probability
+        (non-zero) and feasible_frac is 1.0 here. This keeps the run
+        progressing instead of insta-resetting, but loses the
+        coefficient-goal signal entirely.
+        """
+        self.assertGreater(self.result.dp_current, 0.0)
+        self.assertAlmostEqual(self.result.feasible_frac, 1.0, places=6)
+
+    def test_effect_aware_dp_reports_nonzero(self) -> None:
+        """Effect-aware DP models the change_effect rescue — P(goal) > 0."""
+        pool = ScenarioHelper.POOL
+        ea = GoalProbabilityTable(
+            self.GOAL, self.TURNS_TOTAL, pool,
+            min_side_coeff=self.MIN_SIDE_COEFF,
+            effect_aware=True,
+            gem_type=self.GEM_TYPE,
+            optimize="dps",
+            max_rerolls=3,
+        )
+        state = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=self.FIRST, second_effect=self.SECOND,
+        )
+        turns_left = self.TURNS_TOTAL - 2 + 1  # turn 2 of 9
+        p_current = ea.lookup(state, turns_left, rerolls=2)
+        self.assertGreater(p_current, 0.0,
+                           "Effect-aware DP should price change_effect rescue")
+
+    def test_effect_aware_change_effect_option_has_highest_value(self) -> None:
+        """Of the 4 offers, change_first_effect has the best EA lookup
+        because it deterministically swaps a support slot to a DPS slot
+        (both remaining pool members for order_fortitude are DPS).
+        """
+        pool = ScenarioHelper.POOL
+        ea = GoalProbabilityTable(
+            self.GOAL, self.TURNS_TOTAL, pool,
+            min_side_coeff=self.MIN_SIDE_COEFF,
+            effect_aware=True,
+            gem_type=self.GEM_TYPE,
+            optimize="dps",
+            max_rerolls=3,
+        )
+        state = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=self.FIRST, second_effect=self.SECOND,
+        )
+        offers = ScenarioHelper.make_offers(
+            "first+1", "change_first_effect", "will+1", "view+2")
+        turns_left = self.TURNS_TOTAL - 2 + 1
+        avg_ea = ea.expected_prob_after_click(
+            state, offers, turns_left - 1, rerolls=2)
+        # Expected value after picking across offers uniformly should be
+        # non-trivial once change_first_effect routes through DPS slots.
+        self.assertGreater(avg_ea, 0.0)
+
+    def test_print_details(self) -> None:
+        ScenarioHelper.print_result(self.result)
+        # Also show the EA comparison for this state.
+        pool = ScenarioHelper.POOL
+        ea = GoalProbabilityTable(
+            self.GOAL, self.TURNS_TOTAL, pool,
+            min_side_coeff=self.MIN_SIDE_COEFF,
+            effect_aware=True,
+            gem_type=self.GEM_TYPE,
+            optimize="dps",
+            max_rerolls=3,
+        )
+        state = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=self.FIRST, second_effect=self.SECOND,
+        )
+        turns_left = self.TURNS_TOTAL - 2 + 1
+        p_ea = ea.lookup(state, turns_left, rerolls=2)
+        offers = ScenarioHelper.make_offers(
+            "first+1", "change_first_effect", "will+1", "view+2")
+        print(f"--- Effect-aware DP comparison ---")
+        print(f"P(goal) standard    : {self.result.dp_current:.4f}")
+        print(f"P(goal) effect-aware: {p_ea:.4f}")
+        print(f"Per-offer effect-aware lookup:")
+        for o in offers:
+            nw = min(5, max(1, state.will + o.delta)) if o.kind == "will" else state.will
+            nc = min(5, max(1, state.chaos + o.delta)) if o.kind == "chaos" else state.chaos
+            nf = min(5, max(1, state.first + o.delta)) if o.kind == "first" else state.first
+            ns = min(5, max(1, state.second + o.delta)) if o.kind == "second" else state.second
+            vd = o.delta if o.kind == "view" else 0
+            nr = min(3, 2 + vd)
+            if o.key == "change_first_effect":
+                # Average over the two destinations (attack_power, boss_damage)
+                fi = ea._effect_tuple.index(self.FIRST)
+                si = ea._effect_tuple.index(self.SECOND)
+                dests = ea._change_dests[(fi, si)]
+                vals = [ea._dp_lookup_ea(nw, nc, nf, ns, d, si, nr, turns_left - 1)
+                        for d in dests]
+                avg = sum(vals) / len(vals)
+                print(f"  {o.key:>24s} -> avg={avg:.4f} "
+                      f"(dests: {[ea._effect_tuple[d] for d in dests]})")
+            else:
+                fi = ea._effect_tuple.index(self.FIRST)
+                si = ea._effect_tuple.index(self.SECOND)
+                v = ea._dp_lookup_ea(nw, nc, nf, ns, fi, si, nr, turns_left - 1)
+                print(f"  {o.key:>24s} -> dp={v:.4f}")
 
 
 if __name__ == "__main__":

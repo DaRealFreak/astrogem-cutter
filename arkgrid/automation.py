@@ -226,6 +226,15 @@ def _fmt_option(opt: OptionDetection, kind: str, delta_val: Optional[int],
     return opt.name_key or "???"
 
 
+_DP_CACHE: dict = {}
+
+
+def _goal_cache_key(goal: LastTurnGoal) -> tuple:
+    return (goal.min_will, goal.min_chaos, goal.exact_will, goal.exact_chaos,
+            goal.min_total_will_chaos, goal.exact_total_will_chaos,
+            goal.min_first, goal.min_second, goal.min_total)
+
+
 def _build_prob_table(
     goal: LastTurnGoal,
     turns_total: int,
@@ -238,10 +247,15 @@ def _build_prob_table(
     gem_type_domain: str,
     early_finish: bool = False,
     max_rerolls: int = 0,
+    effect_aware: bool = False,
 ) -> Tuple[GoalProbabilityTable, frozenset, int, int]:
     """Build the DP probability table.
 
     Returns (table, target_effects, side_coeff_first, side_coeff_second).
+    When effect_aware is True, results are cached by (goal, turns, gem_type,
+    optimize, min_side_coeff, exact_draw, max_rerolls, early_finish) — the
+    effect-pair is encoded in the DP state, so one table covers all configs
+    of the same gem type.
     """
     target_effects: frozenset = frozenset()
     if bis_only and gem_type_domain in GEM_TYPES:
@@ -258,16 +272,48 @@ def _build_prob_table(
         if state.second_effect in opt_set_coeff:
             side_coeff_second = coeff_map[state.second_effect]
 
-    table = GoalProbabilityTable(
-        goal, turns_total, pool,
-        bis_only=bis_only, target_effects=target_effects,
-        side_coeff_first=side_coeff_first,
-        side_coeff_second=side_coeff_second,
-        min_side_coeff=min_side_coeff,
-        exact_draw=exact_draw,
-        early_finish=early_finish,
-        max_rerolls=max_rerolls,
-    )
+    use_effect_aware = effect_aware and gem_type_domain in GEM_TYPES
+
+    cache_key = None
+    if use_effect_aware:
+        cache_key = (
+            "ea",
+            _goal_cache_key(goal), turns_total, gem_type_domain, optimize,
+            min_side_coeff, exact_draw, max_rerolls, early_finish,
+        )
+        cached = _DP_CACHE.get(cache_key)
+        if cached is not None:
+            return cached, target_effects, side_coeff_first, side_coeff_second
+
+    if use_effect_aware:
+        print(f"  [dp] Building effect-aware table "
+              f"({gem_type_domain}, exact={exact_draw}, "
+              f"rerolls={max_rerolls})...", flush=True)
+        t0 = time.time()
+        table = GoalProbabilityTable(
+            goal, turns_total, pool,
+            min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
+            early_finish=early_finish,
+            max_rerolls=max_rerolls,
+            effect_aware=True,
+            gem_type=gem_type_domain,
+            optimize=optimize,
+        )
+        print(f"  [dp] Built in {time.time() - t0:.2f}s "
+              f"({len(table._dp)} states)", flush=True)
+        _DP_CACHE[cache_key] = table
+    else:
+        table = GoalProbabilityTable(
+            goal, turns_total, pool,
+            bis_only=bis_only, target_effects=target_effects,
+            side_coeff_first=side_coeff_first,
+            side_coeff_second=side_coeff_second,
+            min_side_coeff=min_side_coeff,
+            exact_draw=exact_draw,
+            early_finish=early_finish,
+            max_rerolls=max_rerolls,
+        )
     return table, target_effects, side_coeff_first, side_coeff_second
 
 
@@ -493,6 +539,7 @@ def run_auto(
     relic_reroll_threshold: float = 0.0,
     force_reroll_no_progress: int = 0,
     all_gems: bool = False,
+    effect_aware_dp: bool = False,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
 
@@ -514,6 +561,7 @@ def run_auto(
           f"reroll_threshold={relic_reroll_threshold}")
     print(f"[LOG] Tickets: extra={extra_ticket} reset={reset_ticket}")
     print(f"[LOG] Force reroll no progress threshold: {force_reroll_no_progress}")
+    print(f"[LOG] Effect-aware DP: {effect_aware_dp}")
     print()
 
     pool = OptionPool()
@@ -716,7 +764,9 @@ def run_auto(
             current_effects = (det.first_effect, det.second_effect)
 
             if prob_table is None or (
-                (bis_only or min_side_coeff > 0) and cached_effects != current_effects
+                not effect_aware_dp
+                and (bis_only or min_side_coeff > 0)
+                and cached_effects != current_effects
             ):
                 temp_state = GemState(
                     first_effect=det.first_effect,
@@ -731,6 +781,7 @@ def run_auto(
                         bis_only, optimize, min_side_coeff, exact_draw,
                         gem_type_domain, early_finish=early_finish_coeff >= 0,
                         max_rerolls=total_rerolls,
+                        effect_aware=effect_aware_dp,
                     ))
                 # Build relic+ table once (doesn't depend on effects)
                 if relic_table is None and (

@@ -324,6 +324,61 @@ Both tables use single-draw transition probabilities (option weight / total elig
 
 State: `(will, chaos, first, second, turns_left)` — same as standard DP. Goal: `min_total=16` (will+chaos+first+second >= 16). Built when `--relic-no-early-finish` or `--relic-reroll-threshold` is set. No reroll awareness, no side coefficients — purely tracks the probability of achieving 16+ total points. Used for relic+ display and the two relic+ overrides (early finish suppression, extra reroll ticket gating). Build time: ~20ms.
 
+## Effect-aware DP
+
+Flag: `--effect-aware-dp` (available on `stats` and `auto`).
+
+The standard DP treats each gem's `first_effect` and `second_effect` as fixed scalars at construction time (via `side_coeff_first` / `side_coeff_second`). It does not model `change_first_effect` / `change_second_effect` as state transitions — those options are treated as no-ops in the transition function. This creates two related issues:
+
+1. **False 0% on wrong-side gems.** If the starting effects don't belong to the optimize side (e.g. `ally_damage + ally_attack` under `--optimize dps`), both side coefficients are 0. With `--min-side-coeff 2000`, the terminal success check `coeff_first*f + coeff_second*s >= 2000` can never pass. The DP reports 0% for every state, and automation triggers an early reset on turn 2 as soon as rule 3 (`no offer keeps goal feasible`) fires.
+
+2. **Workaround in the simulator.** To avoid the false 0% cascade, the MC simulator strips `min_side_coeff` from its internal DP when both side coeffs are 0 (see `simulator.py`). This keeps runs progressing but drops the side-coefficient signal entirely — decisions are made on will/chaos alone, and the run only learns it failed at the final success check.
+
+The effect-aware DP fixes both by tracking effect identity in the DP state.
+
+### How it works
+
+State extension: `(will, chaos, first, second, first_idx, second_idx, turns_left [, rerolls])` where `first_idx` and `second_idx` are indices into `GEM_TYPES[gem_type]` (the gem's 4-effect pool), with `first_idx != second_idx` always. This gives 12 valid effect-pair combinations per (w,c,f,s) state — a 12× state blow-up versus the standard DP.
+
+Change-effect transitions: when `change_first_effect` fires, the game draws a new effect uniformly from the 2 non-equipped pool members. The DP models this as `P(first_idx = new_fi) = 0.5` for each of the two destinations. `change_second_effect` works symmetrically on `second_idx`. Stat levels are preserved across effect changes (matching the in-game mechanic).
+
+Coefficient check: `effect_coeffs[first_idx] * first + effect_coeffs[second_idx] * second >= min_side_coeff`, where `effect_coeffs` is the optimize-filtered coefficient table (non-target effects contribute 0).
+
+### Build cost
+
+| Mode | States | Build time |
+|---|---|---|
+| Non-reroll, single-draw | ~68k (epic) | ~160ms |
+| Reroll-aware, single-draw | ~270k (epic, 3 rerolls) | ~1.3s |
+| Reroll-aware, exact-draw | ~270k | ~2.5s |
+
+Tables are cached per gem type. In `--all` automation or `stats` with random gems, a single table per gem type (6 types total) is reused across all runs of that type.
+
+### When to use
+
+- **Random-gem stats with `--min-side-coeff`.** Significant success-rate lift: the MC simulator uses the effect-aware DP for reroll and reset decisions, correctly identifying wrong-side gems and resetting them aggressively.
+- **`auto --all` with `--min-side-coeff` and `--reset-ticket`.** Avoids the premature reset cascade on turn 2 described in issue 1 above; trades those early resets for informed mid-run resets when the DP genuinely says the gem is cooked.
+- **Configured-gem runs where you expect change-effect rescues.** EA DP prices in the probability that a change-effect card flips a wrong-side slot to a target effect.
+
+### Trade-off example
+
+Stats at 20k trials, random epic gem, `--min-will 4 --min-chaos 5 --min-side-coeff 5000 --reset-ticket --optimize dps`:
+
+| | Standard DP | Effect-aware DP |
+|---|---|---|
+| Success rate | 3.12% | **5.69%** (+2.57pp, +82%) |
+| Avg side coefficient | 2,161 | 2,501 |
+| Reset usage | 59.6% | 92.4% |
+| Relic+ rate | 24.9% | 19.4% |
+
+The effect-aware DP trades more reset tickets for a higher main-goal success rate. The relic+ drop reflects that aggressive resets abandon gems that would have organically reached ≥16 points. If relic+ matters to you, combine with `--relic-reroll-threshold` / `--relic-no-early-finish` to preserve the upside.
+
+### Caveats
+
+- Effect-aware mode takes precedence over `--bis-only` when both are set. Effect identity is already tracked, so BIS-style target-effect constraints can be expressed via `--min-side-coeff` + `--optimize` without needing the binary BIS state.
+- The single-draw approximation is slightly different from the standard DP because change-effect is no longer a no-op — on gems that start with target-side effects, the EA DP is marginally *lower* (~1-4pp) since it correctly models the downside of a change-effect routing to a non-target.
+- Each `auto --all` run of a new gem type pays the one-time build cost on first encounter; subsequent gems of the same type reuse the cached table.
+
 ## Automation (`auto` command)
 
 The `auto` command runs a full automation loop: capture screen → detect state → decide → click → wait → repeat. It uses all the same decision logic described above, with these additions:

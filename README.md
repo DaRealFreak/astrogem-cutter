@@ -128,6 +128,7 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--relic-reroll-threshold F` | Re-enable extra reroll ticket mid-run when P(relic+ >=16) from current state exceeds this threshold, overriding `--reroll-min-coeff` gating. `0.0` = disabled. Default: `0.0`. |
 | `--force-reroll-no-progress N` | Heuristic override: when the gem's starting target-effect coefficient is ≥ `N`, force a reroll (if rerolls remain) on any turn where no offer progresses the goal (no will/chaos/needed side level/coefficient increase). Bypasses the DP's marginal keep-vs-reroll calculation. On high-coeff gems this boosts main-goal success at some cost to relic+ / total-points upside. `0` = disabled. Try `1050+` on support, `1400+` on DPS. Default: `0`. See [strategy: forced reroll](documentation/strategy.md#forced-reroll-on-no-progress-turns). |
 | `--exact-dp` | Use exact PPSWOR(4) inclusion probabilities instead of single-draw approximation. More accurate but slower (~1-4s vs ~20ms per table). Available on `stats`, `sim`, `live`, `auto`. |
+| `--effect-aware-dp` | Track first/second effect identity in the DP state and model `change_effect` transitions as probabilistic routing across the gem's effect pool. Correctly prices `--min-side-coeff` goals when the starting effects don't contribute to the target side (standard DP reports 0% and burns reset tickets; effect-aware DP prices in the change-effect rescue). Available on `stats` and `auto`. Build is slower (~1-3s per gem type) but cached per gem type for reuse. See [strategy: effect-aware DP](documentation/strategy.md#effect-aware-dp). |
 
 ### Stats-only options
 
@@ -233,6 +234,10 @@ python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --early-finish-
 python -m arkgrid stats --min-will 4 --min-chaos 4 --rarity epic --optimize support \
   --force-reroll-no-progress 1050
 
+# Effect-aware DP: random gem + min_side_coeff where some starts are infeasible without change_effect
+python -m arkgrid stats --min-will 4 --min-chaos 5 --min-side-coeff 5000 --rarity epic \
+  --reset-ticket --effect-aware-dp
+
 # Analyse a screenshot (requires opencv-python)
 python -m arkgrid live --screenshot screenshot.png --min-will 4 --min-chaos 5
 
@@ -245,6 +250,11 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 --dry-run
 # Automation with exact DP and risk tolerance
 python -m arkgrid auto --min-will 4 --min-chaos 4 --exact-dp \
   --early-finish-coeff 1000
+
+# Automation for --all mode with effect-aware DP (avoids false 0% resets
+# on gems whose starting effects don't hit the target side)
+python -m arkgrid auto --min-will 4 --min-chaos 4 --min-side-coeff 2000 \
+  --optimize dps --reset-ticket --all --effect-aware-dp
 ```
 
 ## Tests

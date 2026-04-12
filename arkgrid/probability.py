@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import FrozenSet, List, Optional, Dict, Tuple
 
+from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS
 from arkgrid.models import Option, LastTurnGoal, GemState
 from arkgrid.pool import OptionPool
 
@@ -37,11 +38,16 @@ class GoalProbabilityTable:
         exact_draw: bool = False,
         early_finish: bool = False,
         max_rerolls: int = 0,
+        effect_aware: bool = False,
+        gem_type: str = "",
+        optimize: str = "dps",
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
         self.pool = pool
-        self.bis_only = bis_only
+        self.effect_aware = effect_aware and gem_type in GEM_TYPES
+        # effect_aware takes precedence over bis_only
+        self.bis_only = bis_only and not self.effect_aware
         self.exact_draw = exact_draw
         self._target_effects = target_effects or frozenset()
         self._side_coeff_first = side_coeff_first
@@ -49,10 +55,42 @@ class GoalProbabilityTable:
         self._min_side_coeff = min_side_coeff
         self.early_finish = early_finish
         self._max_rerolls = max_rerolls
+        self._gem_type = gem_type
+        self._optimize = optimize
+
+        # Precompute per-effect coefficient table indexed by the gem's
+        # 4-effect tuple. Non-target effects contribute 0.
+        if self.effect_aware:
+            effects = GEM_TYPES[gem_type]
+            coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+            target_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+            self._effect_tuple: Tuple[str, ...] = effects
+            self._effect_coeffs: Tuple[int, ...] = tuple(
+                coeff_map.get(e, 0) if e in target_set else 0 for e in effects
+            )
+            # Precompute change-effect destinations for each (fi, si) pair.
+            self._change_dests: Dict[Tuple[int, int], Tuple[int, ...]] = {}
+            for fi in range(4):
+                for si in range(4):
+                    if fi == si:
+                        continue
+                    self._change_dests[(fi, si)] = tuple(
+                        i for i in range(4) if i != fi and i != si
+                    )
+        else:
+            self._effect_tuple = ()
+            self._effect_coeffs = ()
+            self._change_dests = {}
+
         self._dp: Dict[tuple, float] = {}
-        if max_rerolls > 0 and not bis_only:
+        if self.effect_aware:
+            if max_rerolls > 0:
+                self._build_effect_aware_with_rerolls()
+            else:
+                self._build_effect_aware()
+        elif max_rerolls > 0 and not self.bis_only:
             self._build_with_rerolls()
-        elif bis_only:
+        elif self.bis_only:
             self._build_bis()
         else:
             self._build()
@@ -482,11 +520,272 @@ class GoalProbabilityTable:
                                     dp[(w, c, f, s, ft, st, tl)] = val
 
     # ------------------------------------------------------------------
+    # Effect-aware transitions and build
+    # ------------------------------------------------------------------
+    # State key: (w, c, f, s, fi, si, tl[, r])
+    # fi/si are indices into GEM_TYPES[gem_type], always fi != si.
+    # Change_first/second_effect transitions route probabilistically
+    # across the 2 effects not currently equipped (self._change_dests).
+    # ------------------------------------------------------------------
+
+    def _effect_aware_transitions(
+        self, w: int, c: int, f: int, s: int,
+        turn: int, turns_left: int,
+    ) -> List[Tuple[float, str, str, int, int, int, int, int]]:
+        """Return [(prob, option_key, option_kind, nw, nc, nf, ns, view_delta)].
+
+        Same eligibility logic as _transitions() but preserves option key
+        (for change_effect detection) and view delta (for reroll-aware DP).
+        Does not apply fi/si updates — those are handled at build time
+        using self._change_dests.
+        """
+        state = GemState(will=w, chaos=c, first=f, second=s)
+        eligible = [o for o in self.pool.pool
+                    if self.pool.eligible(o, state, turn, turns_left)]
+        if not eligible:
+            return [(1.0, "", "", w, c, f, s, 0)]
+
+        probs = self._option_probs(eligible)
+        result: List[Tuple[float, str, str, int, int, int, int, int]] = []
+        for p, o in zip(probs, eligible):
+            nw, nc, nf, ns = w, c, f, s
+            vd = 0
+            if o.kind == "will":
+                nw = min(5, max(1, w + o.delta))
+            elif o.kind == "chaos":
+                nc = min(5, max(1, c + o.delta))
+            elif o.kind == "first":
+                nf = min(5, max(1, f + o.delta))
+            elif o.kind == "second":
+                ns = min(5, max(1, s + o.delta))
+            elif o.kind == "view":
+                vd = o.delta
+            result.append((p, o.key, o.kind, nw, nc, nf, ns, vd))
+        return result
+
+    def _coeff_satisfied_idx(self, f: int, s: int, fi: int, si: int) -> bool:
+        if self._min_side_coeff <= 0:
+            return True
+        coeff_total = (self._effect_coeffs[fi] * f
+                       + self._effect_coeffs[si] * s)
+        return coeff_total >= self._min_side_coeff
+
+    def _valid_effect_pairs(self) -> List[Tuple[int, int]]:
+        return [(fi, si) for fi in range(4) for si in range(4) if fi != si]
+
+    def _build_effect_aware(self) -> None:
+        dp = self._dp
+        mt = self.max_turns
+        valid_pairs = self._valid_effect_pairs()
+
+        # Base case: turns_left == 0
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    for s in range(1, 6):
+                        goal_sat = self.goal.satisfied(w, c, f, s)
+                        for fi, si in valid_pairs:
+                            sat = 1.0 if (goal_sat
+                                          and self._coeff_satisfied_idx(
+                                              f, s, fi, si)) else 0.0
+                            dp[(w, c, f, s, fi, si, 0)] = sat
+
+        # Precompute option-level transition tables (independent of fi/si)
+        trans_cache: Dict[str, Dict[Tuple[int, int, int, int],
+                                    List[Tuple[float, str, str,
+                                               int, int, int, int, int]]]] = {}
+        for label, turn, tl in [("first", 1, mt),
+                                ("last", mt, 1),
+                                ("middle", 2, mt - 1 if mt > 2 else 2)]:
+            cache: Dict[Tuple[int, int, int, int],
+                        List[Tuple[float, str, str,
+                                   int, int, int, int, int]]] = {}
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            cache[(w, c, f, s)] = \
+                                self._effect_aware_transitions(w, c, f, s,
+                                                               turn, tl)
+            trans_cache[label] = cache
+
+        # Backward induction
+        for tl in range(1, mt + 1):
+            turn_number = mt - tl + 1
+            if turn_number == 1:
+                tc = trans_cache["first"]
+            elif tl == 1:
+                tc = trans_cache["last"]
+            else:
+                tc = trans_cache["middle"]
+
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            trans = tc[(w, c, f, s)]
+                            goal_sat = self.goal.satisfied(w, c, f, s)
+                            for fi, si in valid_pairs:
+                                if (self.early_finish and goal_sat
+                                        and self._coeff_satisfied_idx(
+                                            f, s, fi, si)):
+                                    dp[(w, c, f, s, fi, si, tl)] = 1.0
+                                    continue
+                                dests = self._change_dests[(fi, si)]
+                                n_dests = len(dests)  # always 2
+                                val = 0.0
+                                for (p, key, _kind,
+                                     nw, nc, nf, ns, _vd) in trans:
+                                    if key == "change_first_effect":
+                                        for new_fi in dests:
+                                            val += (p / n_dests) * dp[
+                                                (nw, nc, nf, ns,
+                                                 new_fi, si, tl - 1)]
+                                    elif key == "change_second_effect":
+                                        for new_si in dests:
+                                            val += (p / n_dests) * dp[
+                                                (nw, nc, nf, ns,
+                                                 fi, new_si, tl - 1)]
+                                    else:
+                                        val += p * dp[(nw, nc, nf, ns,
+                                                       fi, si, tl - 1)]
+                                dp[(w, c, f, s, fi, si, tl)] = val
+
+    def _build_effect_aware_with_rerolls(self) -> None:
+        """Effect-aware DP extended with reroll count as extra state dim."""
+        dp = self._dp
+        mt = self.max_turns
+        max_r = self._max_rerolls
+        valid_pairs = self._valid_effect_pairs()
+
+        # Base case: turns_left == 0
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    for s in range(1, 6):
+                        goal_sat = self.goal.satisfied(w, c, f, s)
+                        for fi, si in valid_pairs:
+                            sat = 1.0 if (goal_sat
+                                          and self._coeff_satisfied_idx(
+                                              f, s, fi, si)) else 0.0
+                            for r in range(0, max_r + 1):
+                                dp[(w, c, f, s, fi, si, r, 0)] = sat
+
+        trans_cache: Dict[str, Dict[Tuple[int, int, int, int],
+                                    List[Tuple[float, str, str,
+                                               int, int, int, int, int]]]] = {}
+        for label, turn, tl in [("first", 1, mt),
+                                ("last", mt, 1),
+                                ("middle", 2, mt - 1 if mt > 2 else 2)]:
+            cache: Dict[Tuple[int, int, int, int],
+                        List[Tuple[float, str, str,
+                                   int, int, int, int, int]]] = {}
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            cache[(w, c, f, s)] = \
+                                self._effect_aware_transitions(w, c, f, s,
+                                                               turn, tl)
+            trans_cache[label] = cache
+
+        # Backward induction
+        for tl in range(1, mt + 1):
+            turn_number = mt - tl + 1
+            if turn_number == 1:
+                tc = trans_cache["first"]
+            elif tl == 1:
+                tc = trans_cache["last"]
+            else:
+                tc = trans_cache["middle"]
+
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            trans = tc[(w, c, f, s)]
+                            goal_sat = self.goal.satisfied(w, c, f, s)
+                            for fi, si in valid_pairs:
+                                dests = self._change_dests[(fi, si)]
+                                n_dests = len(dests)
+                                for r in range(0, max_r + 1):
+                                    if (self.early_finish and goal_sat
+                                            and self._coeff_satisfied_idx(
+                                                f, s, fi, si)):
+                                        dp[(w, c, f, s, fi, si, r, tl)] = 1.0
+                                        continue
+
+                                    # Compute keep-value: expected value
+                                    # of the 4-draw-pick-1 outcome
+                                    def post_val(key, nw, nc, nf, ns, nr):
+                                        if key == "change_first_effect":
+                                            v = 0.0
+                                            for new_fi in dests:
+                                                v += dp[(nw, nc, nf, ns,
+                                                         new_fi, si, nr,
+                                                         tl - 1)] / n_dests
+                                            return v
+                                        if key == "change_second_effect":
+                                            v = 0.0
+                                            for new_si in dests:
+                                                v += dp[(nw, nc, nf, ns,
+                                                         fi, new_si, nr,
+                                                         tl - 1)] / n_dests
+                                            return v
+                                        return dp[(nw, nc, nf, ns,
+                                                   fi, si, nr, tl - 1)]
+
+                                    if r > 0 and turn_number != 1:
+                                        reroll_val = dp[
+                                            (w, c, f, s, fi, si, r - 1, tl)]
+                                        val = 0.0
+                                        for (p, key, _kind,
+                                             nw, nc, nf, ns, vd) in trans:
+                                            nr = min(max_r, r + vd)
+                                            post = post_val(key, nw, nc,
+                                                            nf, ns, nr)
+                                            val += p * max(post, reroll_val)
+                                        dp[(w, c, f, s, fi, si, r, tl)] = val
+                                    else:
+                                        val = 0.0
+                                        for (p, key, _kind,
+                                             nw, nc, nf, ns, vd) in trans:
+                                            nr = min(max_r, r + vd)
+                                            val += p * post_val(
+                                                key, nw, nc, nf, ns, nr)
+                                        dp[(w, c, f, s, fi, si, r, tl)] = val
+
+    def _effect_indices(self, state: GemState) -> Optional[Tuple[int, int]]:
+        """Translate state.first_effect/second_effect to (fi, si) indices."""
+        try:
+            fi = self._effect_tuple.index(state.first_effect)
+            si = self._effect_tuple.index(state.second_effect)
+        except ValueError:
+            return None
+        if fi == si:
+            return None
+        return fi, si
+
+    # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def lookup(self, state: GemState, turns_left: int,
                rerolls: Optional[int] = None) -> float:
+        if self.effect_aware:
+            idx = self._effect_indices(state)
+            if idx is None:
+                return 0.0
+            fi, si = idx
+            w, c, f, s = (state.will, state.chaos,
+                          state.first, state.second)
+            if self._max_rerolls > 0:
+                r = min(self._max_rerolls,
+                        rerolls if rerolls is not None else 0)
+                return self._dp.get(
+                    (w, c, f, s, fi, si, r, turns_left), 0.0)
+            return self._dp.get(
+                (w, c, f, s, fi, si, turns_left), 0.0)
         if self._max_rerolls > 0 and not self.bis_only:
             r = min(self._max_rerolls, rerolls if rerolls is not None else 0)
             return self._dp.get(
@@ -555,7 +854,35 @@ class GoalProbabilityTable:
             nf = min(5, max(1, state.first + o.delta)) if o.kind == "first" else state.first
             ns = min(5, max(1, state.second + o.delta)) if o.kind == "second" else state.second
 
-            if self._max_rerolls > 0 and not self.bis_only:
+            if self.effect_aware:
+                idx = self._effect_indices(state)
+                if idx is None:
+                    continue
+                fi, si = idx
+                r = rerolls if rerolls is not None else 0
+                vd = o.delta if o.kind == "view" else 0
+                nr = min(self._max_rerolls, r + vd) if self._max_rerolls > 0 else 0
+                dests = self._change_dests[(fi, si)]
+                n_dests = len(dests)
+                if o.key == "change_first_effect":
+                    v = 0.0
+                    for new_fi in dests:
+                        v += self._dp_lookup_ea(nw, nc, nf, ns,
+                                                new_fi, si, nr,
+                                                turns_left_after) / n_dests
+                    total += v
+                elif o.key == "change_second_effect":
+                    v = 0.0
+                    for new_si in dests:
+                        v += self._dp_lookup_ea(nw, nc, nf, ns,
+                                                fi, new_si, nr,
+                                                turns_left_after) / n_dests
+                    total += v
+                else:
+                    total += self._dp_lookup_ea(nw, nc, nf, ns,
+                                                fi, si, nr,
+                                                turns_left_after)
+            elif self._max_rerolls > 0 and not self.bis_only:
                 r = rerolls if rerolls is not None else 0
                 vd = o.delta if o.kind == "view" else 0
                 nr = min(self._max_rerolls, r + vd)
@@ -574,6 +901,13 @@ class GoalProbabilityTable:
             else:
                 total += self._dp.get((nw, nc, nf, ns, turns_left_after), 0.0)
         return total / len(offers)
+
+    def _dp_lookup_ea(self, w: int, c: int, f: int, s: int,
+                      fi: int, si: int, r: int, tl: int) -> float:
+        """Internal effect-aware DP lookup by indices."""
+        if self._max_rerolls > 0:
+            return self._dp.get((w, c, f, s, fi, si, r, tl), 0.0)
+        return self._dp.get((w, c, f, s, fi, si, tl), 0.0)
 
     def should_reroll_dp(self, state: GemState, offers: List[Option],
                          turns_left: int, rerolls: int) -> bool:
