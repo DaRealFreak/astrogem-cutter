@@ -7,12 +7,10 @@ clicks the appropriate buttons.
 
 from __future__ import annotations
 
-import os
 import re
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime
 from typing import List, Optional, Tuple
 
 if sys.platform != "win32":
@@ -30,6 +28,7 @@ except Exception:
     except Exception:
         pass
 
+from arkgrid.analyzer import GemAnalyzer
 from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
     SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
@@ -41,6 +40,7 @@ from arkgrid.decision import (
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
 from arkgrid.probability import GoalProbabilityTable
+from arkgrid.run_logger import RunLogger
 from arkgrid.simulator import GemSimulator
 from arkgrid.vision.capture import grab_screen
 from arkgrid.vision.template_recognizer import (
@@ -92,27 +92,6 @@ _MOUSEEVENTF_LEFTUP = 0x0004
 
 MAX_DETECT_RETRIES = 5
 DETECT_RETRY_WAIT = 0.5
-
-
-class _TeeWriter:
-    """Duplicate writes to both the original stdout and a log file."""
-
-    def __init__(self, log_path: str):
-        self._stdout = sys.stdout
-        self._file = open(log_path, "w", encoding="utf-8")
-
-    def write(self, text: str) -> int:
-        self._stdout.write(text)
-        self._file.write(text)
-        self._file.flush()
-        return len(text)
-
-    def flush(self) -> None:
-        self._stdout.flush()
-        self._file.flush()
-
-    def close(self) -> None:
-        self._file.close()
 
 
 # ---------------------------------------------------------------------------
@@ -516,29 +495,12 @@ def run_auto(
     force_reroll_no_progress: int = 0,
     all_gems: bool = False,
     effect_aware_dp: bool = False,
+    args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
 
-    # Set up logging — tee stdout to a per-run log file
-    os.makedirs("logs", exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_path = os.path.join("logs", f"auto_{timestamp}.log")
-    tee = _TeeWriter(log_path)
-    _original_stdout = sys.stdout
-    sys.stdout = tee
-
-    # Log run parameters for context
-    print(f"[LOG] Run started at {timestamp}")
-    print(f"[LOG] Goal: min_will={goal.min_will} min_chaos={goal.min_chaos} "
-          f"min_first={goal.min_first} min_second={goal.min_second}")
-    print(f"[LOG] Settings: exact_draw={exact_draw} bis_only={bis_only} "
-          f"optimize={optimize} early_finish_coeff={early_finish_coeff}")
-    print(f"[LOG] Relic+: no_early_finish={relic_no_early_finish} "
-          f"reroll_threshold={relic_reroll_threshold}")
-    print(f"[LOG] Tickets: extra={extra_ticket} reset={reset_ticket}")
-    print(f"[LOG] Force reroll no progress threshold: {force_reroll_no_progress}")
-    print(f"[LOG] Effect-aware DP: {effect_aware_dp}")
-    print()
+    logger = RunLogger()
+    logger.log_run_start(args, goal, astro_gem)
 
     pool = OptionPool()
     monitor = _get_monitor(monitor_index)
@@ -551,9 +513,8 @@ def run_auto(
         for i in range(3, 0, -1):
             if _is_stop_pressed():
                 print("Aborted.")
-                sys.stdout = _original_stdout
-                tee.close()
-                print(f"Log saved to: {log_path}")
+                logger.log_run_end()
+                logger.close()
                 return
             print(f"  Starting in {i}...")
             time.sleep(1)
@@ -565,6 +526,13 @@ def run_auto(
         gem_count += 1
         if all_gems and gem_count > 1:
             print(f"=== Starting gem #{gem_count} ===")
+        logger.log_gem_start(gem_count)
+        gem_logged_detected = False
+        # Buffer for a "process" action whose ``picked`` / ``state_after``
+        # fields are only known once the next iteration's screen capture
+        # reveals the new state. Reroll/reset/finish records are emitted
+        # immediately and never use this buffer.
+        pending_turn_record: Optional[dict] = None
 
         # Cached probability table (rebuilt if effects change)
         prob_table: Optional[GoalProbabilityTable] = None
@@ -793,6 +761,17 @@ def run_auto(
                     gem_type_domain, det.first_effect,
                     det.second_effect, optimize,
                 )
+                if not gem_logged_detected:
+                    rarity_for_log = RARITY_FROM_TOTAL_STEPS.get(
+                        det.total_steps, "rare")
+                    logger.log_gem_detected(
+                        gem_type=gem_type_domain,
+                        rarity=rarity_for_log,
+                        first_effect=det.first_effect,
+                        second_effect=det.second_effect,
+                        total_steps=det.total_steps,
+                    )
+                    gem_logged_detected = True
                 # Gate tickets by coefficient thresholds (same as simulator)
                 # Reset only checked on first detection (reset restores
                 # original effects). Reroll re-evaluated on effect changes.
@@ -926,6 +905,12 @@ def run_auto(
                 })
                 current_turn_rerolls = 0
 
+                if pending_turn_record is not None:
+                    pending_turn_record["picked"] = picked
+                    pending_turn_record["state_after"] = s.clone()
+                    logger.log_turn(**pending_turn_record)
+                    pending_turn_record = None
+
             elif prev_action == "reset" and prev_analysis:
                 print("  [reset complete]")
                 print()
@@ -1008,6 +993,30 @@ def run_auto(
             else:
                 print(f"  action:  {_action_label} ({action_reason})")
 
+            # --- Build the JSONL turn record for this decision ---
+            p_relic_for_log: Optional[float] = None
+            if relic_table is not None:
+                p_relic_for_log = relic_table.lookup(
+                    analysis.state, analysis.turns_left,
+                    rerolls=analysis.reroll_count)
+            turn_record_kwargs = dict(
+                turn=analysis.current_turn,
+                turns_left=analysis.turns_left,
+                state_before=analysis.state.clone(),
+                offers=list(analysis.option_labels),
+                action=action,
+                action_reason=action_reason,
+                p_goal=analysis.p_current,
+                p_relic=p_relic_for_log,
+                rerolls=analysis.reroll_count,
+            )
+            if action == "process":
+                # Picked / state_after only knowable next iteration.
+                pending_turn_record = dict(turn_record_kwargs,
+                                           picked=None, state_after=None)
+            else:
+                logger.log_turn(picked=None, state_after=None,
+                                **turn_record_kwargs)
 
             # --- Execute ---
             if dry_run:
@@ -1191,6 +1200,55 @@ def run_auto(
                   f"effects={s.first_effect}/{s.second_effect}")
         print(f"Reset used: {reset_used}")
 
+        # --- Emit gem_end JSONL record ---
+        if finish_state and prev_analysis:
+            final_state_obj = GemState(
+                will=finish_state["will"],
+                chaos=finish_state["chaos"],
+                first=finish_state["first"],
+                second=finish_state["second"],
+                first_effect=prev_analysis.state.first_effect,
+                second_effect=prev_analysis.state.second_effect,
+            )
+        elif prev_analysis:
+            final_state_obj = prev_analysis.state.clone()
+        else:
+            final_state_obj = GemState()
+
+        side_coeff_value = GemAnalyzer._side_coeff(final_state_obj, optimize)
+        goal_satisfied = goal.satisfied(
+            final_state_obj.will, final_state_obj.chaos,
+            final_state_obj.first, final_state_obj.second)
+        success = goal_satisfied and (
+            min_side_coeff <= 0 or side_coeff_value >= min_side_coeff)
+
+        if pending_turn_record is not None:
+            pending_turn_record["state_after"] = final_state_obj
+            if pending_turn_record.get("picked") is None and prev_analysis is not None:
+                pending_turn_record["picked"] = _infer_picked(
+                    prev_analysis.state, final_state_obj)
+            logger.log_turn(**pending_turn_record)
+            pending_turn_record = None
+
+        if stop_requested:
+            reason = "stopped"
+        elif prev_action == "finish":
+            reason = "early_finish"
+        elif gem_completed:
+            reason = "ran_to_end"
+        else:
+            reason = "incomplete"
+
+        logger.log_gem_end(
+            success=success,
+            total_points=final_state_obj.total_points(),
+            side_coeff=side_coeff_value,
+            reset_used=reset_used,
+            extra_ticket_used=extra_ticket_active,
+            final_state=final_state_obj,
+            reason=reason,
+        )
+
         # --- Decide whether to continue to next gem (--all mode) ---
         if stop_requested or not all_gems or not gem_completed or dry_run:
             break
@@ -1223,7 +1281,10 @@ def run_auto(
         # Give the UI a moment to render the new gem before re-detection
         time.sleep(ALL_MODE_CLICK_DELAY)
 
-    # Close log file and restore stdout
-    sys.stdout = _original_stdout
-    tee.close()
+    # Close log files and restore stdout
+    logger.log_run_end()
+    log_path = logger.log_path
+    jsonl_path = logger.jsonl_path
+    logger.close()
     print(f"Log saved to: {log_path}")
+    print(f"JSONL saved to: {jsonl_path}")

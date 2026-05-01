@@ -264,6 +264,62 @@ class TestNoFeasibleOfferBranch(unittest.TestCase):
         self.assertNotEqual(d.action, ActionKind.FINISH,
                             f"should not finish when relic+ reachable: {d}")
 
+    def test_rerolls_for_goal_when_relic_unreachable_but_reroll_helps(self):
+        # Reproduction of the bug from auto run 20260501_212127:
+        # Last turn, w=4 c=1 — visible offers don't touch chaos so all
+        # post-click P(goal)=0, but a reroll could pull a chaos+2/+3/+4
+        # that would satisfy min_chaos=3. With reset disabled and
+        # relic+ unreachable on the last turn (max total <= 12 < 16),
+        # the old code returned FINISH "goal & relic+ both unreachable".
+        goal = LastTurnGoal(min_will=3, min_chaos=3)
+        ctx = build_ctx(goal=goal, turns_total=7, base_rerolls=2,
+                        relic_no_early_finish=0.25,
+                        gem_type="order_fortitude")
+        state = GemState(
+            will=4, chaos=1, first=2, second=1, rerolls=1,
+            first_effect="boss_damage", second_effect="ally_attack",
+        )
+        # None of these touch chaos.
+        offers = make_offers("second+1", "will+1",
+                             "change_second_effect", "first+1")
+        ti = build_ti(state=state, offers=offers, turn=7, turns_left=1,
+                      rerolls=1, reset_available=False)
+        m = compute_post_roll_metrics(ctx, ti)
+        # Sanity: no visible offer is feasible.
+        self.assertEqual(m.feasible_count, 0)
+        # Sanity: relic+ unreachable from total=8, last turn.
+        self.assertEqual(m.p_keep_relic, 0.0)
+        self.assertEqual(m.p_reroll_relic, 0.0)
+        # Sanity: a reroll *can* find a goal-reaching offer.
+        self.assertGreater(
+            ctx.prob_table.lookup(state, ti.turns_left,
+                                  rerolls=ti.rerolls - 1),
+            0.0)
+        d = no_feasible_offer_decision(ctx, ti, m)
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.REROLL,
+                         f"expected REROLL fallback, got {d}")
+
+    def test_finishes_when_goal_and_relic_unreachable_no_reroll(self):
+        # Same shape as above, but with rerolls=0 the goal-reroll
+        # fallback shouldn't fire — FINISH is correct.
+        goal = LastTurnGoal(min_will=3, min_chaos=3)
+        ctx = build_ctx(goal=goal, turns_total=7, base_rerolls=2,
+                        relic_no_early_finish=0.25,
+                        gem_type="order_fortitude")
+        state = GemState(
+            will=4, chaos=1, first=2, second=1, rerolls=0,
+            first_effect="boss_damage", second_effect="ally_attack",
+        )
+        offers = make_offers("second+1", "will+1",
+                             "change_second_effect", "first+1")
+        ti = build_ti(state=state, offers=offers, turn=7, turns_left=1,
+                      rerolls=0, reset_available=False)
+        m = compute_post_roll_metrics(ctx, ti)
+        d = no_feasible_offer_decision(ctx, ti, m)
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+
 
 class TestProbResetThreshold(unittest.TestCase):
     """Branch 2: reset when post-click P(goal) drops below user threshold.

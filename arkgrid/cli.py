@@ -210,7 +210,60 @@ def _build_parser() -> argparse.ArgumentParser:
                              "since change_effect rescues are priced in. Build "
                              "is slower (~1-3s) but cached per gem type.")
 
+    # ---- report (analyze logged auto runs) ----
+    p_report = sub.add_parser(
+        "report",
+        help="Aggregate stats from past auto-run JSONL logs")
+    _add_report_filter_args(p_report)
+
     return parser
+
+
+def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
+    """Filter args for the report command. All defaults are None / 0 / False
+    so we can tell "user didn't filter" from "user wants this exact value".
+    Mirrors :func:`add_common` for parity with the auto/stats commands.
+    """
+    p.add_argument("--log-dir", default="logs",
+                   help="Directory containing *.jsonl logs (default: logs)")
+    p.add_argument("--top-options", type=int, default=20,
+                   help="Show top N options by appearance rate (default: 20). "
+                        "Pass 0 for all.")
+    p.add_argument("--rarity", choices=["common", "rare", "epic"],
+                   default=None, nargs="+",
+                   help="Filter by detected gem rarity")
+    p.add_argument("--optimize", choices=["dps", "support"], default=None,
+                   help="Filter by --optimize value used in the run")
+    p.add_argument("--min-will", type=int, default=None, metavar="N")
+    p.add_argument("--min-chaos", type=int, default=None, metavar="N")
+    p.add_argument("--exact-will", type=int, default=None, metavar="N")
+    p.add_argument("--exact-chaos", type=int, default=None, metavar="N")
+    p.add_argument("--min-first", type=int, default=None, metavar="N")
+    p.add_argument("--min-second", type=int, default=None, metavar="N")
+    p.add_argument("--min-side-coeff", type=int, default=0, metavar="N")
+    p.add_argument("--early-finish-coeff", type=int, default=0, metavar="N")
+    p.add_argument("--reset-min-coeff", type=int, default=0, metavar="N")
+    p.add_argument("--reroll-min-coeff", type=int, default=0, metavar="N")
+    p.add_argument("--force-reroll-no-progress", type=int, default=0,
+                   metavar="N")
+    p.add_argument("--side-threshold", type=float, default=0.0, metavar="F")
+    p.add_argument("--prob-reset-threshold", type=float, default=0.0,
+                   metavar="F")
+    p.add_argument("--relic-no-early-finish", type=float, default=0.0,
+                   metavar="F")
+    p.add_argument("--relic-reroll-threshold", type=float, default=0.0,
+                   metavar="F")
+    p.add_argument("--bis-only", action="store_true", default=False)
+    p.add_argument("--exact-dp", action="store_true", default=None)
+    p.add_argument("--effect-aware-dp", action="store_true", default=None)
+    p.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None)
+    p.add_argument("--first-effect", choices=ALL_EFFECTS, default=None)
+    p.add_argument("--second-effect", choices=ALL_EFFECTS, default=None)
+    p.add_argument("--reset-ticket", nargs="?", const=True, default=None,
+                   type=_parse_reset_ticket, metavar="RARITY")
+    p.add_argument("--extra-ticket", action="store_true", default=None)
+    p.add_argument("--no-extra-ticket", action="store_false",
+                   dest="extra_ticket")
 
 
 def _resolve_args(args: argparse.Namespace) -> Tuple[
@@ -1105,7 +1158,22 @@ def cmd_auto(args: argparse.Namespace) -> None:
         force_reroll_no_progress=args.force_reroll_no_progress,
         all_gems=args.all_gems,
         effect_aware_dp=getattr(args, "effect_aware_dp", False),
+        args=args,
     )
+
+
+def cmd_report(args: argparse.Namespace) -> None:
+    """Aggregate stats from past auto-run JSONL logs."""
+    from arkgrid.log_analyzer import (
+        load_runs, filter_records, print_summary,
+    )
+
+    records = load_runs(args.log_dir)
+    if not records:
+        print(f"No JSONL logs found in {args.log_dir}/")
+        return
+    filtered = filter_records(records, args)
+    print_summary(args, filtered)
 
 
 def main() -> None:
@@ -1124,5 +1192,7 @@ def main() -> None:
         cmd_live(args)
     elif args.command == "auto":
         cmd_auto(args)
+    elif args.command == "report":
+        cmd_report(args)
     else:
         parser.print_help()

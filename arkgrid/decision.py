@@ -404,10 +404,16 @@ def _reset_or_chase_relic(
     """Common tail used by both infeasibility branches.
 
     Tries reset → relic+ chase (process or reroll, whichever has higher
-    offer-conditional P(r+)) → finish/fail. FAIL is returned only when
-    no reset is available *and* relic+ tracking is disabled — the
-    simulator translates that to RunResult(success=False); automation
-    treats it the same as FINISH.
+    offer-conditional P(r+)) → goal-reroll fallback → finish/fail. FAIL
+    is returned only when no reset is available *and* relic+ tracking is
+    disabled *and* a reroll can't reach the goal either — the simulator
+    translates that to RunResult(success=False); automation treats it
+    the same as FINISH.
+
+    The goal-reroll fallback fires when relic+ has no chance (e.g. last
+    turn with too few points) but a reroll could still draw a
+    goal-reaching offer — without it, `no_feasible_offer` would FINISH
+    even though `should_reroll_dp` would say keep_val=0 < reroll_val>0.
     """
     base_metrics = {
         "p_keep_relic": m.p_keep_relic,
@@ -422,8 +428,12 @@ def _reset_or_chase_relic(
             metrics=base_metrics,
         )
 
+    can_reroll = ti.rerolls > 0 and ti.turn != 1
+    p_reroll_goal = (ctx.prob_table.lookup(
+        ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
+        if can_reroll else 0.0)
+
     if ctx.relic_prob_table is not None:
-        can_reroll = ti.rerolls > 0 and ti.turn != 1
         has_chance = m.p_keep_relic > 0 or (can_reroll and m.p_reroll_relic > 0)
         if has_chance:
             if can_reroll and m.p_reroll_relic > m.p_keep_relic:
@@ -442,6 +452,17 @@ def _reset_or_chase_relic(
                         f"(P(r+|process)={m.p_keep_relic:.1%})"),
                 metrics=base_metrics,
             )
+        # Relic+ unreachable. A reroll might still find a goal-reaching
+        # offer (current offers all have post-click P(goal)=0, but the
+        # DP says fresh draws can hit it).
+        if p_reroll_goal > 0:
+            return Decision(
+                action=ActionKind.REROLL,
+                branch=branch,
+                reason=(f"{reason}, rerolling for goal "
+                        f"(P(goal|reroll)={p_reroll_goal:.1%})"),
+                metrics={**base_metrics, "p_reroll_goal": p_reroll_goal},
+            )
         # Goal AND relic+ both unreachable
         return Decision(
             action=ActionKind.FINISH,
@@ -450,7 +471,15 @@ def _reset_or_chase_relic(
             metrics=base_metrics,
         )
 
-    # No relic table — caller side decides what to do with FAIL
+    # No relic table — try the goal-reroll fallback before failing.
+    if p_reroll_goal > 0:
+        return Decision(
+            action=ActionKind.REROLL,
+            branch=branch,
+            reason=(f"{reason}, rerolling for goal "
+                    f"(P(goal|reroll)={p_reroll_goal:.1%})"),
+            metrics={**base_metrics, "p_reroll_goal": p_reroll_goal},
+        )
     return Decision(
         action=ActionKind.FAIL,
         branch=branch,
