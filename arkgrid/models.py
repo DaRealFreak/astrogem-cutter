@@ -55,12 +55,23 @@ class LastTurnGoal:
         return True
 
     def feasible(self, will: int, chaos: int, turns_left: int,
-                 first: int = 1, second: int = 1) -> bool:
+                 first: int = 1, second: int = 1,
+                 *,
+                 min_side_coeff: int = 0,
+                 side_coeff_first: int = 0,
+                 side_coeff_second: int = 0,
+                 change_dest_max_coeff: int = 0) -> bool:
         """
         Necessary feasibility check for min_will/min_chaos/min_first/min_second goals:
           - all stats capped at 5
           - one click can raise at most ONE stat by up to +4
           - for exact targets below current we return False (not handled here)
+
+        When `min_side_coeff > 0`, also computes a conservative upper bound
+        on achievable `side_coeff_first*first + side_coeff_second*second`
+        in the remaining turns (accounting for an optional one-turn
+        change_*_effect rescue at `change_dest_max_coeff`) and rejects when
+        the bound falls short of `min_side_coeff`.
         """
         target_w = self.exact_will if self.exact_will is not None else self.min_will
         target_c = self.exact_chaos if self.exact_chaos is not None else self.min_chaos
@@ -116,6 +127,34 @@ class LastTurnGoal:
             current_total = will + chaos + first + second
             max_possible = min(20, current_total + 4 * turns_left)
             if max_possible < self.min_total:
+                return False
+
+        if min_side_coeff > 0:
+            # Upper bound on achievable side_coeff in remaining turns.
+            # `available` is loose: shared between first/second leveling and
+            # the change_effect option below (will/chaos turns are deducted).
+            available = turns_left - turns_needed_w - turns_needed_c
+            if available < 0:
+                return False
+
+            # Strategy A: no change_effect; level both sides up to cap.
+            upper = (side_coeff_first * min(5, first + 4 * available)
+                     + side_coeff_second * min(5, second + 4 * available))
+
+            # Strategies B/C: change_first or change_second (1 turn) then
+            # level the remaining turns.  Only viable if at least 1 turn
+            # is free and a change destination has positive coeff.
+            if available >= 1 and change_dest_max_coeff > 0:
+                rest = available - 1
+                upper = max(
+                    upper,
+                    change_dest_max_coeff * min(5, first + 4 * rest)
+                    + side_coeff_second * min(5, second + 4 * rest),
+                    side_coeff_first * min(5, first + 4 * rest)
+                    + change_dest_max_coeff * min(5, second + 4 * rest),
+                )
+
+            if upper < min_side_coeff:
                 return False
 
         return True

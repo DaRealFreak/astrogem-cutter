@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 
 from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
-    SUPPORT_COEFF, SUPPORT_EFFECTS,
+    SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
@@ -121,9 +121,14 @@ class GemSimulator:
         self._force_reroll_active = False  # set per-run in simulate_one
         self._relic_prob_table: Optional[GoalProbabilityTable] = None
         if relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0:
+            # Reroll-aware so lookups account for the value of available
+            # rerolls when chasing relic+.  Without max_rerolls the table
+            # is the no-reroll DP and systematically underestimates P(r+),
+            # making the override fire too rarely.
             self._relic_prob_table = GoalProbabilityTable(
                 LastTurnGoal(min_total=16), self.turns_total, self.pool,
                 exact_draw=exact_draw, early_finish=False,
+                max_rerolls=self.base_rerolls,
             )
 
     def _get_ea_tables(self, gem_type: str) -> tuple:
@@ -269,9 +274,14 @@ class GemSimulator:
         if not self._goal_fully_satisfied(state):
             return False
 
-        # Relic+ override: don't early-finish if we have a good shot at 16+ total
+        # Relic+ override: don't early-finish if processing the visible
+        # offers gives a strong enough relic+ chance.  Uses the
+        # offer-conditional posterior, not the state prior — the prior
+        # averages over all possible draws, but at decision time we can
+        # see the actual offers in front of us.
         if self.relic_no_early_finish > 0.0 and self._relic_prob_table is not None:
-            p_relic = self._relic_prob_table.lookup(state, turns_left)
+            p_relic = self._relic_prob_table.expected_prob_after_click(
+                state, offers, turns_left - 1, rerolls=state.rerolls)
             if p_relic > self.relic_no_early_finish:
                 return False
 
@@ -316,6 +326,25 @@ class GemSimulator:
 
         return False
 
+    def _feasibility_args(self, state: GemState) -> dict:
+        """Build keyword args for `LastTurnGoal.feasible()` reflecting the
+        side-coefficient state under the active gem and `min_side_coeff`.
+        Returns an empty dict when min_side_coeff is disabled, so the
+        check stays purely level-based.
+        """
+        if self.min_side_coeff <= 0 or self.astro_gem is None:
+            return {}
+        opt = self.astro_gem.optimize
+        coeff_map = DPS_COEFF if opt == "dps" else SUPPORT_COEFF
+        return {
+            "min_side_coeff": self.min_side_coeff,
+            "side_coeff_first": coeff_map.get(state.first_effect, 0),
+            "side_coeff_second": coeff_map.get(state.second_effect, 0),
+            "change_dest_max_coeff": change_dest_max_coeff(
+                self.astro_gem.gem_type, state.first_effect,
+                state.second_effect, opt),
+        }
+
     def prob_goal_feasible_after_click(self, state: GemState, offers: List[Option], turns_left_after: int) -> float:
         if not offers:
             return 0.0
@@ -324,7 +353,8 @@ class GemSimulator:
             s = state.clone()
             self.apply_option(o, s)
             if self.goal.feasible(s.will, s.chaos, turns_left_after,
-                                  first=s.first, second=s.second):
+                                  first=s.first, second=s.second,
+                                  **self._feasibility_args(s)):
                 ok += 1
         return ok / len(offers)
 
@@ -514,7 +544,8 @@ class GemSimulator:
 
                 # Binary feasibility check (hard -- can trigger fail)
                 if not self.goal.feasible(state.will, state.chaos, turns_left,
-                                         first=state.first, second=state.second):
+                                         first=state.first, second=state.second,
+                                         **self._feasibility_args(state)):
                     if reset_available and not reset_used:
                         reset_used = True
                         if log:
@@ -551,7 +582,8 @@ class GemSimulator:
                 # Relic+ override: grant the extra reroll ticket mid-run
                 # when P(relic+ | current state) crosses the threshold.
                 if relic_reroll_pending:
-                    p_relic = self._relic_prob_table.lookup(state, turns_left)
+                    p_relic = self._relic_prob_table.lookup(
+                        state, turns_left, rerolls=state.rerolls)
                     if p_relic >= self.relic_reroll_threshold:
                         state.rerolls += 1
                         extra_ticket_active = True
@@ -562,7 +594,7 @@ class GemSimulator:
                         "turn": turn,
                         "turns_left": turns_left,
                         "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
-                        "relic_prob": self._relic_prob_table.lookup(state, turns_left) if self._relic_prob_table else None,
+                        "relic_prob": self._relic_prob_table.lookup(state, turns_left, rerolls=state.rerolls) if self._relic_prob_table else None,
                         "rerolls_available": state.rerolls,
                         "eff_threshold": self.reroll_policy.effective_side_threshold(state),
                     }
@@ -582,9 +614,16 @@ class GemSimulator:
                         entry["prob_after_click"] = _log_pt.expected_prob_after_click(
                             state, offers, turns_left - 1, rerolls=state.rerolls)
 
-                # Early finish: goal already satisfied, risk not worth it
-                # If rerolls remain, use them first (re-draw offers)
-                if self.should_early_finish(state, offers, turns_left) and state.rerolls <= 0:
+                # Early finish: goal already satisfied, risk not worth it.
+                # roll_offers_with_rerolls already burned any DP-optimal
+                # rerolls before we got here, so by this point either
+                # rerolls=0 or the DP said keeping the current offers was
+                # better than rerolling. The previous state.rerolls<=0
+                # gate blocked the coefficient-aware finish path
+                # (early_finish_coeff>0, no goal risk, avg coeff < 0)
+                # whenever rerolls remained — wasting a turn clicking an
+                # offer that drains coefficients on average.
+                if self.should_early_finish(state, offers, turns_left):
                     if log:
                         entry["action"] = "EARLY_FINISH"
                         entry["state_after"] = {
@@ -722,7 +761,7 @@ class GemSimulator:
                         "first_effect": state.first_effect,
                         "second_effect": state.second_effect,
                         "goal_prob": _log_pt.lookup(state, turns_left - 1, rerolls=state.rerolls) if _log_pt else None,
-                        "relic_prob": self._relic_prob_table.lookup(state, turns_left - 1) if self._relic_prob_table else None,
+                        "relic_prob": self._relic_prob_table.lookup(state, turns_left - 1, rerolls=state.rerolls) if self._relic_prob_table else None,
                     }
                     turn_log.append(entry)
 

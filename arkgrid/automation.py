@@ -32,7 +32,7 @@ except Exception:
 
 from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
-    SUPPORT_COEFF, SUPPORT_EFFECTS,
+    SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
 )
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
@@ -64,6 +64,12 @@ BTN_PROCESS = (1068, 765)
 BTN_REROLL = (1254, 595)
 BTN_FINISH = (831, 764)
 BTN_CONFIRM_TICKET = (897, 643)
+# Alternate confirm position shown when a ticket item is available
+# (reset or reroll) and the dialog offers to consume it instead of
+# paying directly. Detected via the teal pill color at TICKET_ITEM_CHECK_POS.
+BTN_CONFIRM_TICKET_WITH_ITEM = (917, 668)
+TICKET_ITEM_CHECK_POS = (960, 493)
+TICKET_ITEM_CHECK_RGB = 0x0B92A9
 BTN_CONFIRM_GEM_DONE = (957, 766)
 BTN_NEXT_GEM = (356, 113)
 TICKET_CONFIRM_DELAY = 0.5
@@ -783,12 +789,15 @@ def run_auto(
                         max_rerolls=total_rerolls,
                         effect_aware=effect_aware_dp,
                     ))
-                # Build relic+ table once (doesn't depend on effects)
+                # Build relic+ table once (doesn't depend on effects).
+                # Reroll-aware so should_reroll_dp() and reroll-aware lookups
+                # in the goal-unreachable pivot give honest probabilities.
                 if relic_table is None and (
                         relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0):
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         exact_draw=exact_draw, early_finish=False,
+                        max_rerolls=total_rerolls,
                     )
                 # Use standard (non-reroll) DP for p_fresh — the reroll-aware
                 # DP overestimates fresh start probability.
@@ -890,7 +899,8 @@ def run_auto(
                               f"effects={s.first_effect}/{s.second_effect}  "
                               f"P(goal)={analysis.p_current:.1%}")
                 if relic_table is not None:
-                    p_r = relic_table.lookup(s, analysis.turns_left)
+                    p_r = relic_table.lookup(s, analysis.turns_left,
+                                             rerolls=analysis.reroll_count)
                     state_line += f"  P(r+)={p_r:.1%}"
                 print(state_line)
                 print()
@@ -924,7 +934,8 @@ def run_auto(
             if (not extra_ticket_active and extra_ticket
                     and relic_reroll_threshold > 0.0 and relic_table is not None):
                 p_relic_cur = relic_table.lookup(
-                    analysis.state, analysis.turns_left)
+                    analysis.state, analysis.turns_left,
+                    rerolls=analysis.reroll_count)
                 if p_relic_cur >= relic_reroll_threshold:
                     extra_ticket_active = True
                     # Grant +1 reroll to internal tracking
@@ -941,7 +952,8 @@ def run_auto(
                 note = "  [after reroll]"
             relic_info = ""
             if relic_table is not None:
-                p_r = relic_table.lookup(analysis.state, analysis.turns_left)
+                p_r = relic_table.lookup(analysis.state, analysis.turns_left,
+                                         rerolls=analysis.reroll_count)
                 relic_info = f"  P(r+)={p_r:.1%}"
             print(f"Turn {analysis.current_turn}/{analysis.turns_total} "
                   f"(left={analysis.turns_left})  "
@@ -1011,14 +1023,24 @@ def run_auto(
                     # Only when user set a positive threshold (not safe-mode 0)
                     should_stop = True
 
-                # Relic+ override: don't early-finish if relic+ is achievable
+                # Relic+ override: don't early-finish if processing the
+                # current offers gives a strong enough relic+ chance.
+                # Uses the offer-conditional posterior, not the state prior:
+                # the prior averages over all possible draws, but at decision
+                # time we can see the actual offers in front of us.
                 if (should_stop and relic_no_early_finish > 0.0
                         and relic_table is not None):
-                    p_r = relic_table.lookup(analysis.state, analysis.turns_left)
+                    pool_opts = _detected_to_options(
+                        det.options, analysis.option_probs, analysis.state)
+                    p_r = relic_table.expected_prob_after_click(
+                        analysis.state, pool_opts,
+                        analysis.turns_left - 1,
+                        rerolls=analysis.reroll_count)
                     if p_r > relic_no_early_finish:
                         should_stop = False
                         print(f"  [info] Relic+ override: not finishing early "
-                              f"(P(r+)={p_r:.1%} > {relic_no_early_finish:.1%})")
+                              f"(P(r+|process)={p_r:.1%} > "
+                              f"{relic_no_early_finish:.1%})")
 
                 if should_stop:
                     if analysis.reroll_count > 0:
@@ -1038,19 +1060,74 @@ def run_auto(
                             f"threshold={early_finish_coeff}")
                         print(f"  action:  FINISH EARLY ({action_reason})")
 
-            # 1. Goal infeasibility → reset or finish
+            # 1. Goal infeasibility → reset or finish.
+            # Side-coeff feasibility uses the *current* effects (not the
+            # ones the prob_table was built from), since change_*_effect
+            # options can swap them mid-run.
+            cur_coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+            cur_first_coeff = cur_coeff_map.get(
+                analysis.state.first_effect, 0)
+            cur_second_coeff = cur_coeff_map.get(
+                analysis.state.second_effect, 0)
+            cur_change_dest = change_dest_max_coeff(
+                gem_type_domain, analysis.state.first_effect,
+                analysis.state.second_effect, optimize)
             if not goal.feasible(analysis.state.will, analysis.state.chaos,
                                  analysis.turns_left,
                                  first=analysis.state.first,
-                                 second=analysis.state.second):
+                                 second=analysis.state.second,
+                                 min_side_coeff=min_side_coeff,
+                                 side_coeff_first=cur_first_coeff,
+                                 side_coeff_second=cur_second_coeff,
+                                 change_dest_max_coeff=cur_change_dest):
                 if reset_available and not reset_used:
                     action = "reset"
                     action_reason = "goal infeasible"
                     print(f"  action:  RESET ({action_reason})")
                 else:
-                    action = "finish"
-                    action_reason = "goal infeasible, no reset available"
-                    print(f"  action:  FINISH ({action_reason})")
+                    # Goal unreachable, no reset.  Decide based on the
+                    # offer-conditional relic+ chance (not the state
+                    # prior — the prior averages over all possible draws,
+                    # but we can see the actual offers).
+                    should_finish = True
+                    if relic_table is not None:
+                        pool_opts = _detected_to_options(
+                            det.options, analysis.option_probs,
+                            analysis.state)
+                        p_keep = relic_table.expected_prob_after_click(
+                            analysis.state, pool_opts,
+                            analysis.turns_left - 1,
+                            rerolls=analysis.reroll_count)
+                        can_reroll = (analysis.reroll_count > 0
+                                      and analysis.current_turn != 1)
+                        p_reroll = (relic_table.lookup(
+                            analysis.state, analysis.turns_left,
+                            rerolls=analysis.reroll_count - 1)
+                            if can_reroll else 0.0)
+                        if p_keep > 0 or p_reroll > 0:
+                            should_finish = False
+                            if can_reroll and p_reroll > p_keep:
+                                action = "reroll"
+                                action_reason = (
+                                    f"goal infeasible, chasing relic+ "
+                                    f"(P(r+|reroll)={p_reroll:.1%} > "
+                                    f"P(r+|process)={p_keep:.1%})")
+                                print(f"  action:  reroll  "
+                                      f"({action_reason}, "
+                                      f"{analysis.reroll_count} rerolls left)")
+                            else:
+                                action = "process"
+                                action_reason = (
+                                    f"goal infeasible, chasing relic+ "
+                                    f"(P(r+|process)={p_keep:.1%})")
+                                print(f"  action:  process  ({action_reason})")
+                    if should_finish:
+                        action = "finish"
+                        action_reason = (
+                            "goal & relic+ both unreachable"
+                            if relic_table is not None
+                            else "goal infeasible, no reset available")
+                        print(f"  action:  FINISH ({action_reason})")
 
             # 2. Probability threshold → reset
             if (action is None and prob_reset_threshold > 0
@@ -1062,7 +1139,11 @@ def run_auto(
                         f"< threshold {prob_reset_threshold:.1%}")
                     print(f"  action:  RESET ({action_reason})")
 
-            # 3. No offer keeps goal feasible → reset or finish
+            # 3. No offer keeps goal feasible → reset, chase relic+, or finish.
+            # The DP feasibility check (Branch 1) uses a loose +4-per-turn
+            # upper bound and can return "feasible" when no actual offer
+            # reaches the goal — this branch catches that case. Mirrors
+            # Branch 1's relic+ chase using offer-conditional probabilities.
             if action is None:
                 feasible_count = sum(1 for _, _, _, p in analysis.option_probs if p > 0)
                 if feasible_count == 0:
@@ -1070,6 +1151,40 @@ def run_auto(
                         action = "reset"
                         action_reason = "no offer keeps goal feasible"
                         print(f"  action:  RESET ({action_reason})")
+                    elif relic_table is not None:
+                        pool_opts = _detected_to_options(
+                            det.options, analysis.option_probs,
+                            analysis.state)
+                        p_keep = relic_table.expected_prob_after_click(
+                            analysis.state, pool_opts,
+                            analysis.turns_left - 1,
+                            rerolls=analysis.reroll_count)
+                        can_reroll = (analysis.reroll_count > 0
+                                      and analysis.current_turn != 1)
+                        p_reroll = (relic_table.lookup(
+                            analysis.state, analysis.turns_left,
+                            rerolls=analysis.reroll_count - 1)
+                            if can_reroll else 0.0)
+                        if p_keep > 0 or p_reroll > 0:
+                            if can_reroll and p_reroll > p_keep:
+                                action = "reroll"
+                                action_reason = (
+                                    f"no offer reaches goal, chasing relic+ "
+                                    f"(P(r+|reroll)={p_reroll:.1%} > "
+                                    f"P(r+|process)={p_keep:.1%})")
+                                print(f"  action:  reroll  "
+                                      f"({action_reason}, "
+                                      f"{analysis.reroll_count} rerolls left)")
+                            else:
+                                action = "process"
+                                action_reason = (
+                                    f"no offer reaches goal, chasing relic+ "
+                                    f"(P(r+|process)={p_keep:.1%})")
+                                print(f"  action:  process  ({action_reason})")
+                        elif analysis.reroll_count <= 0:
+                            action = "finish"
+                            action_reason = "no option can reach goal or relic+"
+                            print(f"  action:  FINISH ({action_reason})")
                     elif analysis.reroll_count <= 0:
                         action = "finish"
                         action_reason = "no option can reach goal"
@@ -1187,8 +1302,16 @@ def run_auto(
 
             if needs_confirm:
                 time.sleep(TICKET_CONFIRM_DELAY)
-                print(f"  >>> Confirming ticket...", end="", flush=True)
-                _click(*BTN_CONFIRM_TICKET, monitor)
+                pixel = _get_pixel_rgb(*TICKET_ITEM_CHECK_POS, monitor)
+                if pixel == TICKET_ITEM_CHECK_RGB:
+                    confirm_pos = BTN_CONFIRM_TICKET_WITH_ITEM
+                    confirm_note = " (item ticket)"
+                else:
+                    confirm_pos = BTN_CONFIRM_TICKET
+                    confirm_note = ""
+                print(f"  >>> Confirming ticket{confirm_note}...",
+                      end="", flush=True)
+                _click(*confirm_pos, monitor)
                 print(" done")
 
             # Post-action tracking

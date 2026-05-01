@@ -28,3 +28,21 @@ GEM_TYPES: Dict[str, Tuple[str, ...]] = {
     "chaos_distortion": ("attack_power", "boss_damage", "ally_damage", "ally_attack"),
     "chaos_collapse": ("additional_damage", "boss_damage", "brand_power", "ally_attack"),
 }
+
+
+def change_dest_max_coeff(gem_type: str, first_effect: str,
+                          second_effect: str, optimize: str) -> int:
+    """Max optimize-side coefficient over the 2 effects either slot can
+    change_*_effect to (the gem-type pool members not currently equipped).
+    Returns 0 when the gem type is unknown or no destination contributes
+    to the optimize side.
+    """
+    pool = GEM_TYPES.get(gem_type)
+    if not pool:
+        return 0
+    coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+    return max(
+        (coeff_map.get(e, 0) for e in pool
+         if e != first_effect and e != second_effect),
+        default=0,
+    )

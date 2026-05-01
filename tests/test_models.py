@@ -68,6 +68,56 @@ class TestLastTurnGoal(unittest.TestCase):
         # cap at 20: starts at 8, +4*3=12 => 20 >= 16
         self.assertTrue(g.feasible(2, 2, 3, first=2, second=2))
 
+    def test_feasible_side_coeff_default_disabled(self) -> None:
+        # min_side_coeff=0 must preserve old behavior (passes when other
+        # constraints are met, regardless of effect coefficients).
+        g = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertTrue(g.feasible(3, 5, 1, first=1, second=4))
+
+    def test_feasible_side_coeff_unreachable(self) -> None:
+        # Case 2 from the bug report: turn 9, w=3 c=5 1st=1 2nd=4,
+        # both equipped effects are support (coeff=0 in DPS), turns_left=1.
+        # Need will+1 (1 turn) -> 0 turns left for any side_coeff action.
+        g = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertFalse(g.feasible(
+            3, 5, 1, first=1, second=4,
+            min_side_coeff=2000,
+            side_coeff_first=0, side_coeff_second=0,
+            change_dest_max_coeff=1000,  # boss_damage available via change
+        ))
+
+    def test_feasible_side_coeff_via_change(self) -> None:
+        # Case 2 turn 8: turns_left=2.  Need will+1 (1 turn) leaves 1 turn,
+        # which can change_second_effect -> boss_damage at level 4 (=4000).
+        g = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertTrue(g.feasible(
+            3, 5, 2, first=1, second=4,
+            min_side_coeff=2000,
+            side_coeff_first=0, side_coeff_second=0,
+            change_dest_max_coeff=1000,
+        ))
+
+    def test_feasible_side_coeff_no_change_destination(self) -> None:
+        # If both equipped slots and both change destinations are
+        # zero-coeff (e.g. support gem cut for DPS), no path exists.
+        g = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertFalse(g.feasible(
+            3, 5, 5, first=1, second=4,
+            min_side_coeff=1000,
+            side_coeff_first=0, side_coeff_second=0,
+            change_dest_max_coeff=0,
+        ))
+
+    def test_feasible_side_coeff_already_met(self) -> None:
+        # Equipped second has coeff 1500 at level 4 = 6000 > 2000 already.
+        g = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertTrue(g.feasible(
+            3, 5, 1, first=1, second=4,
+            min_side_coeff=2000,
+            side_coeff_first=0, side_coeff_second=1500,
+            change_dest_max_coeff=0,
+        ))
+
 
 class TestGemState(unittest.TestCase):
     def test_clone_independence(self) -> None:
