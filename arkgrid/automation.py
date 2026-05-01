@@ -34,6 +34,10 @@ from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
     SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
 )
+from arkgrid.decision import (
+    ActionKind, DecisionContext, TurnInput, decide_post_roll,
+    has_progress_offer,
+)
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
 from arkgrid.probability import GoalProbabilityTable
@@ -323,40 +327,6 @@ def _build_prob_table(
     return table, target_effects, side_coeff_first, side_coeff_second
 
 
-def _has_progress_offer(
-    offers: List[Option],
-    state: GemState,
-    goal: LastTurnGoal,
-    min_side_coeff: int,
-    side_coeff_first: int,
-    side_coeff_second: int,
-) -> bool:
-    """Return True if any offer progresses an unmet goal constraint."""
-    need_total = goal.min_total is not None and (
-        state.will + state.chaos + state.first + state.second) < goal.min_total
-    need_wc_total = goal.min_total_will_chaos is not None and (
-        state.will + state.chaos) < goal.min_total_will_chaos
-    need_will = goal.min_will is not None and state.will < goal.min_will
-    need_chaos = goal.min_chaos is not None and state.chaos < goal.min_chaos
-    need_first = goal.min_first is not None and state.first < goal.min_first
-    need_second = goal.min_second is not None and state.second < goal.min_second
-    need_coeff_first = (min_side_coeff > 0 and side_coeff_first > 0
-                        and state.first < 5)
-    need_coeff_second = (min_side_coeff > 0 and side_coeff_second > 0
-                         and state.second < 5)
-
-    for o in offers:
-        if o.delta <= 0:
-            continue
-        if o.kind == "will" and (need_will or need_wc_total or need_total):
-            return True
-        if o.kind == "chaos" and (need_chaos or need_wc_total or need_total):
-            return True
-        if o.kind == "first" and (need_first or need_coeff_first or need_total):
-            return True
-        if o.kind == "second" and (need_second or need_coeff_second or need_total):
-            return True
-    return False
 
 
 def _parse_view_delta(delta_key: Optional[str]) -> int:
@@ -603,6 +573,8 @@ def run_auto(
         side_coeff_second: int = 0
         cached_effects: Optional[Tuple[str, str]] = None
         p_fresh: Optional[float] = None
+        decision_ctx: Optional[DecisionContext] = None
+        reset_prob_table: Optional[GoalProbabilityTable] = None
 
         # Relic+ (>=16 total points) probability table — built on first detection
         relic_table: Optional[GoalProbabilityTable] = None
@@ -801,15 +773,19 @@ def run_auto(
                     )
                 # Use standard (non-reroll) DP for p_fresh — the reroll-aware
                 # DP overestimates fresh start probability.
-                _reset_table = GoalProbabilityTable(
+                reset_prob_table = GoalProbabilityTable(
                     goal, det.total_steps, pool,
                     exact_draw=exact_draw,
                     early_finish=early_finish_coeff >= 0,
                 )
-                p_fresh = _reset_table.lookup(
+                p_fresh = reset_prob_table.lookup(
                     GemState(will=1, chaos=1, first=1, second=1),
                     det.total_steps,
                 )
+                # DecisionContext is rebuilt here too — prob_table /
+                # reset_prob_table / relic_table references may have just
+                # changed, and force_reroll_active is resolved below.
+                decision_ctx = None  # rebuilt after force_reroll_active is set
 
             # Re-detect gem and re-evaluate tickets when effects change
             if detected_gem is None or cached_effects != current_effects:
@@ -868,6 +844,32 @@ def run_auto(
                 # Relic+ override is checked per-turn below (not here)
 
                 cached_effects = current_effects
+                decision_ctx = None  # rebuilt below now that gating is set
+
+            # Rebuild DecisionContext if anything it depends on changed.
+            if decision_ctx is None and prob_table is not None:
+                rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
+                _base = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
+                decision_ctx = DecisionContext(
+                    goal=goal,
+                    pool=pool,
+                    optimize=optimize,
+                    bis_only=bis_only,
+                    min_side_coeff=min_side_coeff,
+                    early_finish_coeff=early_finish_coeff,
+                    prob_reset_threshold=prob_reset_threshold,
+                    relic_no_early_finish=relic_no_early_finish,
+                    relic_reroll_threshold=relic_reroll_threshold,
+                    force_reroll_no_progress=force_reroll_no_progress,
+                    turns_total=det.total_steps,
+                    base_rerolls=_base,
+                    p_fresh=p_fresh or 0.0,
+                    prob_table=prob_table,
+                    reset_prob_table=reset_prob_table,
+                    relic_prob_table=relic_table,
+                    gem_type=gem_type_domain,
+                    force_reroll_active=force_reroll_active,
+                )
 
             # --- Analyze ---
             # Use OCR for rerolls only when a new turn is detected (turn
@@ -971,274 +973,41 @@ def run_auto(
                     print(f"  [warn] {w}")
 
             # --- Decision logic ---
-            action: Optional[str] = None
-            action_reason = ""
+            # Single shared decision point with the simulator. All the
+            # logic lives in arkgrid.decision.decide_post_roll so future
+            # bugs surface in MC tests as well as live runs.
+            pool_opts = _detected_to_options(
+                det.options, analysis.option_probs, analysis.state)
+            ti = TurnInput(
+                state=analysis.state,
+                offers=pool_opts,
+                turn=analysis.current_turn,
+                turns_left=analysis.turns_left,
+                rerolls=analysis.reroll_count,
+                reset_available=(reset_available and not reset_used),
+            )
+            decision = decide_post_roll(decision_ctx, ti)
+            _action_map = {
+                ActionKind.PROCESS: "process",
+                ActionKind.REROLL: "reroll",
+                ActionKind.RESET: "reset",
+                ActionKind.FINISH: "finish",
+                ActionKind.FAIL: "finish",
+            }
+            action: Optional[str] = _action_map[decision.action]
+            action_reason = decision.reason
+            _action_label = {
+                "process": "process",
+                "reroll": "reroll",
+                "reset": "RESET",
+                "finish": "FINISH",
+            }[action]
+            if action == "reroll":
+                print(f"  action:  {_action_label}  ({action_reason}, "
+                      f"{analysis.reroll_count} rerolls left)")
+            else:
+                print(f"  action:  {_action_label} ({action_reason})")
 
-            # 0. Early finish / coefficient-aware reroll: goal already satisfied
-            if (early_finish_coeff >= 0 and analysis.turns_left > 0
-                    and goal.satisfied(analysis.state.will, analysis.state.chaos,
-                                       analysis.state.first, analysis.state.second)):
-                miss_count = 0
-                coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
-                t_set = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
-                total_coeff = 0
-                for opt, kind, dv, p_after in analysis.option_probs:
-                    ns = analysis.state.clone()
-                    if dv is not None and kind in ("will", "chaos", "first", "second"):
-                        cur = getattr(ns, kind)
-                        setattr(ns, kind, min(5, max(1, cur + dv)))
-                    if not goal.satisfied(ns.will, ns.chaos, ns.first, ns.second):
-                        miss_count += 1
-                    # Coefficient impact: side stat changes
-                    if kind in ("first", "second") and dv is not None:
-                        eff = getattr(analysis.state, f"{kind}_effect")
-                        if eff in t_set:
-                            total_coeff += dv * coeff_map[eff]
-                    else:
-                        # Effect change: losing current effect's coefficient
-                        kind_hint, _ = parse_delta(opt.delta_key)
-                        if kind_hint == "effect_changed":
-                            if opt.name_key == analysis.state.first_effect:
-                                eff = analysis.state.first_effect
-                                lvl = analysis.state.first
-                            elif opt.name_key == analysis.state.second_effect:
-                                eff = analysis.state.second_effect
-                                lvl = analysis.state.second
-                            else:
-                                eff, lvl = None, 0
-                            if eff and eff in t_set:
-                                total_coeff -= lvl * coeff_map[eff]
-
-                avg_coeff = total_coeff / len(analysis.option_probs) if analysis.option_probs else 0
-                expected_total = avg_coeff * analysis.turns_left
-                p_miss = miss_count / len(analysis.option_probs) if analysis.option_probs else 0.0
-
-                # Determine if options are bad enough to stop/reroll
-                should_stop = False
-                if p_miss > 0:
-                    should_stop = (early_finish_coeff == 0
-                                   or expected_total <= early_finish_coeff)
-                elif early_finish_coeff > 0 and avg_coeff < 0:
-                    # No goal risk but net negative coefficient
-                    # Only when user set a positive threshold (not safe-mode 0)
-                    should_stop = True
-
-                # Relic+ override: don't early-finish if processing the
-                # current offers gives a strong enough relic+ chance.
-                # Uses the offer-conditional posterior, not the state prior:
-                # the prior averages over all possible draws, but at decision
-                # time we can see the actual offers in front of us.
-                if (should_stop and relic_no_early_finish > 0.0
-                        and relic_table is not None):
-                    pool_opts = _detected_to_options(
-                        det.options, analysis.option_probs, analysis.state)
-                    p_r = relic_table.expected_prob_after_click(
-                        analysis.state, pool_opts,
-                        analysis.turns_left - 1,
-                        rerolls=analysis.reroll_count)
-                    if p_r > relic_no_early_finish:
-                        should_stop = False
-                        print(f"  [info] Relic+ override: not finishing early "
-                              f"(P(r+|process)={p_r:.1%} > "
-                              f"{relic_no_early_finish:.1%})")
-
-                if should_stop:
-                    if analysis.reroll_count > 0:
-                        action = "reroll"
-                        action_reason = (
-                            f"goal satisfied, bad options: "
-                            f"risk={p_miss:.0%}, avg_coeff={avg_coeff:.0f}")
-                        print(f"  action:  reroll  "
-                              f"({action_reason}, "
-                              f"{analysis.reroll_count} rerolls left)")
-                    else:
-                        action = "finish"
-                        action_reason = (
-                            f"goal satisfied, risk={p_miss:.0%}, "
-                            f"avg_coeff={avg_coeff:.0f}, "
-                            f"expected={expected_total:.0f}, "
-                            f"threshold={early_finish_coeff}")
-                        print(f"  action:  FINISH EARLY ({action_reason})")
-
-            # 1. Goal infeasibility → reset or finish.
-            # Side-coeff feasibility uses the *current* effects (not the
-            # ones the prob_table was built from), since change_*_effect
-            # options can swap them mid-run.
-            cur_coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
-            cur_first_coeff = cur_coeff_map.get(
-                analysis.state.first_effect, 0)
-            cur_second_coeff = cur_coeff_map.get(
-                analysis.state.second_effect, 0)
-            cur_change_dest = change_dest_max_coeff(
-                gem_type_domain, analysis.state.first_effect,
-                analysis.state.second_effect, optimize)
-            if not goal.feasible(analysis.state.will, analysis.state.chaos,
-                                 analysis.turns_left,
-                                 first=analysis.state.first,
-                                 second=analysis.state.second,
-                                 min_side_coeff=min_side_coeff,
-                                 side_coeff_first=cur_first_coeff,
-                                 side_coeff_second=cur_second_coeff,
-                                 change_dest_max_coeff=cur_change_dest):
-                if reset_available and not reset_used:
-                    action = "reset"
-                    action_reason = "goal infeasible"
-                    print(f"  action:  RESET ({action_reason})")
-                else:
-                    # Goal unreachable, no reset.  Decide based on the
-                    # offer-conditional relic+ chance (not the state
-                    # prior — the prior averages over all possible draws,
-                    # but we can see the actual offers).
-                    should_finish = True
-                    if relic_table is not None:
-                        pool_opts = _detected_to_options(
-                            det.options, analysis.option_probs,
-                            analysis.state)
-                        p_keep = relic_table.expected_prob_after_click(
-                            analysis.state, pool_opts,
-                            analysis.turns_left - 1,
-                            rerolls=analysis.reroll_count)
-                        can_reroll = (analysis.reroll_count > 0
-                                      and analysis.current_turn != 1)
-                        p_reroll = (relic_table.lookup(
-                            analysis.state, analysis.turns_left,
-                            rerolls=analysis.reroll_count - 1)
-                            if can_reroll else 0.0)
-                        if p_keep > 0 or p_reroll > 0:
-                            should_finish = False
-                            if can_reroll and p_reroll > p_keep:
-                                action = "reroll"
-                                action_reason = (
-                                    f"goal infeasible, chasing relic+ "
-                                    f"(P(r+|reroll)={p_reroll:.1%} > "
-                                    f"P(r+|process)={p_keep:.1%})")
-                                print(f"  action:  reroll  "
-                                      f"({action_reason}, "
-                                      f"{analysis.reroll_count} rerolls left)")
-                            else:
-                                action = "process"
-                                action_reason = (
-                                    f"goal infeasible, chasing relic+ "
-                                    f"(P(r+|process)={p_keep:.1%})")
-                                print(f"  action:  process  ({action_reason})")
-                    if should_finish:
-                        action = "finish"
-                        action_reason = (
-                            "goal & relic+ both unreachable"
-                            if relic_table is not None
-                            else "goal infeasible, no reset available")
-                        print(f"  action:  FINISH ({action_reason})")
-
-            # 2. Probability threshold → reset
-            if (action is None and prob_reset_threshold > 0
-                    and reset_available and not reset_used):
-                if analysis.p_current < prob_reset_threshold:
-                    action = "reset"
-                    action_reason = (
-                        f"P(goal)={analysis.p_current:.1%} "
-                        f"< threshold {prob_reset_threshold:.1%}")
-                    print(f"  action:  RESET ({action_reason})")
-
-            # 3. No offer keeps goal feasible → reset, chase relic+, or finish.
-            # The DP feasibility check (Branch 1) uses a loose +4-per-turn
-            # upper bound and can return "feasible" when no actual offer
-            # reaches the goal — this branch catches that case. Mirrors
-            # Branch 1's relic+ chase using offer-conditional probabilities.
-            if action is None:
-                feasible_count = sum(1 for _, _, _, p in analysis.option_probs if p > 0)
-                if feasible_count == 0:
-                    if reset_available and not reset_used:
-                        action = "reset"
-                        action_reason = "no offer keeps goal feasible"
-                        print(f"  action:  RESET ({action_reason})")
-                    elif relic_table is not None:
-                        pool_opts = _detected_to_options(
-                            det.options, analysis.option_probs,
-                            analysis.state)
-                        p_keep = relic_table.expected_prob_after_click(
-                            analysis.state, pool_opts,
-                            analysis.turns_left - 1,
-                            rerolls=analysis.reroll_count)
-                        can_reroll = (analysis.reroll_count > 0
-                                      and analysis.current_turn != 1)
-                        p_reroll = (relic_table.lookup(
-                            analysis.state, analysis.turns_left,
-                            rerolls=analysis.reroll_count - 1)
-                            if can_reroll else 0.0)
-                        if p_keep > 0 or p_reroll > 0:
-                            if can_reroll and p_reroll > p_keep:
-                                action = "reroll"
-                                action_reason = (
-                                    f"no offer reaches goal, chasing relic+ "
-                                    f"(P(r+|reroll)={p_reroll:.1%} > "
-                                    f"P(r+|process)={p_keep:.1%})")
-                                print(f"  action:  reroll  "
-                                      f"({action_reason}, "
-                                      f"{analysis.reroll_count} rerolls left)")
-                            else:
-                                action = "process"
-                                action_reason = (
-                                    f"no offer reaches goal, chasing relic+ "
-                                    f"(P(r+|process)={p_keep:.1%})")
-                                print(f"  action:  process  ({action_reason})")
-                        elif analysis.reroll_count <= 0:
-                            action = "finish"
-                            action_reason = "no option can reach goal or relic+"
-                            print(f"  action:  FINISH ({action_reason})")
-                    elif analysis.reroll_count <= 0:
-                        action = "finish"
-                        action_reason = "no option can reach goal"
-                        print(f"  action:  FINISH ({action_reason})")
-
-            # 4. Last turn: fresh start comparison → reset
-            if (action is None and analysis.turns_left == 1
-                    and reset_available and not reset_used and p_fresh is not None):
-                if analysis.p_avg_offers < p_fresh:
-                    action = "reset"
-                    action_reason = (
-                        f"last turn avg {analysis.p_avg_offers:.1%} "
-                        f"< fresh start {p_fresh:.1%}")
-                    print(f"  action:  RESET ({action_reason})")
-
-            # 5. Reroll (DP-optimal decision, with optional forced override)
-            if action is None and analysis.reroll_count > 0 and analysis.current_turn != 1:
-                should_reroll = False
-                reroll_reasons: List[str] = []
-
-                if prob_table:
-                    pool_opts = _detected_to_options(
-                        det.options, analysis.option_probs, analysis.state)
-                    if force_reroll_active and not _has_progress_offer(
-                            pool_opts, analysis.state, goal,
-                            min_side_coeff, side_coeff_first, side_coeff_second):
-                        should_reroll = True
-                        reroll_reasons = ["forced_no_progress"]
-                    else:
-                        should_reroll = prob_table.should_reroll_dp(
-                            analysis.state, pool_opts,
-                            analysis.turns_left, analysis.reroll_count)
-                        if should_reroll:
-                            reroll_reasons = ["dp_reroll_optimal"]
-
-                if should_reroll:
-                    action = "reroll"
-                    reason_str = ", ".join(reroll_reasons) if reroll_reasons else "policy"
-                    action_reason = (
-                        f"reasons=[{reason_str}], "
-                        f"avg={analysis.p_avg_offers:.1%}, "
-                        f"baseline={analysis.p_current:.1%}")
-                    print(f"  action:  reroll  "
-                          f"({action_reason}, "
-                          f"{analysis.reroll_count} rerolls left)")
-
-            # 6. Process (default)
-            if action is None:
-                action = "process"
-                action_reason = (
-                    f"P(click)={analysis.p_avg_offers:.1%}, "
-                    f"Best={analysis.p_best_option:.1%}, "
-                    f"Baseline={analysis.p_current:.1%}")
-                print(f"  action:  process  {action_reason}")
 
             # --- Execute ---
             if dry_run:

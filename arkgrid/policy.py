@@ -10,10 +10,15 @@ from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState
 
 
 class RerollPolicy:
-    """Heuristic reroll policy used as fallback when DP-based reroll
-    decisions are not available (e.g. automation without a reroll-aware
-    DP table).  The simulator's primary reroll path uses
-    GoalProbabilityTable.should_reroll_dp() instead."""
+    """Heuristic reroll policy.
+
+    NOTE: Both `arkgrid.simulator` and `arkgrid.automation` now route
+    all live reroll decisions through `arkgrid.decision.decide_post_roll`
+    (which calls `GoalProbabilityTable.should_reroll_dp`). This class
+    is no longer wired into the live decision path, but remains used
+    by `simulate_one` for the `eff_threshold` log field and by
+    `tests/test_policy.py` and `tests/test_scenarios.py`. Treat it as
+    a logging-only utility going forward."""
 
     GOAL_UPGRADES = {"will+1", "will+2", "will+3", "will+4",
                      "chaos+1", "chaos+2", "chaos+3", "chaos+4"}

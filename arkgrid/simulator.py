@@ -7,6 +7,11 @@ from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
     SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
 )
+from arkgrid.decision import (
+    ActionKind, DecisionContext, TurnInput,
+    compute_post_roll_metrics, decide_post_roll,
+    early_finish_decision, has_progress_offer,
+)
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
 from arkgrid.policy import RerollPolicy
@@ -260,71 +265,56 @@ class GemSimulator:
                 return False
         return True
 
+    def _decision_context(self, p_fresh: float = 0.0) -> DecisionContext:
+        """Build a DecisionContext from current simulator state.
+
+        Used as a backward-compat shim by `should_early_finish` (which
+        `tests/test_scenarios.py` calls directly). `simulate_one` will
+        wire this through more directly in a later refactor step.
+        """
+        optimize = self.astro_gem.optimize if self.astro_gem else self.optimize
+        gem_type = self.astro_gem.gem_type if self.astro_gem else ""
+        return DecisionContext(
+            goal=self.goal,
+            pool=self.pool,
+            optimize=optimize,
+            bis_only=self.bis_only,
+            min_side_coeff=self.min_side_coeff,
+            early_finish_coeff=self.early_finish_coeff,
+            prob_reset_threshold=self.prob_reset_threshold,
+            relic_no_early_finish=self.relic_no_early_finish,
+            relic_reroll_threshold=self.relic_reroll_threshold,
+            force_reroll_no_progress=self.force_reroll_no_progress,
+            turns_total=self.turns_total,
+            base_rerolls=self.base_rerolls,
+            p_fresh=p_fresh,
+            prob_table=self.prob_table,
+            reset_prob_table=self._reset_prob_table,
+            relic_prob_table=self._relic_prob_table,
+            gem_type=gem_type,
+            force_reroll_active=self._force_reroll_active,
+        )
+
     def should_early_finish(self, state: GemState, offers: List[Option],
                            turns_left: int = 1) -> bool:
         """Decide whether to finish early when goal is already satisfied.
 
-        Returns True if we should finish (stop processing turns).
-        Uses the early_finish_coeff threshold:
-          0 = finish if any risk, >0 = tolerate risk up to that level.
-        Scales expected gain by turns_left to account for future opportunities.
+        Thin bool wrapper around `decision.early_finish_decision` for
+        backward compatibility with tests that call this method
+        directly. The wrapper returns True for both FINISH and REROLL
+        actions — `simulate_one` historically treats either as
+        "stop normal play".
         """
-        if self.early_finish_coeff < 0:
-            return False
-        if not self._goal_fully_satisfied(state):
-            return False
-
-        # Relic+ override: don't early-finish if processing the visible
-        # offers gives a strong enough relic+ chance.  Uses the
-        # offer-conditional posterior, not the state prior — the prior
-        # averages over all possible draws, but at decision time we can
-        # see the actual offers in front of us.
-        if self.relic_no_early_finish > 0.0 and self._relic_prob_table is not None:
-            p_relic = self._relic_prob_table.expected_prob_after_click(
-                state, offers, turns_left - 1, rerolls=state.rerolls)
-            if p_relic > self.relic_no_early_finish:
-                return False
-
-        # Compute P(miss) = fraction of offers that would break the goal
-        miss_count = 0
-        for o in offers:
-            s = state.clone()
-            self.apply_option(o, s)
-            if not self._goal_fully_satisfied(s):
-                miss_count += 1
-        p_miss = miss_count / len(offers) if offers else 0.0
-
-        # Compute average coefficient change across all offers
-        avg_coeff_change = 0
-        if self.astro_gem:
-            coeff_map = (DPS_COEFF if self.astro_gem.optimize == "dps"
-                         else SUPPORT_COEFF)
-            t_set = (DPS_EFFECTS if self.astro_gem.optimize == "dps"
-                     else SUPPORT_EFFECTS)
-            total = 0
-            for o in offers:
-                if o.kind in ("first", "second"):
-                    eff = getattr(state, f"{o.kind}_effect")
-                    if eff in t_set:
-                        total += o.delta * coeff_map[eff]
-                elif o.key in ("change_first_effect", "change_second_effect"):
-                    slot = "first" if o.key == "change_first_effect" else "second"
-                    eff = getattr(state, f"{slot}_effect")
-                    if eff in t_set:
-                        lvl = getattr(state, slot)
-                        total -= lvl * coeff_map[eff]
-            avg_coeff_change = total / len(offers) if offers else 0
-
-        if p_miss > 0:
-            expected_total = avg_coeff_change * turns_left
-            return self.early_finish_coeff == 0 or expected_total <= self.early_finish_coeff
-
-        # No goal risk but net negative coefficient → finish/reroll
-        # Only when user set a positive coeff threshold (not safe-mode 0)
-        if self.early_finish_coeff > 0 and avg_coeff_change < 0:
-            return True
-
-        return False
+        ctx = self._decision_context()
+        turn = self.turns_total - turns_left + 1
+        ti = TurnInput(
+            state=state, offers=offers, turn=max(1, turn),
+            turns_left=turns_left, rerolls=state.rerolls,
+            reset_available=False,
+        )
+        m = compute_post_roll_metrics(ctx, ti)
+        d = early_finish_decision(ctx, ti, m)
+        return d is not None
 
     def _feasibility_args(self, state: GemState) -> dict:
         """Build keyword args for `LastTurnGoal.feasible()` reflecting the
@@ -359,41 +349,13 @@ class GemSimulator:
         return ok / len(offers)
 
     def _has_progress_offer(self, offers: List[Option], state: GemState) -> bool:
-        """Check if any offer progresses an unmet goal constraint.
-
-        Returns True if at least one offer gives positive will/chaos
-        (for min_will/min_chaos goals), positive side-node level
-        (for min_first/min_second or min_side_coeff targets), or any
-        positive stat (for min_total goals).
+        """Thin wrapper around `decision.has_progress_offer` that supplies
+        the simulator's stored side-coefficient configuration.
         """
-        g = self.goal
-        need_total = g.min_total is not None and (
-            state.will + state.chaos + state.first + state.second) < g.min_total
-        need_wc_total = g.min_total_will_chaos is not None and (
-            state.will + state.chaos) < g.min_total_will_chaos
-        need_will = g.min_will is not None and state.will < g.min_will
-        need_chaos = g.min_chaos is not None and state.chaos < g.min_chaos
-        need_first = g.min_first is not None and state.first < g.min_first
-        need_second = g.min_second is not None and state.second < g.min_second
-        need_coeff_first = (self.min_side_coeff > 0
-                            and self._side_coeff_first > 0
-                            and state.first < 5)
-        need_coeff_second = (self.min_side_coeff > 0
-                             and self._side_coeff_second > 0
-                             and state.second < 5)
-
-        for o in offers:
-            if o.delta <= 0:
-                continue
-            if o.kind == "will" and (need_will or need_wc_total or need_total):
-                return True
-            if o.kind == "chaos" and (need_chaos or need_wc_total or need_total):
-                return True
-            if o.kind == "first" and (need_first or need_coeff_first or need_total):
-                return True
-            if o.kind == "second" and (need_second or need_coeff_second or need_total):
-                return True
-        return False
+        return has_progress_offer(
+            offers, state, self.goal, self.min_side_coeff,
+            self._side_coeff_first, self._side_coeff_second,
+        )
 
     def roll_offers_with_rerolls(
             self,
@@ -501,6 +463,11 @@ class GemSimulator:
                      second_effect=run_gem.second_effect),
             self.turns_total)
 
+        # Build the per-run decision context once. Includes the latest
+        # prob_table / reset_prob_table references — these may have
+        # been swapped to per-gem-type EA tables above.
+        ctx = self._decision_context(p_fresh=p_fresh)
+
         turn_log: List[Dict[str, Any]] = []
         rerolls_by_turn: Dict[int, int] = {}
 
@@ -514,70 +481,6 @@ class GemSimulator:
 
             for turn in range(1, self.turns_total + 1):
                 turns_left = self.turns_total - turn + 1
-
-                # Probability-based early reset (soft -- only triggers reset, never hard fail)
-                if (self.prob_reset_threshold > 0.0
-                        and reset_available and not reset_used):
-                    p_goal = self._reset_prob_table.lookup(state, turns_left)
-                    if p_goal < self.prob_reset_threshold:
-                        reset_used = True
-                        if log:
-                            turn_log.append({
-                                "turn": turn,
-                                "turns_left": turns_left,
-                                "goal_prob": p_goal,
-                                "rerolls_available": state.rerolls,
-                                "action": f"RESET (goal prob {p_goal:.4f} < threshold {self.prob_reset_threshold})",
-                                "state_before_reset": {
-                                    "will": state.will,
-                                    "chaos": state.chaos,
-                                    "first": state.first,
-                                    "second": state.second,
-                                    "total_points": state.total_points(),
-                                    "rerolls": state.rerolls,
-                                    "first_effect": state.first_effect,
-                                    "second_effect": state.second_effect,
-                                    "goal_prob": p_goal,
-                                },
-                            })
-                        break
-
-                # Binary feasibility check (hard -- can trigger fail)
-                if not self.goal.feasible(state.will, state.chaos, turns_left,
-                                         first=state.first, second=state.second,
-                                         **self._feasibility_args(state)):
-                    if reset_available and not reset_used:
-                        reset_used = True
-                        if log:
-                            turn_log.append({
-                                "turn": turn,
-                                "turns_left": turns_left,
-                                "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
-                                "rerolls_available": state.rerolls,
-                                "action": "RESET (goal infeasible before rolling)",
-                                "state_before_reset": {
-                                    "will": state.will,
-                                    "chaos": state.chaos,
-                                    "first": state.first,
-                                    "second": state.second,
-                                    "total_points": state.total_points(),
-                                    "rerolls": state.rerolls,
-                                    "first_effect": state.first_effect,
-                                    "second_effect": state.second_effect,
-                                },
-                            })
-                        break
-                    return RunResult(
-                        success=False,
-                        reason="impossible_no_reset_available",
-                        reset_used=reset_used,
-                        state=state,
-                        total_points=state.total_points(),
-                        rerolls_left=state.rerolls,
-                        extra_ticket_used=extra_ticket_active,
-                        turn_log=turn_log if log else None,
-                        rerolls_by_turn=rerolls_by_turn,
-                    )
 
                 # Relic+ override: grant the extra reroll ticket mid-run
                 # when P(relic+ | current state) crosses the threshold.
@@ -614,101 +517,58 @@ class GemSimulator:
                         entry["prob_after_click"] = _log_pt.expected_prob_after_click(
                             state, offers, turns_left - 1, rerolls=state.rerolls)
 
-                # Early finish: goal already satisfied, risk not worth it.
-                # roll_offers_with_rerolls already burned any DP-optimal
-                # rerolls before we got here, so by this point either
-                # rerolls=0 or the DP said keeping the current offers was
-                # better than rerolling. The previous state.rerolls<=0
-                # gate blocked the coefficient-aware finish path
-                # (early_finish_coeff>0, no goal risk, avg coeff < 0)
-                # whenever rerolls remained — wasting a turn clicking an
-                # offer that drains coefficients on average.
-                if self.should_early_finish(state, offers, turns_left):
-                    if log:
-                        entry["action"] = "EARLY_FINISH"
-                        entry["state_after"] = {
-                            "will": state.will,
-                            "chaos": state.chaos,
-                            "first": state.first,
-                            "second": state.second,
-                            "total_points": state.total_points(),
-                            "rerolls": state.rerolls,
-                            "first_effect": state.first_effect,
-                            "second_effect": state.second_effect,
-                            "goal_prob": 1.0,
-                        }
-                        turn_log.append(entry)
-                    return RunResult(
-                        success=True,
-                        reason="early_finish",
-                        reset_used=reset_used,
-                        state=state,
-                        total_points=state.total_points(),
-                        rerolls_left=state.rerolls,
-                        extra_ticket_used=extra_ticket_active,
-                        turn_log=turn_log if log else None,
-                        rerolls_by_turn=rerolls_by_turn,
+                # Single decision point: shared with automation.
+                # Loop because non-DP rerolls (e.g. early-finish scenario b)
+                # can fire after roll_offers_with_rerolls has already
+                # exhausted DP-optimal rerolls. Bounded by state.rerolls.
+                while True:
+                    ti = TurnInput(
+                        state=state, offers=offers, turn=turn,
+                        turns_left=turns_left, rerolls=state.rerolls,
+                        reset_available=(reset_available and not reset_used),
                     )
-
-                # after rerolls: probability-based early reset
-                if (self.prob_reset_threshold > 0.0
-                        and reset_available and not reset_used):
-                    p_after = self._reset_prob_table.expected_prob_after_click(
-                        state, offers, turns_left - 1)
-                    if p_after < self.prob_reset_threshold:
-                        reset_used = True
-                        if log:
-                            entry["action"] = (
-                                f"RESET (post-click prob {p_after:.4f} "
-                                f"< threshold {self.prob_reset_threshold})")
-                            entry["state_before_reset"] = {
-                                "will": state.will,
-                                "chaos": state.chaos,
-                                "first": state.first,
-                                "second": state.second,
-                                "total_points": state.total_points(),
-                                "rerolls": state.rerolls,
-                                "first_effect": state.first_effect,
-                                "second_effect": state.second_effect,
-                                "goal_prob": p_after,
-                            }
-                            turn_log.append(entry)
+                    decision = decide_post_roll(ctx, ti)
+                    if decision.action != ActionKind.REROLL:
                         break
-
-                # after rerolls: binary feasibility -- hard reset/fail
-                p_feasible_after = self.prob_goal_feasible_after_click(state, offers, turns_left - 1)
-                if p_feasible_after == 0.0:
-                    if reset_available and not reset_used:
-                        reset_used = True
-                        if log:
-                            entry["action"] = "RESET (no feasible path after click)"
-                            entry["state_before_reset"] = {
-                                "will": state.will,
-                                "chaos": state.chaos,
-                                "first": state.first,
-                                "second": state.second,
-                                "total_points": state.total_points(),
-                                "rerolls": state.rerolls,
-                                "first_effect": state.first_effect,
-                                "second_effect": state.second_effect,
-                            }
-                            turn_log.append(entry)
-                        break
-
+                    if state.rerolls <= 0 or turn == 1:
+                        break  # defensive — shouldn't happen
+                    state.rerolls -= 1
+                    rerolls_by_turn[turn] = rerolls_by_turn.get(turn, 0) + 1
+                    offers = self.pool.generate_offers(state, turn, turns_left, rng)
+                    offers = self._resolve_effect_offers(offers, state, rng)
                     if log:
-                        entry["action"] = "FAIL (no feasible path after click)"
-                        entry["state_after"] = {
-                            "will": state.will,
-                            "chaos": state.chaos,
-                            "first": state.first,
-                            "second": state.second,
+                        entry.setdefault("offers_history", []).append(
+                            self._offer_keys(offers))
+                        entry.setdefault(
+                            "reroll_reasons_history", []).append([decision.branch])
+
+                if decision.action == ActionKind.RESET:
+                    reset_used = True
+                    if log:
+                        entry["action"] = f"RESET ({decision.reason})"
+                        entry["state_before_reset"] = {
+                            "will": state.will, "chaos": state.chaos,
+                            "first": state.first, "second": state.second,
                             "total_points": state.total_points(),
                             "rerolls": state.rerolls,
                             "first_effect": state.first_effect,
                             "second_effect": state.second_effect,
                         }
                         turn_log.append(entry)
+                    break
 
+                if decision.action == ActionKind.FAIL:
+                    if log:
+                        entry["action"] = f"FAIL ({decision.reason})"
+                        entry["state_after"] = {
+                            "will": state.will, "chaos": state.chaos,
+                            "first": state.first, "second": state.second,
+                            "total_points": state.total_points(),
+                            "rerolls": state.rerolls,
+                            "first_effect": state.first_effect,
+                            "second_effect": state.second_effect,
+                        }
+                        turn_log.append(entry)
                     return RunResult(
                         success=False,
                         reason="forced_fail_no_feasible_path_after_click",
@@ -721,30 +581,35 @@ class GemSimulator:
                         rerolls_by_turn=rerolls_by_turn,
                     )
 
-                # Last turn after rerolls: reset if fresh start has better odds
-                if (turns_left == 1 and reset_available and not reset_used):
-                    p_after = self._reset_prob_table.expected_prob_after_click(
-                        state, offers, turns_left - 1)
-                    if p_after < p_fresh:
-                        reset_used = True
-                        if log:
-                            entry["action"] = (
-                                f"RESET (last turn post-reroll prob {p_after:.4f}"
-                                f" < fresh start {p_fresh:.4f})")
-                            entry["state_before_reset"] = {
-                                "will": state.will,
-                                "chaos": state.chaos,
-                                "first": state.first,
-                                "second": state.second,
-                                "total_points": state.total_points(),
-                                "rerolls": state.rerolls,
-                                "first_effect": state.first_effect,
-                                "second_effect": state.second_effect,
-                                "goal_prob": p_after,
-                            }
-                            turn_log.append(entry)
-                        break
+                if decision.action == ActionKind.FINISH:
+                    success = self._goal_fully_satisfied(state)
+                    if log:
+                        entry["action"] = (
+                            f"EARLY_FINISH ({decision.reason})"
+                            if success else f"FINISH ({decision.reason})")
+                        entry["state_after"] = {
+                            "will": state.will, "chaos": state.chaos,
+                            "first": state.first, "second": state.second,
+                            "total_points": state.total_points(),
+                            "rerolls": state.rerolls,
+                            "first_effect": state.first_effect,
+                            "second_effect": state.second_effect,
+                            "goal_prob": 1.0 if success else 0.0,
+                        }
+                        turn_log.append(entry)
+                    return RunResult(
+                        success=success,
+                        reason="early_finish" if success else "goal_unreachable_finish",
+                        reset_used=reset_used,
+                        state=state,
+                        total_points=state.total_points(),
+                        rerolls_left=state.rerolls,
+                        extra_ticket_used=extra_ticket_active,
+                        turn_log=turn_log if log else None,
+                        rerolls_by_turn=rerolls_by_turn,
+                    )
 
+                # PROCESS — pick uniformly and apply
                 picked = rng.choice(offers)
                 self.apply_option(picked, state, rng)
 
