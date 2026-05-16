@@ -19,6 +19,7 @@ from arkgrid.decision import (
     early_finish_decision, has_progress_offer,
     infeasibility_decision, last_turn_reset_decision,
     no_feasible_offer_decision, prob_reset_decision,
+    _side_coeff, _continue_has_upside, _legal_actions,
 )
 from arkgrid.models import GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
@@ -416,6 +417,43 @@ class TestConfirmFields(unittest.TestCase):
         self.assertEqual(ctx.confirm_risk, 0.0)
         self.assertEqual(ctx.confirm_min_coeff, 0)
         self.assertIsNone(ctx.risk_prob_table)
+
+
+class TestConfirmHelpers(unittest.TestCase):
+    """Side-coefficient, upside, and legal-action helpers."""
+
+    def test_side_coeff_counts_target_effects(self):
+        ctx = build_ctx(optimize="dps")
+        st = GemState(will=4, chaos=3, first=3, second=2,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # boss_damage 1000*3 + attack_power 400*2 = 3800
+        self.assertEqual(_side_coeff(ctx, st), 3800)
+
+    def test_side_coeff_ignores_non_target(self):
+        ctx = build_ctx(optimize="dps")
+        st = GemState(will=4, chaos=3, first=5, second=5,
+                      first_effect="ally_damage", second_effect="brand_power")
+        self.assertEqual(_side_coeff(ctx, st), 0)
+
+    def test_upside_false_when_no_turns(self):
+        ctx = build_ctx()
+        st = GemState(will=5, chaos=5, first=5, second=5)
+        self.assertFalse(_continue_has_upside(ctx, st, 0))
+
+    def test_upside_true_when_side_below_cap(self):
+        ctx = build_ctx(optimize="dps")
+        st = GemState(will=5, chaos=5, first=3, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        self.assertTrue(_continue_has_upside(ctx, st, 2))
+
+    def test_legal_actions_filters(self):
+        ti = build_ti(rerolls=0, reset_available=False)
+        self.assertEqual(_legal_actions(ti),
+                         (ActionKind.FINISH, ActionKind.PROCESS))
+        ti2 = build_ti(rerolls=2, reset_available=True)
+        self.assertEqual(_legal_actions(ti2),
+                         (ActionKind.FINISH, ActionKind.PROCESS,
+                          ActionKind.REROLL, ActionKind.RESET))
 
 
 if __name__ == "__main__":

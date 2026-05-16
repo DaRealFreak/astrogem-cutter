@@ -25,7 +25,7 @@ The module is split into:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -232,6 +232,69 @@ def _goal_fully_satisfied(ctx: DecisionContext, state: GemState) -> bool:
         if coeff_total < ctx.min_side_coeff:
             return False
     return True
+
+
+def _side_coeff(ctx: DecisionContext, state: GemState) -> int:
+    """Coefficient-weighted total of the gem's two side nodes.
+
+    Mirrors the `--min-side-coeff` measure: sum of level * effect
+    coefficient for side effects in the optimize target set. Effects
+    outside the target set contribute 0.
+    """
+    coeff_map = DPS_COEFF if ctx.optimize == "dps" else SUPPORT_COEFF
+    target = DPS_EFFECTS if ctx.optimize == "dps" else SUPPORT_EFFECTS
+    total = 0
+    if state.first_effect in target:
+        total += state.first * coeff_map.get(state.first_effect, 0)
+    if state.second_effect in target:
+        total += state.second * coeff_map.get(state.second_effect, 0)
+    return total
+
+
+def _continue_has_upside(ctx: DecisionContext, state: GemState,
+                         turns_left: int) -> bool:
+    """True when continuing to cut can still improve the gem.
+
+    Upside exists when turns remain and either a target-set side node
+    is below level 5 (side coefficient can still grow) or total points
+    are below 19 (a higher relic+/ancient tier is still reachable).
+    """
+    if turns_left <= 0:
+        return False
+    target = DPS_EFFECTS if ctx.optimize == "dps" else SUPPORT_EFFECTS
+    if state.first_effect in target and state.first < 5:
+        return True
+    if state.second_effect in target and state.second < 5:
+        return True
+    if state.total_points() < 19:
+        return True
+    return False
+
+
+def _legal_actions(ti: TurnInput) -> tuple:
+    """Actions the player may legally take this turn — the confirmation
+    menu. Fixed order: finish, process, reroll, reset.
+    """
+    choices = [ActionKind.FINISH, ActionKind.PROCESS]
+    if ti.rerolls > 0:
+        choices.append(ActionKind.REROLL)
+    if ti.reset_available:
+        choices.append(ActionKind.RESET)
+    return tuple(choices)
+
+
+def _maybe_confirm(ctx: DecisionContext, ti: TurnInput,
+                   decision: Decision) -> Decision:
+    """Stamp `needs_confirmation` on a reset / infeasibility decision
+    when `--confirm-risk` is active and the gem's side coefficient meets
+    the floor. Returns the decision unchanged otherwise.
+    """
+    if not ctx.confirm_active:
+        return decision
+    if _side_coeff(ctx, ti.state) < ctx.confirm_min_coeff:
+        return decision
+    return replace(decision, needs_confirmation=True,
+                   confirm_choices=_legal_actions(ti))
 
 
 def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetrics:
