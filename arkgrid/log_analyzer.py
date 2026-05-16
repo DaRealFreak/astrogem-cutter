@@ -203,11 +203,6 @@ def _matches(rec: GemRecord, args: argparse.Namespace) -> bool:
         if not bool(a.get("bis_only")):
             return False
 
-    effect_aware = _filter_value(args, "effect_aware_dp", None)
-    if effect_aware is not None:
-        if bool(a.get("effect_aware_dp")) != bool(effect_aware):
-            return False
-
     extra_ticket = _filter_value(args, "extra_ticket", None)
     if extra_ticket is not None:
         if bool(a.get("extra_ticket")) != bool(extra_ticket):

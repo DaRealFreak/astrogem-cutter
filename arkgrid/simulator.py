@@ -41,7 +41,7 @@ class GemSimulator:
             relic_no_early_finish: float = 0.0,
             relic_reroll_threshold: float = 0.0,
             force_reroll_no_progress: int = 0,
-            effect_aware: bool = False,
+            effect_aware: bool = True,
     ) -> None:
         self.rarity = rarity
         self.goal = goal

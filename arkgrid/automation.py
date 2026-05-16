@@ -235,7 +235,7 @@ def _build_prob_table(
     gem_type_domain: str,
     early_finish: bool = False,
     max_rerolls: int = 0,
-    effect_aware: bool = False,
+    effect_aware: bool = True,
 ) -> Tuple[GoalProbabilityTable, frozenset, int, int]:
     """Build the DP probability table.
 
@@ -489,7 +489,7 @@ def run_auto(
     relic_reroll_threshold: float = 0.0,
     force_reroll_no_progress: int = 0,
     all_gems: bool = False,
-    effect_aware_dp: bool = False,
+    effect_aware_dp: bool = True,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -704,11 +704,7 @@ def run_auto(
             gem_type_domain = GEM_TYPE_TEMPLATE_TO_DOMAIN.get(det.gem_type, det.gem_type)
             current_effects = (det.first_effect, det.second_effect)
 
-            if prob_table is None or (
-                not effect_aware_dp
-                and (bis_only or min_side_coeff > 0)
-                and cached_effects != current_effects
-            ):
+            if prob_table is None:
                 temp_state = GemState(
                     first_effect=det.first_effect,
                     second_effect=det.second_effect,
