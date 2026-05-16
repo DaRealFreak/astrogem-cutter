@@ -120,6 +120,19 @@ def _build_parser() -> argparse.ArgumentParser:
                              "On high-coeff gems this boosts main-goal success at some "
                              "cost to relic+ / total-points upside. "
                              "0 = disabled. Try 1050+ on support, 1400+ on DPS. Default: 0.")
+        p.add_argument("--confirm-risk", type=float, default=None, metavar="F",
+                        help="Activate the interactive confirmation gate. On a "
+                             "met goal with side-coefficient upside, pause and "
+                             "ask the player when P(losing the goal if you keep "
+                             "cutting) >= F. Overrides --early-finish-coeff. "
+                             "Setting --confirm-min-coeff alone also activates "
+                             "the gate with F defaulting to 0.0.")
+        p.add_argument("--confirm-min-coeff", type=int, default=None,
+                        metavar="N",
+                        help="Side-coefficient floor for the confirmation gate: "
+                             "only prompt about gems whose current side "
+                             "coefficient >= N. Setting this alone activates "
+                             "the gate. Default when unset: 0 (every gem).")
         grp = p.add_argument_group("gem configuration (omit for random gem each run)")
         grp.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None,
                          help="Gem type (auto-resolved from effects if unambiguous)")
@@ -560,6 +573,8 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     relic_reroll_threshold=args.relic_reroll_threshold,
                     force_reroll_no_progress=args.force_reroll_no_progress,
                     effect_aware=True,
+                    confirm_risk=args.confirm_risk,
+                    confirm_min_coeff=args.confirm_min_coeff,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -593,6 +608,8 @@ def cmd_sim(args: argparse.Namespace) -> None:
         relic_reroll_threshold=args.relic_reroll_threshold,
         force_reroll_no_progress=args.force_reroll_no_progress,
         effect_aware=True,
+        confirm_risk=args.confirm_risk,
+        confirm_min_coeff=args.confirm_min_coeff,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -1118,6 +1135,8 @@ def cmd_auto(args: argparse.Namespace) -> None:
         all_gems=args.all_gems,
         effect_aware_dp=True,
         args=args,
+        confirm_risk=args.confirm_risk,
+        confirm_min_coeff=args.confirm_min_coeff,
     )
 
 
