@@ -42,6 +42,8 @@ class GemSimulator:
             relic_reroll_threshold: float = 0.0,
             force_reroll_no_progress: int = 0,
             effect_aware: bool = True,
+            confirm_risk: Optional[float] = None,
+            confirm_min_coeff: Optional[int] = None,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -50,8 +52,14 @@ class GemSimulator:
         self.bis_only = bis_only
         self.min_side_coeff = min_side_coeff
         self.effect_aware = effect_aware
+        self.confirm_active = (confirm_risk is not None
+                               or confirm_min_coeff is not None)
+        self.confirm_risk = confirm_risk if confirm_risk is not None else 0.0
+        self.confirm_min_coeff = (confirm_min_coeff
+                                  if confirm_min_coeff is not None else 0)
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
+        self._ea_risk_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
@@ -132,13 +140,28 @@ class GemSimulator:
                 max_rerolls=self.base_rerolls,
             )
 
+        # Risk table: goal DP with early_finish=False, so its value at a
+        # goal-satisfied state is P(goal still met at run end) — 1 minus
+        # that is the confirm-gate's goal-loss risk.
+        self._risk_prob_table: Optional[GoalProbabilityTable] = None
+        if self.confirm_active:
+            self._risk_prob_table = GoalProbabilityTable(
+                goal, self.turns_total, self.pool,
+                side_coeff_first=side_coeff_first,
+                side_coeff_second=side_coeff_second,
+                min_side_coeff=dp_min_side_coeff,
+                early_finish=False,
+                max_rerolls=self.base_rerolls,
+            )
+
     def _get_ea_tables(self, gem_type: str) -> tuple:
-        """Build or fetch cached effect-aware (reroll, reset) DP tables
+        """Build or fetch cached effect-aware (reroll, reset, risk) DP tables
         for the given gem type. Used only when effect_aware is True.
         """
         if gem_type in self._ea_table_cache:
             return (self._ea_table_cache[gem_type],
-                    self._ea_reset_table_cache[gem_type])
+                    self._ea_reset_table_cache[gem_type],
+                    self._ea_risk_table_cache.get(gem_type))
         reroll_tbl = GoalProbabilityTable(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
@@ -156,9 +179,23 @@ class GemSimulator:
             gem_type=gem_type,
             optimize=self.optimize,
         )
+        if not self.confirm_active:
+            self._ea_table_cache[gem_type] = reroll_tbl
+            self._ea_reset_table_cache[gem_type] = reset_tbl
+            return reroll_tbl, reset_tbl, None
+        risk_tbl = GoalProbabilityTable(
+            self.goal, self.turns_total, self.pool,
+            min_side_coeff=self.min_side_coeff,
+            early_finish=False,
+            max_rerolls=self.base_rerolls,
+            effect_aware=True,
+            gem_type=gem_type,
+            optimize=self.optimize,
+        )
         self._ea_table_cache[gem_type] = reroll_tbl
         self._ea_reset_table_cache[gem_type] = reset_tbl
-        return reroll_tbl, reset_tbl
+        self._ea_risk_table_cache[gem_type] = risk_tbl
+        return reroll_tbl, reset_tbl, risk_tbl
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -287,6 +324,10 @@ class GemSimulator:
             relic_prob_table=self._relic_prob_table,
             gem_type=gem_type,
             force_reroll_active=self._force_reroll_active,
+            confirm_active=self.confirm_active,
+            confirm_risk=self.confirm_risk,
+            confirm_min_coeff=self.confirm_min_coeff,
+            risk_prob_table=self._risk_prob_table,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],
@@ -409,9 +450,11 @@ class GemSimulator:
         # enforce min_side_coeff even when the starting effects don't
         # contribute to the target side.
         if self.effect_aware and run_gem.gem_type in GEM_TYPES:
-            ea_reroll, ea_reset = self._get_ea_tables(run_gem.gem_type)
+            ea_reroll, ea_reset, ea_risk = self._get_ea_tables(run_gem.gem_type)
             self.prob_table = ea_reroll
             self._reset_prob_table = ea_reset
+            if self.confirm_active:
+                self._risk_prob_table = ea_risk
 
         reset_available = bool(self.use_reset_ticket)
         extra_ticket_active = bool(self.use_extra_ticket)

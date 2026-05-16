@@ -490,12 +490,18 @@ def run_auto(
     force_reroll_no_progress: int = 0,
     all_gems: bool = False,
     effect_aware_dp: bool = True,
+    confirm_risk: Optional[float] = None,
+    confirm_min_coeff: Optional[int] = None,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
 
     logger = RunLogger()
     logger.log_run_start(args, goal, astro_gem)
+
+    confirm_active = (confirm_risk is not None or confirm_min_coeff is not None)
+    confirm_risk = confirm_risk if confirm_risk is not None else 0.0
+    confirm_min_coeff = confirm_min_coeff if confirm_min_coeff is not None else 0
 
     pool = OptionPool()
     monitor = _get_monitor(monitor_index)
@@ -541,6 +547,10 @@ def run_auto(
 
         # Relic+ (>=16 total points) probability table — built on first detection
         relic_table: Optional[GoalProbabilityTable] = None
+
+        # Risk (goal, early_finish=False) probability table — built on first
+        # detection when confirm gate is active.
+        risk_table: Optional[GoalProbabilityTable] = None
 
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
@@ -740,6 +750,17 @@ def run_auto(
                     GemState(will=1, chaos=1, first=1, second=1),
                     det.total_steps,
                 )
+                # Risk table: goal DP with early_finish=False, built once
+                # when the confirm gate is active.
+                if risk_table is None and confirm_active:
+                    risk_tbl_result, _, _, _ = _build_prob_table(
+                        goal, det.total_steps, pool, temp_state,
+                        bis_only, optimize, min_side_coeff,
+                        gem_type_domain, early_finish=False,
+                        max_rerolls=base_rerolls,
+                        effect_aware=effect_aware_dp,
+                    )
+                    risk_table = risk_tbl_result
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just
                 # changed, and force_reroll_active is resolved below.
@@ -838,6 +859,10 @@ def run_auto(
                     relic_prob_table=relic_table,
                     gem_type=gem_type_domain,
                     force_reroll_active=force_reroll_active,
+                    confirm_active=confirm_active,
+                    confirm_risk=confirm_risk,
+                    confirm_min_coeff=confirm_min_coeff,
+                    risk_prob_table=risk_table,
                 )
 
             # --- Analyze ---

@@ -321,5 +321,24 @@ class TestRandomAstroGem(unittest.TestCase):
         self.assertGreater(len(types_seen), 1)
 
 
+class TestRiskTable(unittest.TestCase):
+    """GemSimulator builds a risk table when the confirm gate is active."""
+
+    def test_risk_table_built_when_active(self):
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=3),
+            confirm_risk=0.25,
+        )
+        self.assertIsNotNone(sim._risk_prob_table)
+
+    def test_risk_table_absent_when_inactive(self):
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=3),
+        )
+        self.assertIsNone(sim._risk_prob_table)
+
+
 if __name__ == "__main__":
     unittest.main()
