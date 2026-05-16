@@ -203,11 +203,6 @@ def _matches(rec: GemRecord, args: argparse.Namespace) -> bool:
         if not bool(a.get("bis_only")):
             return False
 
-    exact_dp = _filter_value(args, "exact_dp", None)
-    if exact_dp is not None:
-        if bool(a.get("exact_dp")) != bool(exact_dp):
-            return False
-
     effect_aware = _filter_value(args, "effect_aware_dp", None)
     if effect_aware is not None:
         if bool(a.get("effect_aware_dp")) != bool(effect_aware):

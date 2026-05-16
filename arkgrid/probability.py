@@ -10,18 +10,15 @@ from arkgrid.pool import OptionPool
 class GoalProbabilityTable:
     """Precomputed P(reach goal | will, chaos, first, second, turns_left).
 
-    Uses backward induction with either a single-draw transition
-    approximation (option probability = weight / sum of eligible weights)
-    or exact PPSWOR(4) pick-1 transitions (exact_draw=True).
+    Uses backward induction with a single-draw transition approximation
+    (option probability = weight / sum of eligible weights).
 
-    Build cost ~20ms for single-draw, ~1s for exact draw.
-    Lookup O(1).
+    Build cost ~20ms. Lookup O(1).
 
     When *bis_only* is True the state is extended with two booleans
     (first_is_target, second_is_target) and success requires both
     effects to be target effects. This 4x's the state space (~25k
-    entries for epic) but build time stays well under 100ms for
-    single-draw, ~4s for exact draw.
+    entries for epic) but build time stays well under 100ms.
     """
 
     def __init__(
@@ -35,7 +32,6 @@ class GoalProbabilityTable:
         side_coeff_first: int = 0,
         side_coeff_second: int = 0,
         min_side_coeff: int = 0,
-        exact_draw: bool = False,
         early_finish: bool = False,
         max_rerolls: int = 0,
         effect_aware: bool = False,
@@ -48,7 +44,6 @@ class GoalProbabilityTable:
         self.effect_aware = effect_aware and gem_type in GEM_TYPES
         # effect_aware takes precedence over bis_only
         self.bis_only = bis_only and not self.effect_aware
-        self.exact_draw = exact_draw
         self._target_effects = target_effects or frozenset()
         self._side_coeff_first = side_coeff_first
         self._side_coeff_second = side_coeff_second
@@ -96,89 +91,13 @@ class GoalProbabilityTable:
             self._build()
 
     # ------------------------------------------------------------------
-    # PPSWOR inclusion probabilities for exact 4-draw-pick-1
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _ppswor_inclusion_probs(weights: List[float]) -> List[float]:
-        """Compute inclusion probabilities for PPSWOR(4).
-
-        For sequential weighted sampling without replacement of k=4 items,
-        computes P(item i is in the sample) for each item.
-
-        Uses O(N^3) algorithm: precompute inner sums, then expand the
-        recursive inclusion formula for k=4.
-        """
-        N = len(weights)
-        W = sum(weights)
-
-        if N <= 4:
-            return [1.0] * N
-
-        # Precompute s_all[j][l] = Σ_{m ≠ j,l} w_m / (W - w_j - w_l - w_m)
-        s_all = [[0.0] * N for _ in range(N)]
-        for j in range(N):
-            wj = weights[j]
-            for l in range(N):
-                if l == j:
-                    continue
-                wl = weights[l]
-                Rjl = W - wj - wl
-                total = 0.0
-                for m in range(N):
-                    if m == j or m == l:
-                        continue
-                    total += weights[m] / (Rjl - weights[m])
-                s_all[j][l] = total
-
-        # Compute π_i for each item using expanded k=4 recursion:
-        # π_i = (w_i + Σ_{j≠i} w_j × f3_j) / W
-        # f3_j = (w_i + Σ_{l≠i,j} w_l × f2_jl) / (W - w_j)
-        # f2_jl = (w_i / (W-w_j-w_l)) × (1 + s_all[j][l] - w_i/(W-w_j-w_l-w_i))
-        result = [0.0] * N
-        for i in range(N):
-            wi = weights[i]
-            outer_sum = 0.0
-
-            for j in range(N):
-                if j == i:
-                    continue
-                wj = weights[j]
-                Rj = W - wj
-
-                f3_sum = 0.0
-                for l in range(N):
-                    if l == i or l == j:
-                        continue
-                    wl = weights[l]
-                    Rjl = Rj - wl
-                    inner_sum = s_all[j][l] - wi / (Rjl - wi)
-                    f2 = (wi / Rjl) * (1.0 + inner_sum)
-                    f3_sum += wl * f2
-
-                f3 = (wi + f3_sum) / Rj
-                outer_sum += wj * f3
-
-            result[i] = (wi + outer_sum) / W
-
-        return result
-
-    # ------------------------------------------------------------------
     # Transition helpers (option probability assignment)
     # ------------------------------------------------------------------
 
     def _option_probs(self, eligible: List[Option]) -> List[float]:
-        """Return per-option applied probability: single-draw or PPSWOR/4."""
-        n = len(eligible)
-        if self.exact_draw:
-            if n <= 4:
-                return [1.0 / n] * n
-            weights = [o.weight for o in eligible]
-            pi = self._ppswor_inclusion_probs(weights)
-            return [pi[i] / 4.0 for i in range(n)]
-        else:
-            total_w = sum(o.weight for o in eligible)
-            return [o.weight / total_w for o in eligible]
+        """Return per-option applied probability (single-draw approximation)."""
+        total_w = sum(o.weight for o in eligible)
+        return [o.weight / total_w for o in eligible]
 
     # ------------------------------------------------------------------
     # Non-BIS transitions and build

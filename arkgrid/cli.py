@@ -135,9 +135,6 @@ def _build_parser() -> argparse.ArgumentParser:
                          help="Number of simulation trials (default: 200000)")
     p_stats.add_argument("--seed", type=int, default=12345,
                          help="RNG seed for reproducibility (default: 12345)")
-    p_stats.add_argument("--exact-dp", action="store_true", default=False,
-                         help="Also compute exact 4-draw-pick-1 DP probability "
-                              "(slower but more accurate, ~5-15s build time)")
     p_stats.add_argument("--effect-aware-dp", action="store_true", default=False,
                          help="Show effect-aware DP probability alongside the "
                               "standard one. Models change_effect transitions "
@@ -149,8 +146,6 @@ def _build_parser() -> argparse.ArgumentParser:
     add_common(p_sim)
     p_sim.add_argument("--seed", type=int, default=42,
                        help="RNG seed (default: 42)")
-    p_sim.add_argument("--exact-dp", action="store_true", default=False,
-                       help="Use exact 4-draw-pick-1 DP for reroll/reset decisions")
 
     # ---- effects ----
     p_eff = sub.add_parser("effects", help="Show effect change outcomes for gem types")
@@ -171,8 +166,6 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Monte Carlo trials from current state (0 = DP only, default: 0)")
     p_live.add_argument("--seed", type=int, default=42,
                         help="RNG seed for Monte Carlo (default: 42)")
-    p_live.add_argument("--exact-dp", action="store_true", default=False,
-                        help="Use exact 4-draw-pick-1 DP for probability display")
 
     # ---- read (vision) ----
     p_read = sub.add_parser("read", help="Read current game screen state via vision")
@@ -195,8 +188,6 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Seconds to wait after each click for animation (default: 1.0)")
     p_auto.add_argument("--dry-run", action="store_true", default=False,
                         help="Analyze and print decisions without clicking")
-    p_auto.add_argument("--exact-dp", action="store_true", default=False,
-                        help="Use exact 4-draw-pick-1 DP for decisions")
     p_auto.add_argument("--all", action="store_true", default=False,
                         dest="all_gems",
                         help="Continuously cut gems: after finishing, confirm the "
@@ -254,7 +245,6 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--relic-reroll-threshold", type=float, default=0.0,
                    metavar="F")
     p.add_argument("--bis-only", action="store_true", default=False)
-    p.add_argument("--exact-dp", action="store_true", default=None)
     p.add_argument("--effect-aware-dp", action="store_true", default=None)
     p.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None)
     p.add_argument("--first-effect", choices=ALL_EFFECTS, default=None)
@@ -406,15 +396,13 @@ def _compute_dp_prob(
     optimize: str,
     bis_only: bool,
     min_side_coeff: int,
-    exact_draw: bool = False,
     early_finish: bool = False,
     effect_aware: bool = False,
 ) -> float:
     """Compute analytical DP probability from initial state.
 
     Does not model rerolls, reset tickets, or smart policy decisions.
-    When exact_draw=False: single-draw transition approximation (~20ms).
-    When exact_draw=True: exact PPSWOR(4) pick-1 transitions (~1-4s).
+    Uses single-draw transition approximation (~20ms).
     When astro_gem is None and min_side_coeff > 0: averages over all
     possible random gem effect assignments.
     """
@@ -440,7 +428,6 @@ def _compute_dp_prob(
         table = GoalProbabilityTable(
             goal, turns, pool,
             min_side_coeff=min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish,
             effect_aware=True,
             gem_type=astro_gem.gem_type,
@@ -461,7 +448,6 @@ def _compute_dp_prob(
             table = GoalProbabilityTable(
                 goal, turns, pool,
                 min_side_coeff=min_side_coeff,
-                exact_draw=exact_draw,
                 early_finish=early_finish,
                 effect_aware=True,
                 gem_type=gem_type,
@@ -486,7 +472,6 @@ def _compute_dp_prob(
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish,
         )
         initial = GemState(
@@ -502,7 +487,6 @@ def _compute_dp_prob(
         table = GoalProbabilityTable(
             goal, turns, pool,
             bis_only=True,
-            exact_draw=exact_draw,
             early_finish=early_finish,
         )
         return table.lookup_bis_averaged(turns)
@@ -519,7 +503,6 @@ def _compute_dp_prob(
                 side_coeff_first=cf,
                 side_coeff_second=cs,
                 min_side_coeff=min_side_coeff,
-                exact_draw=exact_draw,
                 early_finish=early_finish,
             )
             prob_sum += table.lookup(initial, turns) * count
@@ -530,7 +513,6 @@ def _compute_dp_prob(
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish,
         )
         initial = GemState(will=1, chaos=1, first=1, second=1)
@@ -559,20 +541,10 @@ def cmd_stats(args: argparse.Namespace) -> None:
             )
             summary: dict = {"dp_prob": dp_prob}
 
-            if getattr(args, "exact_dp", False):
-                exact_prob = _compute_dp_prob(
-                    goal, rarity, astro_gem, args.optimize,
-                    args.bis_only, args.min_side_coeff,
-                    exact_draw=True,
-                    early_finish=ef,
-                )
-                summary["dp_exact_prob"] = exact_prob
-
             if getattr(args, "effect_aware_dp", False):
                 ea_prob = _compute_dp_prob(
                     goal, rarity, astro_gem, args.optimize,
                     args.bis_only, args.min_side_coeff,
-                    exact_draw=getattr(args, "exact_dp", False),
                     early_finish=ef,
                     effect_aware=True,
                 )
@@ -583,7 +555,6 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 LastTurnGoal(min_total=16), rarity, astro_gem, args.optimize,
                 bis_only=False, min_side_coeff=0,
                 early_finish=False,
-                exact_draw=getattr(args, "exact_dp", False),
             )
             summary["relic_dp_prob"] = relic_dp
 
@@ -601,7 +572,6 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     reset_min_coeff=args.reset_min_coeff,
                     reroll_min_coeff=args.reroll_min_coeff,
                     min_side_coeff=args.min_side_coeff,
-                    exact_draw=getattr(args, "exact_dp", False),
                     early_finish_coeff=args.early_finish_coeff,
                     relic_no_early_finish=args.relic_no_early_finish,
                     relic_reroll_threshold=args.relic_reroll_threshold,
@@ -633,7 +603,6 @@ def cmd_sim(args: argparse.Namespace) -> None:
         bis_only=args.bis_only,
         reroll_min_coeff=args.reroll_min_coeff,
         min_side_coeff=args.min_side_coeff,
-        exact_draw=getattr(args, "exact_dp", False),
         early_finish_coeff=args.early_finish_coeff,
         relic_no_early_finish=args.relic_no_early_finish,
         relic_reroll_threshold=args.relic_reroll_threshold,
@@ -859,7 +828,6 @@ def cmd_live(args: argparse.Namespace) -> None:
         if state.second_effect in opt_set_coeff:
             side_coeff_second = coeff_map[state.second_effect]
 
-    exact_draw = getattr(args, "exact_dp", False)
     early_finish_coeff = getattr(args, "early_finish_coeff", 0)
     prob_table = GoalProbabilityTable(
         goal, turns_total, pool,
@@ -867,7 +835,6 @@ def cmd_live(args: argparse.Namespace) -> None:
         side_coeff_first=side_coeff_first,
         side_coeff_second=side_coeff_second,
         min_side_coeff=min_side_coeff,
-        exact_draw=exact_draw,
         early_finish=early_finish_coeff >= 0,
     )
     p_current = prob_table.lookup(state, turns_left)
@@ -961,7 +928,7 @@ def cmd_live(args: argparse.Namespace) -> None:
     # Relic+ (>=16 total points) probability from current state
     relic_table = GoalProbabilityTable(
         LastTurnGoal(min_total=16), turns_total, pool,
-        exact_draw=exact_draw, early_finish=False,
+        early_finish=False,
     )
     p_relic = relic_table.lookup(state, turns_left)
     print(f"P(relic+):  {p_relic:.1%}")
@@ -1077,7 +1044,6 @@ def cmd_live(args: argparse.Namespace) -> None:
             reset_min_coeff=getattr(args, "reset_min_coeff", 0),
             reroll_min_coeff=getattr(args, "reroll_min_coeff", 0),
             min_side_coeff=getattr(args, "min_side_coeff", 0),
-            exact_draw=exact_draw,
             early_finish_coeff=early_finish_coeff,
             force_reroll_no_progress=getattr(args, "force_reroll_no_progress", False),
         )
@@ -1144,7 +1110,6 @@ def cmd_auto(args: argparse.Namespace) -> None:
         optimize=args.optimize,
         bis_only=args.bis_only,
         min_side_coeff=args.min_side_coeff,
-        exact_draw=getattr(args, "exact_dp", False),
         prob_reset_threshold=args.prob_reset_threshold,
         side_threshold=args.side_threshold,
         animation_delay=args.animation_delay,

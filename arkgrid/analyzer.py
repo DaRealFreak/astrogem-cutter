@@ -81,8 +81,6 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
     print(title)
     if "dp_prob" in result:
         line = f"  DP probability: {result['dp_prob'] * 100:.2f}%"
-        if "dp_exact_prob" in result:
-            line += f"  (exact draw: {result['dp_exact_prob'] * 100:.2f}%)"
         if "dp_effect_aware_prob" in result:
             line += (f"  (effect-aware: "
                      f"{result['dp_effect_aware_prob'] * 100:.2f}%)")

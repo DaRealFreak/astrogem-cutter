@@ -232,7 +232,6 @@ def _build_prob_table(
     bis_only: bool,
     optimize: str,
     min_side_coeff: int,
-    exact_draw: bool,
     gem_type_domain: str,
     early_finish: bool = False,
     max_rerolls: int = 0,
@@ -242,7 +241,7 @@ def _build_prob_table(
 
     Returns (table, target_effects, side_coeff_first, side_coeff_second).
     When effect_aware is True, results are cached by (goal, turns, gem_type,
-    optimize, min_side_coeff, exact_draw, max_rerolls, early_finish) — the
+    optimize, min_side_coeff, max_rerolls, early_finish) — the
     effect-pair is encoded in the DP state, so one table covers all configs
     of the same gem type.
     """
@@ -268,7 +267,7 @@ def _build_prob_table(
         cache_key = (
             "ea",
             _goal_cache_key(goal), turns_total, gem_type_domain, optimize,
-            min_side_coeff, exact_draw, max_rerolls, early_finish,
+            min_side_coeff, max_rerolls, early_finish,
         )
         cached = _DP_CACHE.get(cache_key)
         if cached is not None:
@@ -276,13 +275,11 @@ def _build_prob_table(
 
     if use_effect_aware:
         print(f"  [dp] Building effect-aware table "
-              f"({gem_type_domain}, exact={exact_draw}, "
-              f"rerolls={max_rerolls})...", flush=True)
+              f"({gem_type_domain}, rerolls={max_rerolls})...", flush=True)
         t0 = time.time()
         table = GoalProbabilityTable(
             goal, turns_total, pool,
             min_side_coeff=min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish,
             max_rerolls=max_rerolls,
             effect_aware=True,
@@ -299,7 +296,6 @@ def _build_prob_table(
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish,
             max_rerolls=max_rerolls,
         )
@@ -481,7 +477,6 @@ def run_auto(
     optimize: str,
     bis_only: bool,
     min_side_coeff: int,
-    exact_draw: bool,
     prob_reset_threshold: float,
     side_threshold: float,
     animation_delay: float,
@@ -724,7 +719,7 @@ def run_auto(
                 prob_table, target_effects, side_coeff_first, side_coeff_second = (
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
-                        bis_only, optimize, min_side_coeff, exact_draw,
+                        bis_only, optimize, min_side_coeff,
                         gem_type_domain, early_finish=early_finish_coeff >= 0,
                         max_rerolls=total_rerolls,
                         effect_aware=effect_aware_dp,
@@ -736,14 +731,13 @@ def run_auto(
                         relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0):
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
-                        exact_draw=exact_draw, early_finish=False,
+                        early_finish=False,
                         max_rerolls=total_rerolls,
                     )
                 # Use standard (non-reroll) DP for p_fresh — the reroll-aware
                 # DP overestimates fresh start probability.
                 reset_prob_table = GoalProbabilityTable(
                     goal, det.total_steps, pool,
-                    exact_draw=exact_draw,
                     early_finish=early_finish_coeff >= 0,
                 )
                 p_fresh = reset_prob_table.lookup(

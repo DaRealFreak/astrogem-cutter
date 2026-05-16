@@ -88,7 +88,6 @@ class ScenarioHelper:
         use_reset_ticket: bool = False,
         side_node_threshold: float = 0.5,
         bis_only: bool = False,
-        exact_draw: bool = False,
         relic_no_early_finish: float = 0.0,
         relic_reroll_threshold: float = 0.0,
     ) -> ScenarioResult:
@@ -104,7 +103,6 @@ class ScenarioHelper:
             bis_only=bis_only,
             pool=cls.POOL,
             min_side_coeff=min_side_coeff,
-            exact_draw=exact_draw,
             early_finish_coeff=early_finish_coeff,
             relic_no_early_finish=relic_no_early_finish,
             relic_reroll_threshold=relic_reroll_threshold,

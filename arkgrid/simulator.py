@@ -37,7 +37,6 @@ class GemSimulator:
             reset_min_coeff: int = 0,
             reroll_min_coeff: int = 0,
             min_side_coeff: int = 0,
-            exact_draw: bool = False,
             early_finish_coeff: int = 0,
             relic_no_early_finish: float = 0.0,
             relic_reroll_threshold: float = 0.0,
@@ -51,7 +50,6 @@ class GemSimulator:
         self.bis_only = bis_only
         self.min_side_coeff = min_side_coeff
         self.effect_aware = effect_aware
-        self._exact_draw = exact_draw
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
@@ -102,7 +100,6 @@ class GemSimulator:
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=dp_min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
             max_rerolls=self.base_rerolls,
         )
@@ -114,7 +111,6 @@ class GemSimulator:
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=dp_min_side_coeff,
-            exact_draw=exact_draw,
             early_finish=early_finish_coeff >= 0,
         )
 
@@ -132,7 +128,7 @@ class GemSimulator:
             # making the override fire too rarely.
             self._relic_prob_table = GoalProbabilityTable(
                 LastTurnGoal(min_total=16), self.turns_total, self.pool,
-                exact_draw=exact_draw, early_finish=False,
+                early_finish=False,
                 max_rerolls=self.base_rerolls,
             )
 
@@ -146,7 +142,6 @@ class GemSimulator:
         reroll_tbl = GoalProbabilityTable(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
-            exact_draw=self._exact_draw,
             early_finish=self.early_finish_coeff >= 0,
             max_rerolls=self.base_rerolls,
             effect_aware=True,
@@ -156,7 +151,6 @@ class GemSimulator:
         reset_tbl = GoalProbabilityTable(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
-            exact_draw=self._exact_draw,
             early_finish=self.early_finish_coeff >= 0,
             effect_aware=True,
             gem_type=gem_type,
