@@ -94,6 +94,7 @@ class DecisionContext:
     confirm_risk: float = 0.0
     confirm_min_coeff: int = 0
     risk_prob_table: Optional[GoalProbabilityTable] = None
+    endgame_risk: bool = False
 
 
 @dataclass
@@ -281,6 +282,50 @@ def _continue_has_upside(ctx: DecisionContext, state: GemState,
     if state.total_points() < 19:
         return True
     return False
+
+
+def _ev_cell(m: TurnMetrics) -> str:
+    """Classify a goal-met turn into 'continue' / 'optin' / 'finish'.
+
+    Signals: EV (does processing improve the gem in expectation?) and
+    odds (do improving offers outnumber degrading ones?).
+
+        odds \\ EV    improves    ~= 0       net loss
+        good>bad      continue    continue   optin
+        good==bad     continue    optin      finish
+        good<bad      continue    finish     finish
+
+    'optin' is the borderline band — the caller resolves it against
+    --endgame-risk (gate off) or surfaces it to the player (gate on).
+    """
+    eps = 1e-9
+    coeff, pts = m.avg_coeff_change, m.ev_points
+    if coeff > eps or pts > eps:
+        return "continue"                       # EV improves an axis
+    ev_zero = abs(coeff) <= eps and abs(pts) <= eps
+    odds = m.improving_count - m.degrading_count
+    odds_score = 1 if odds > 0 else (0 if odds == 0 else -1)
+    total = odds_score + (0 if ev_zero else -1)
+    if total >= 1:
+        return "continue"
+    if total == 0:
+        return "optin"
+    return "finish"
+
+
+def _relic_chase_active(ctx: DecisionContext, ti: TurnInput,
+                        m: TurnMetrics) -> bool:
+    """True when continuing genuinely chases relic+ (>=16 points).
+
+    `relic_no_early_finish` suppresses early finish to keep cutting for
+    16+ points. That only makes sense while relic+ is *not yet locked*:
+    a gem already at 16+ keeps relic+ by finishing, so the suppressor
+    must not block an EV-based finish there.
+    """
+    return (ctx.relic_no_early_finish > 0.0
+            and ctx.relic_prob_table is not None
+            and ti.state.total_points() < 16
+            and m.p_keep_relic > ctx.relic_no_early_finish)
 
 
 def _legal_actions(ti: TurnInput) -> tuple:
