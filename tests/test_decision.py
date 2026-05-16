@@ -583,5 +583,78 @@ class TestGate1ConfirmFinish(unittest.TestCase):
         self.assertIsNone(d, f"relic+ override should suppress finish but got {d}")
 
 
+class TestGate2And3Confirm(unittest.TestCase):
+    """Gate #2 (infeasibility) and #3 (reset) stamp needs_confirmation."""
+
+    def test_infeasible_valuable_needs_confirmation(self):
+        ctx = build_ctx(goal=LastTurnGoal(min_will=5, min_chaos=5),
+                        confirm_min_coeff=1000, optimize="dps")
+        st = GemState(will=1, chaos=1, first=4, second=4,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st, offers=make_offers("will+1", "chaos+1",
+                                                   "first+1", "second+1"),
+                      turn=9, turns_left=1, reset_available=False)
+        d = infeasibility_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertTrue(d.needs_confirmation)
+        self.assertIn(ActionKind.FINISH, d.confirm_choices)
+
+    def test_infeasible_cheap_unchanged(self):
+        ctx = build_ctx(goal=LastTurnGoal(min_will=5, min_chaos=5),
+                        confirm_min_coeff=999999, optimize="dps")
+        st = GemState(will=1, chaos=1, first=1, second=1,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st, offers=make_offers("will+1", "chaos+1",
+                                                   "first+1", "second+1"),
+                      turn=9, turns_left=1, reset_available=False)
+        d = infeasibility_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_prob_reset_valuable_needs_confirmation(self):
+        ctx = build_ctx(prob_reset_threshold=0.99, confirm_min_coeff=1000,
+                        optimize="dps")
+        st = GemState(will=1, chaos=1, first=4, second=4,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st, offers=make_offers("will+1", "chaos+1",
+                                                   "first+1", "second+1"),
+                      turn=2, turns_left=8, reset_available=True)
+        d = prob_reset_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.RESET)
+        self.assertTrue(d.needs_confirmation)
+
+    def test_no_feasible_offer_valuable_needs_confirmation(self):
+        # Gate #4: no_feasible_offer_decision must stamp needs_confirmation
+        # when confirm is active and the gem's side coefficient clears the floor.
+        #
+        # State: will=1 (far from goal min_will=5), first=4, second=4 with
+        # boss_damage+attack_power => side_coeff = 1000*4 + 400*4 = 5600 >= 1000.
+        # turns_left=1 (last turn), so no offer can bridge will 1→5 in one step.
+        # Offers will+1/will+2/will+3/chaos+1 all leave will < 5, so every
+        # post-click state has P(goal)=0 => feasible_count == 0.
+        # infeasibility_decision fires only on the loose feasible() upper-bound
+        # check — with goal=min_will=5 and will=1, turns_left=1, feasible()
+        # returns False, so infeasibility_decision WOULD fire here; we verify
+        # the no_feasible_offer path independently with reset_available=True.
+        ctx = build_ctx(goal=LastTurnGoal(min_will=5),
+                        confirm_min_coeff=1000, optimize="dps")
+        st = GemState(will=1, chaos=5, first=4, second=4,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("will+1", "will+2", "will+3",
+                                         "chaos+1"),
+                      turn=9, turns_left=1, reset_available=True)
+        m = compute_post_roll_metrics(ctx, ti)
+        self.assertEqual(m.feasible_count, 0)  # branch precondition
+        d = no_feasible_offer_decision(ctx, ti, m)
+        self.assertIsNotNone(d)
+        self.assertTrue(d.needs_confirmation)
+
+
 if __name__ == "__main__":
     unittest.main()

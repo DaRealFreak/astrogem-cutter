@@ -634,9 +634,10 @@ def infeasibility_decision(
         **_feasibility_args(ctx, ti.state),
     ):
         return None
-    return _reset_or_chase_relic(
+    decision = _reset_or_chase_relic(
         ctx, ti, m, branch="infeasible", reason="goal infeasible",
     )
+    return _maybe_confirm(ctx, ti, decision)
 
 
 def no_feasible_offer_decision(
@@ -650,10 +651,11 @@ def no_feasible_offer_decision(
     """
     if not ti.offers or m.feasible_count > 0:
         return None
-    return _reset_or_chase_relic(
+    decision = _reset_or_chase_relic(
         ctx, ti, m, branch="no_feasible_offer",
         reason="no offer reaches goal",
     )
+    return _maybe_confirm(ctx, ti, decision)
 
 
 # ---------------------------------------------------------------------------
@@ -669,13 +671,13 @@ def prob_reset_decision(
         return None
     if m.p_keep_goal_reset >= ctx.prob_reset_threshold:
         return None
-    return Decision(
+    return _maybe_confirm(ctx, ti, Decision(
         action=ActionKind.RESET,
         branch="prob_reset",
         reason=(f"post-click P(goal)={m.p_keep_goal_reset:.1%} < "
                 f"threshold {ctx.prob_reset_threshold:.1%}"),
         metrics={"p_keep_goal_reset": m.p_keep_goal_reset},
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -699,14 +701,14 @@ def last_turn_reset_decision(
         return None
     if m.p_keep_goal_reset >= ctx.p_fresh:
         return None
-    return Decision(
+    return _maybe_confirm(ctx, ti, Decision(
         action=ActionKind.RESET,
         branch="last_turn_fresh",
         reason=(f"last turn post-click {m.p_keep_goal_reset:.1%} < "
                 f"fresh start {ctx.p_fresh:.1%}"),
         metrics={"p_keep_goal_reset": m.p_keep_goal_reset,
                  "p_fresh": ctx.p_fresh},
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
