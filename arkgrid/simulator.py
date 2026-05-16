@@ -579,6 +579,14 @@ class GemSimulator:
                         entry.setdefault(
                             "reroll_reasons_history", []).append([decision.branch])
 
+                if log and decision.needs_confirmation:
+                    entry["confirm"] = {
+                        "branch": decision.branch,
+                        "would_recommend": decision.action.value,
+                        "choices": [a.value for a in decision.confirm_choices],
+                        "metrics": dict(decision.metrics),
+                    }
+
                 if decision.action == ActionKind.RESET:
                     reset_used = True
                     if log:

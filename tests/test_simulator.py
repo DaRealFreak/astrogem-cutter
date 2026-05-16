@@ -340,5 +340,30 @@ class TestRiskTable(unittest.TestCase):
         self.assertIsNone(sim._risk_prob_table)
 
 
+class TestSimulatorConfirmObservability(unittest.TestCase):
+    """A gated turn leaves a `confirm` marker in the turn log; the
+    simulator still executes the recommended action."""
+
+    def test_confirm_marker_recorded(self):
+        # confirm_min_coeff=1 -> gate active for any gem with side coeff;
+        # run enough trials that at least one gem hits a gated turn.
+        seen_confirm = False
+        for seed in range(40):
+            sim = GemSimulator(
+                rarity="epic", use_extra_ticket=False,
+                use_reset_ticket=False,
+                goal=LastTurnGoal(min_will=4, min_chaos=3),
+                astro_gem=AstroGem("chaos_distortion", "boss_damage",
+                                   "attack_power", "dps"),
+                confirm_risk=0.01, confirm_min_coeff=1,
+            )
+            r = sim.simulate_one(seed=seed, log=True)
+            if r.turn_log and any("confirm" in e for e in r.turn_log):
+                seen_confirm = True
+                break
+        self.assertTrue(seen_confirm,
+                        "expected at least one gated turn across 40 seeds")
+
+
 if __name__ == "__main__":
     unittest.main()
