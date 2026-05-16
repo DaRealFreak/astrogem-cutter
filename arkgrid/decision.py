@@ -380,17 +380,84 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
 def early_finish_decision(
     ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
 ) -> Optional[Decision]:
-    """Goal is already (fully) met — decide whether to stop or keep going.
+    """Goal already met — stop, continue, or hand the call to the player.
 
-    Returns None when not applicable. Otherwise returns FINISH (no
-    rerolls left) or REROLL (rerolls available and offers are bad).
-    Branch 0 in the original automation tree.
+    With `--confirm-risk` active, uses the goal-loss-probability gate
+    (`_confirm_finish_decision`); otherwise the legacy
+    `--early-finish-coeff` heuristic (`_legacy_early_finish_decision`).
+    The legacy path may also return REROLL when the goal is satisfied
+    but all visible offers are risky and rerolls remain.
     """
-    if ctx.early_finish_coeff < 0:
-        return None
     if not _goal_fully_satisfied(ctx, ti.state):
         return None
     if not ti.offers:
+        return None
+    if ctx.confirm_active:
+        return _confirm_finish_decision(ctx, ti, m)
+    return _legacy_early_finish_decision(ctx, ti, m)
+
+
+def _confirm_finish_decision(
+    ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
+) -> Optional[Decision]:
+    """Gate #1 — finish-vs-continue under `--confirm-risk`.
+
+    Returns FINISH (silent) when there is no upside or the gem is too
+    cheap to bother the player with, None to continue silently when the
+    risk is acceptable, or FINISH+needs_confirmation when continuing is
+    a real gamble on a valuable gem.
+    """
+    if not _continue_has_upside(ctx, ti.state, ti.turns_left):
+        return Decision(
+            action=ActionKind.FINISH, branch="confirm_finish",
+            reason="goal met, no side upside — finishing",
+            metrics={"side_coeff": _side_coeff(ctx, ti.state)},
+        )
+
+    # Relic+ override: keep cutting silently when relic+ is likely.
+    if (ctx.relic_no_early_finish > 0.0
+            and ctx.relic_prob_table is not None
+            and m.p_keep_relic > ctx.relic_no_early_finish):
+        return None
+
+    coeff = _side_coeff(ctx, ti.state)
+    risk = 1.0
+    if ctx.risk_prob_table is not None:
+        risk = 1.0 - ctx.risk_prob_table.lookup(
+            ti.state, ti.turns_left, rerolls=ti.rerolls)
+    # risk <= 0.0 is a defensive zero-guard: not normally reachable once
+    # upside exists (the risk_prob_table lookup should be < 1.0), but
+    # protects against FP underflow or a tightly-bounded table rounding to 1.
+    if risk <= 0.0 or risk < ctx.confirm_risk:
+        # Free or acceptable-risk upgrade — continue silently.
+        return None
+
+    metrics = {"risk": risk, "side_coeff": coeff,
+               "p_keep_relic": m.p_keep_relic}
+    if coeff < ctx.confirm_min_coeff:
+        return Decision(
+            action=ActionKind.FINISH, branch="confirm_finish",
+            reason=(f"goal met, risk={risk:.0%} but side_coeff {coeff} "
+                    f"< floor {ctx.confirm_min_coeff} — finishing"),
+            metrics=metrics,
+        )
+    return Decision(
+        action=ActionKind.FINISH, branch="confirm_finish",
+        reason=(f"goal met, risk={risk:.0%}, side_coeff={coeff} — "
+                f"player confirmation required"),
+        metrics=metrics,
+        needs_confirmation=True,
+        confirm_choices=_legal_actions(ti),
+    )
+
+
+def _legacy_early_finish_decision(
+    ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
+) -> Optional[Decision]:
+    """Legacy `--early-finish-coeff` heuristic (used when `--confirm-risk`
+    is not set). Unchanged behavior from before the confirm gate.
+    """
+    if ctx.early_finish_coeff < 0:
         return None
 
     p_miss = m.miss_count / len(ti.offers)
@@ -401,16 +468,11 @@ def early_finish_decision(
         should_stop = (ctx.early_finish_coeff == 0
                        or expected_total <= ctx.early_finish_coeff)
     elif ctx.early_finish_coeff > 0 and m.avg_coeff_change < 0:
-        # No goal risk but net negative coefficient — only stop when the
-        # user opted into coefficient-aware mode (not safe-mode 0).
         should_stop = True
 
     if not should_stop:
         return None
 
-    # Relic+ override: don't stop if processing the visible offers gives
-    # a strong enough relic+ chance. Uses offer-conditional posterior
-    # (the bug we fixed in 3 places — now centralised).
     if (ctx.relic_no_early_finish > 0.0
             and ctx.relic_prob_table is not None
             and m.p_keep_relic > ctx.relic_no_early_finish):

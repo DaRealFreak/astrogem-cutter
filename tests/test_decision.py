@@ -57,6 +57,8 @@ def build_ctx(
     gem_type: str = "order_immutability",
     p_fresh: Optional[float] = None,
     with_relic: bool = True,
+    confirm_risk: Optional[float] = None,
+    confirm_min_coeff: Optional[int] = None,
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
@@ -75,6 +77,13 @@ def build_ctx(
     )
     if p_fresh is None:
         p_fresh = reset_table.lookup(GemState(1, 1, 1, 1), turns_total)
+    confirm_active = (confirm_risk is not None
+                      or confirm_min_coeff is not None)
+    risk_table = (
+        GoalProbabilityTable(g, turns_total, _POOL,
+                             max_rerolls=base_rerolls, early_finish=False)
+        if confirm_active else None
+    )
     return DecisionContext(
         goal=g, pool=_POOL, optimize=optimize, bis_only=bis_only,
         min_side_coeff=min_side_coeff,
@@ -88,6 +97,11 @@ def build_ctx(
         prob_table=prob_table, reset_prob_table=reset_table,
         relic_prob_table=relic_table,
         gem_type=gem_type, force_reroll_active=force_reroll_active,
+        confirm_active=confirm_active,
+        confirm_risk=confirm_risk if confirm_risk is not None else 0.0,
+        confirm_min_coeff=(confirm_min_coeff
+                           if confirm_min_coeff is not None else 0),
+        risk_prob_table=risk_table,
     )
 
 
@@ -454,6 +468,119 @@ class TestConfirmHelpers(unittest.TestCase):
         self.assertEqual(_legal_actions(ti2),
                          (ActionKind.FINISH, ActionKind.PROCESS,
                           ActionKind.REROLL, ActionKind.RESET))
+
+
+class TestGate1ConfirmFinish(unittest.TestCase):
+    """Gate #1 — finish-vs-continue under --confirm-risk."""
+
+    def _met_state(self):
+        # Goal min_will=4/min_chaos=3 fully met, side nodes mid-level.
+        return GemState(will=4, chaos=3, first=3, second=3,
+                        first_effect="boss_damage",
+                        second_effect="attack_power")
+
+    def test_no_upside_finishes_silently(self):
+        ctx = build_ctx(confirm_risk=0.1, optimize="dps")
+        st = GemState(will=5, chaos=5, first=5, second=5,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st, offers=make_offers("will+1", "chaos+1",
+                                                   "first+1", "second+1"),
+                      turn=8, turns_left=2)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_risky_valuable_needs_confirmation(self):
+        # State: goal met exactly (will=4, chaos=3), few turns left and no
+        # rerolls — every cut from this threshold state risks a -1 dropping
+        # the gem below goal.  Measured DP risk at turns_left=1, rerolls=0:
+        # ~7.5%, which comfortably clears a confirm_risk=0.05 threshold.
+        # Side coefficient: boss_damage(1000)*3 + attack_power(400)*3 = 4200
+        # which is above the 1000 floor, so confirmation must be required.
+        ctx = build_ctx(confirm_risk=0.05, confirm_min_coeff=1000,
+                        optimize="dps", relic_no_early_finish=0.0)
+        st = self._met_state()
+        ti = build_ti(state=st, offers=make_offers("will-1", "chaos-1",
+                                                   "first+1", "second+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertTrue(d.needs_confirmation)
+        self.assertIn(ActionKind.PROCESS, d.confirm_choices)
+
+    def test_risky_cheap_finishes_silently(self):
+        # Same risky state (turns_left=1, rerolls=0, risk ~7.5%) but
+        # confirm_min_coeff is enormous so the gem's side_coeff (4200)
+        # falls below the floor — no confirmation dialog, finish silently.
+        ctx = build_ctx(confirm_risk=0.05, confirm_min_coeff=999999,
+                        optimize="dps", relic_no_early_finish=0.0)
+        st = self._met_state()
+        ti = build_ti(state=st, offers=make_offers("will-1", "chaos-1",
+                                                   "first+1", "second+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_feature_off_uses_legacy_path(self):
+        # No confirm flags -> legacy --early-finish-coeff behavior.
+        # Uses risky offers (will-1/chaos-1) so the legacy path fires.
+        # With rerolls=0, the legacy path returns FINISH (not REROLL).
+        ctx = build_ctx(early_finish_coeff=0)
+        st = self._met_state()
+        ti = build_ti(state=st, offers=make_offers("will-1", "chaos-1",
+                                                   "first+1", "second+1"),
+                      turn=8, turns_left=2, rerolls=0)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_continue_silently_when_risk_acceptable(self):
+        # risk < confirm_risk -> None (continue silently).
+        # Same risky met-goal state as test_risky_valuable_needs_confirmation
+        # (turns_left=1, rerolls=0, measured risk ~7.5%), but with
+        # confirm_risk=0.99 so 7.5% < 99% -> continue silently.
+        ctx = build_ctx(confirm_risk=0.99, confirm_min_coeff=1000,
+                        optimize="dps", relic_no_early_finish=0.0)
+        st = self._met_state()
+        ti = build_ti(state=st, offers=make_offers("will-1", "chaos-1",
+                                                   "first+1", "second+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        m = compute_post_roll_metrics(ctx, ti)
+        d = early_finish_decision(ctx, ti, m)
+        # risk ~7.5% < confirm_risk 99% -> continue silently (None)
+        self.assertIsNone(d, f"should continue silently but got {d}")
+
+    def test_relic_override_suppresses_confirm_finish(self):
+        # The relic+ override inside _confirm_finish_decision must fire
+        # before the risk/coeff checks, returning None to keep cutting.
+        #
+        # State: will=4, chaos=4, first=5, second=5 (boss_damage, attack_power)
+        #   total_points=18 < 19 -> upside exists (still < ancient tier)
+        #   goal min_will=4/min_chaos=3 satisfied
+        #   risk ~6.9% > confirm_risk=0.05 (risk check would proceed)
+        #   p_keep_relic = 1.0 (100% chance of relic+ from offers that boost total)
+        #   p_keep_relic 1.0 > relic_no_early_finish 0.25 -> override fires -> None
+        ctx = build_ctx(confirm_risk=0.05, relic_no_early_finish=0.25,
+                        optimize="dps")
+        st = GemState(will=4, chaos=4, first=5, second=5,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        # risky offers ensure risk > confirm_risk so relic path is truly needed
+        ti = build_ti(state=st, offers=make_offers("will-1", "chaos-1",
+                                                   "first+1", "second+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        m = compute_post_roll_metrics(ctx, ti)
+        # Empirically verified: p_keep_relic = 1.0 for this state
+        self.assertGreater(m.p_keep_relic, 0.25,
+                           f"p_keep_relic={m.p_keep_relic} should exceed 0.25")
+        d = early_finish_decision(ctx, ti, m)
+        self.assertIsNone(d, f"relic+ override should suppress finish but got {d}")
 
 
 if __name__ == "__main__":
