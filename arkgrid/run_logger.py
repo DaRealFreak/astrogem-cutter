@@ -157,6 +157,16 @@ class RunLogger:
             total_steps=total_steps,
         )
 
+    def log_confirm(self, *, turn: int, branch: str, auto_action: str,
+                    user_choice: Optional[str] = None,
+                    metrics: Optional[Dict[str, Any]] = None) -> None:
+        """Record a confirmation-gate event. `user_choice` is omitted for
+        non-interactive (simulator) runs, which always take `auto_action`.
+        """
+        self._emit("confirm", turn=turn, branch=branch,
+                   auto_action=auto_action, user_choice=user_choice,
+                   metrics=metrics or {})
+
     def log_turn(
         self,
         *,

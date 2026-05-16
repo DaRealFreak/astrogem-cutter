@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import List, Optional, Tuple
 
 if sys.platform != "win32":
@@ -87,6 +87,17 @@ ALL_MODE_CLICK_DELAY = 1.0
 ALL_MODE_PARK_POS = (1170, 195)
 
 _VK_ESCAPE = 0x1B
+_VK_F1 = 0x70
+_VK_F2 = 0x71
+_VK_F3 = 0x72
+_VK_F4 = 0x73
+_CONFIRM_VKS = (_VK_F1, _VK_F2, _VK_F3, _VK_F4)
+_CONFIRM_LABELS = {
+    ActionKind.FINISH: "finish & keep gem",
+    ActionKind.PROCESS: "keep cutting",
+    ActionKind.REROLL: "reroll offers",
+    ActionKind.RESET: "reset gem",
+}
 _MOUSEEVENTF_LEFTDOWN = 0x0002
 _MOUSEEVENTF_LEFTUP = 0x0004
 
@@ -111,6 +122,27 @@ def _is_lostark_focused() -> bool:
 def _is_stop_pressed() -> bool:
     """Check if Escape is currently pressed."""
     return bool(ctypes.windll.user32.GetAsyncKeyState(_VK_ESCAPE) & 0x8000)
+
+
+def _wait_for_confirm_key(n_choices: int) -> int:
+    """Block until one of F1..F<n_choices> is pressed, or Escape.
+
+    Returns the 0-based choice index, or -1 if Escape was pressed.
+    Waits for a key-down edge then for release, so one press = one result.
+
+    Precondition: ``n_choices`` must be between 0 and ``len(_CONFIRM_VKS)``
+    (4) inclusive — callers must not exceed 4.
+    """
+    while True:
+        if _is_stop_pressed():
+            return -1
+        for idx in range(n_choices):
+            vk = _CONFIRM_VKS[idx]
+            if ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000:
+                while ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000:
+                    time.sleep(0.02)
+                return idx
+        time.sleep(0.03)
 
 
 def _get_monitor(monitor_index: int) -> dict:
@@ -987,6 +1019,38 @@ def run_auto(
                 reset_available=(reset_available and not reset_used),
             )
             decision = decide_post_roll(decision_ctx, ti)
+
+            if decision.needs_confirmation:
+                print("  " + "=" * 50)
+                print(f"  [CONFIRM] turn {analysis.current_turn}"
+                      f"/{det.total_steps}  branch={decision.branch}")
+                print(f"  {decision.reason}")
+                _m = decision.metrics
+                if "risk" in _m:
+                    print(f"  P(lose goal if you continue): "
+                          f"{_m['risk']:.0%}")
+                if "side_coeff" in _m:
+                    print(f"  side coefficient: {_m['side_coeff']}")
+                if "p_keep_relic" in _m and _m["p_keep_relic"] > 0:
+                    print(f"  P(relic+): {_m['p_keep_relic']:.0%}")
+                print(f"  auto would: {decision.action.value}")
+                for i, choice in enumerate(decision.confirm_choices):
+                    print(f"    [F{i + 1}] {_CONFIRM_LABELS[choice]}")
+                print("  (Escape aborts the run)")
+                print("  " + "=" * 50, flush=True)
+                _idx = _wait_for_confirm_key(len(decision.confirm_choices))
+                if _idx < 0:
+                    print("  [confirm] aborted")
+                    stop_requested = True
+                    break
+                _chosen = decision.confirm_choices[_idx]
+                logger.log_confirm(
+                    turn=analysis.current_turn, branch=decision.branch,
+                    auto_action=decision.action.value,
+                    user_choice=_chosen.value,
+                    metrics=dict(decision.metrics))
+                decision = replace(decision, action=_chosen)
+
             _action_map = {
                 ActionKind.PROCESS: "process",
                 ActionKind.REROLL: "reroll",
