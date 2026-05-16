@@ -149,6 +149,101 @@ class TestHasProgressOffer(unittest.TestCase):
         goal = LastTurnGoal(min_will=4, min_chaos=3)
         self.assertFalse(has_progress_offer(offers, state, goal, 0, 0, 0))
 
+    def test_change_first_effect_counts_as_progress_when_side_coeff_first_is_zero(self):
+        """change_first_effect is progress when the current first effect contributes
+        nothing to the side-coeff goal (side_coeff_first == 0).
+
+        Scenario: --min-side-coeff run optimising DPS; first_effect is ally_attack
+        (a support effect, coeff 0 for DPS), so it contributes nothing.
+        The only non-negative offer is change_first_effect, which is the rescue
+        move — without it the heuristic would force-reroll the offer away.
+        """
+        # first_effect="ally_attack" is not in DPS_EFFECTS -> side_coeff_first = 0
+        state = GemState(will=2, chaos=3, first=3, second=3,
+                         first_effect="ally_attack",
+                         second_effect="boss_damage")
+        # Only useful offer is change_first_effect; the rest are negative deltas.
+        offers = make_offers("change_first_effect", "will-1", "chaos-1", "second-1")
+        goal = LastTurnGoal(min_will=4, min_chaos=3)
+        # min_side_coeff > 0, side_coeff_first = 0 (ally_attack has no DPS coeff),
+        # side_coeff_second = 1000 (boss_damage).
+        self.assertTrue(
+            has_progress_offer(offers, state, goal,
+                               min_side_coeff=2000,
+                               side_coeff_first=0,
+                               side_coeff_second=1000),
+            "change_first_effect should be progress when first effect is not in "
+            "the target set (side_coeff_first == 0) and min_side_coeff > 0",
+        )
+
+    def test_change_second_effect_counts_as_progress_when_side_coeff_second_is_zero(self):
+        """Symmetric test for the second slot."""
+        state = GemState(will=2, chaos=3, first=3, second=3,
+                         first_effect="boss_damage",
+                         second_effect="ally_attack")
+        offers = make_offers("change_second_effect", "will-1", "chaos-1", "first-1")
+        goal = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertTrue(
+            has_progress_offer(offers, state, goal,
+                               min_side_coeff=2000,
+                               side_coeff_first=1000,
+                               side_coeff_second=0),
+            "change_second_effect should be progress when second effect is not in "
+            "the target set (side_coeff_second == 0) and min_side_coeff > 0",
+        )
+
+    def test_change_first_effect_not_progress_when_side_coeff_first_already_positive(self):
+        """change_first_effect is NOT progress when first already contributes to the goal
+        (side_coeff_first > 0) — changing it might downgrade the effect."""
+        state = GemState(will=2, chaos=3, first=3, second=3,
+                         first_effect="boss_damage",
+                         second_effect="attack_power")
+        # Only offer is change_first_effect; side_coeff_first=1000 (boss_damage already contributing).
+        offers = make_offers("change_first_effect", "will-1", "chaos-1", "second-1")
+        goal = LastTurnGoal(min_will=4, min_chaos=3)
+        self.assertFalse(
+            has_progress_offer(offers, state, goal,
+                               min_side_coeff=2000,
+                               side_coeff_first=1000,
+                               side_coeff_second=400),
+            "change_first_effect should NOT be progress when first effect already "
+            "contributes to the goal (side_coeff_first > 0)",
+        )
+
+    def test_change_effect_not_progress_when_min_side_coeff_is_zero(self):
+        """change_effect is not considered progress when --min-side-coeff is not set."""
+        state = GemState(will=2, chaos=3, first=3, second=3,
+                         first_effect="ally_attack",
+                         second_effect="boss_damage")
+        offers = make_offers("change_first_effect", "will-1", "chaos-1", "second-1")
+        goal = LastTurnGoal(min_will=4, min_chaos=3)
+        # min_side_coeff=0 -> change_effect should not count as progress
+        self.assertFalse(
+            has_progress_offer(offers, state, goal,
+                               min_side_coeff=0,
+                               side_coeff_first=0,
+                               side_coeff_second=1000),
+            "change_first_effect should NOT be progress when min_side_coeff == 0 "
+            "(--min-side-coeff not set)",
+        )
+
+    def test_change_second_effect_not_progress_when_min_side_coeff_is_zero(self):
+        """change_second_effect is not considered progress when --min-side-coeff is not set."""
+        state = GemState(will=2, chaos=3, first=3, second=3,
+                         first_effect="boss_damage",
+                         second_effect="ally_attack")
+        offers = make_offers("change_second_effect", "will-1", "chaos-1", "first-1")
+        goal = LastTurnGoal(min_will=4, min_chaos=3)
+        # min_side_coeff=0 -> change_second_effect should not count as progress
+        self.assertFalse(
+            has_progress_offer(offers, state, goal,
+                               min_side_coeff=0,
+                               side_coeff_first=1000,
+                               side_coeff_second=0),
+            "change_second_effect should NOT be progress when min_side_coeff == 0 "
+            "(--min-side-coeff not set)",
+        )
+
 
 class TestEarlyFinishRelicOverride(unittest.TestCase):
     """The first bug we fixed: relic+ override must use the offer-
@@ -693,6 +788,105 @@ class TestGate2And3Confirm(unittest.TestCase):
         d = no_feasible_offer_decision(ctx, ti, m)
         self.assertIsNotNone(d)
         self.assertTrue(d.needs_confirmation)
+
+
+class TestEarlyFinishZeroRiskNoStop(unittest.TestCase):
+    """F10: when miss_count == 0 (zero goal risk), _legacy_early_finish_decision
+    must never stop cutting — even if avg_coeff_change < 0 due to a
+    change_effect offer.
+
+    Scenario: early_finish_coeff=750, goal min_will=4 min_chaos=4 met exactly.
+    Offers: change_first_effect (drives avg_coeff_change deeply negative),
+    first+1, second+2, will+1 — none of these drops will/chaos below 4 so
+    miss_count == 0.  The old elif branch (`avg_coeff_change < 0`) fired and
+    returned FINISH, abandoning free points on a zero-risk gem.
+    """
+
+    def test_zero_risk_goal_met_does_not_finish_when_change_effect_skews_avg_coeff(self):
+        # GemState: goal min_will=4/min_chaos=4 fully met.
+        # first_effect=boss_damage (DPS, coeff=1000), second_effect=brand_power
+        # (support, coeff=0 for DPS optimize) — brand_power not in DPS_EFFECTS
+        # so second slot contributes nothing to DPS side-coeff.
+        # order_immutability has (additional_damage, boss_damage, brand_power,
+        # ally_attack) so both boss_damage and brand_power are valid effects.
+        state = GemState(
+            will=4, chaos=4, first=4, second=2,
+            first_effect="boss_damage", second_effect="brand_power",
+        )
+        # goal: min_will=4, min_chaos=4 — met by the state above
+        goal = LastTurnGoal(min_will=4, min_chaos=4)
+        ctx = build_ctx(
+            goal=goal,
+            early_finish_coeff=750,
+            optimize="dps",
+            gem_type="order_immutability",
+            turns_total=9,
+            base_rerolls=2,
+            relic_no_early_finish=0.0,   # disable relic override so only
+                                          # the early-finish path is tested
+        )
+        # Offers: change_first_effect makes avg_coeff_change < 0
+        # (loses boss_damage level-4 contribution = -4000), but no offer
+        # drops will or chaos below 4, so miss_count == 0.
+        offers = make_offers("change_first_effect", "first+1", "second+2", "will+1")
+        ti = build_ti(
+            state=state, offers=offers,
+            turn=5, turns_left=5, rerolls=0, reset_available=False,
+        )
+        m = compute_post_roll_metrics(ctx, ti)
+        # Sanity: change_first_effect loses boss_damage*4 = 4000 pts,
+        # remaining 3 offers have non-negative deltas, so avg_coeff_change < 0.
+        self.assertLess(m.avg_coeff_change, 0,
+                        "avg_coeff_change should be negative (change_effect skew)")
+        # Sanity: no offer drops will or chaos below 4, so miss_count == 0.
+        self.assertEqual(m.miss_count, 0,
+                         "no offer should break the goal (miss_count must be 0)")
+        # The key assertion: zero goal-risk means we must NOT finish early.
+        # F10 fix: the elif branch on avg_coeff_change is removed so this
+        # returns None (keep cutting for free points).
+        d = early_finish_decision(ctx, ti, m)
+        self.assertIsNone(
+            d,
+            f"zero-risk met goal must not trigger early finish but got: {d}",
+        )
+
+    def test_zero_risk_early_finish_coeff_zero_does_not_finish(self):
+        """With early_finish_coeff=0 (safe default) and miss_count==0, the
+        function must return None — zero risk means no danger, so
+        early-finish must not trigger regardless of the coeff threshold.
+        """
+        state = GemState(
+            will=4, chaos=4, first=3, second=3,
+            first_effect="boss_damage", second_effect="brand_power",
+        )
+        goal = LastTurnGoal(min_will=4, min_chaos=4)
+        ctx = build_ctx(
+            goal=goal,
+            early_finish_coeff=0,   # safe default: stop whenever p_miss > 0
+            optimize="dps",
+            gem_type="order_immutability",
+            turns_total=9,
+            base_rerolls=2,
+            relic_no_early_finish=0.0,  # disable relic override
+        )
+        # All four offers improve stats and none drops will/chaos below 4,
+        # so miss_count == 0.
+        offers = make_offers("will+1", "chaos+1", "first+1", "second+1")
+        ti = build_ti(
+            state=state, offers=offers,
+            turn=5, turns_left=5, rerolls=0, reset_available=False,
+        )
+        m = compute_post_roll_metrics(ctx, ti)
+        # Sanity: all offers are goal-safe.
+        self.assertEqual(m.miss_count, 0,
+                         "no offer should break the goal (miss_count must be 0)")
+        # With p_miss == 0 the `should_stop` block is never entered,
+        # so early_finish_decision returns None even when coeff threshold is 0.
+        d = early_finish_decision(ctx, ti, m)
+        self.assertIsNone(
+            d,
+            f"zero-risk with coeff=0 must not trigger early finish but got: {d}",
+        )
 
 
 if __name__ == "__main__":

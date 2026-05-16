@@ -365,5 +365,83 @@ class TestSimulatorConfirmObservability(unittest.TestCase):
                         "expected at least one gated turn across 40 seeds")
 
 
+class TestRelicRerollTableSizing(unittest.TestCase):
+    """When relic_reroll_threshold > 0, the reroll-aware DP tables must be
+    sized to base_rerolls + 1 so that the mid-run override (state.rerolls += 1)
+    is never clamped by GoalProbabilityTable.lookup."""
+
+    def test_relic_threshold_active_sizes_tables_to_base_plus_one(self):
+        # epic: RARITY_REROLLS=2, use_extra_ticket=False -> base_rerolls=2
+        # relic_reroll_threshold > 0 -> dp_max_rerolls should be 3
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=3),
+            relic_reroll_threshold=0.2,
+        )
+        expected = sim.base_rerolls + 1
+        self.assertEqual(sim.prob_table._max_rerolls, expected,
+                         "prob_table must be sized for the post-override reroll count")
+
+    def test_relic_threshold_inactive_keeps_base_rerolls(self):
+        # relic_reroll_threshold=0.0 (default) -> dp_max_rerolls == base_rerolls
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=3),
+            relic_reroll_threshold=0.0,
+        )
+        self.assertEqual(sim.prob_table._max_rerolls, sim.base_rerolls,
+                         "prob_table must equal base_rerolls when override is disabled")
+
+    def test_relic_table_also_sized_to_base_plus_one(self):
+        # The relic+ DP table must also cover base_rerolls + 1
+        sim = GemSimulator(
+            rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=3, min_chaos=3),
+            relic_reroll_threshold=0.15,
+            relic_no_early_finish=0.3,
+        )
+        # sim.base_rerolls = RARITY_REROLLS["rare"](1) + extra_ticket(1) = 2
+        # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
+        self.assertIsNotNone(sim._relic_prob_table)
+        self.assertEqual(sim._relic_prob_table._max_rerolls, sim.base_rerolls + 1)
+
+    def test_risk_table_also_sized_to_base_plus_one(self):
+        # Risk table (confirm gate + relic override) must also be sized up
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=3),
+            relic_reroll_threshold=0.2,
+            confirm_risk=0.25,
+        )
+        self.assertIsNotNone(sim._risk_prob_table)
+        self.assertEqual(sim._risk_prob_table._max_rerolls, sim.base_rerolls + 1)
+
+    def test_ea_tables_reroll_and_risk_sized_to_base_plus_one(self):
+        # Effect-aware tables built by _get_ea_tables must also respect the
+        # dp_max_rerolls = base_rerolls + 1 sizing when relic_reroll_threshold > 0.
+        # sim.base_rerolls = RARITY_REROLLS["epic"](2) + extra_ticket(0) = 2
+        # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
+        # confirm_risk activates the risk table path inside _get_ea_tables.
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=3),
+            relic_reroll_threshold=0.2,
+            confirm_risk=0.25,
+            effect_aware=True,
+        )
+        reroll_tbl, reset_tbl, risk_tbl = sim._get_ea_tables("chaos_collapse")
+        expected = sim.base_rerolls + 1
+        # Reroll-aware EA table must be sized to base_rerolls + 1
+        self.assertEqual(reroll_tbl._max_rerolls, expected,
+                         "EA reroll table must be sized for the post-override reroll count")
+        # Reset table is not reroll-aware: it should NOT be sized up
+        self.assertNotEqual(reset_tbl._max_rerolls, expected,
+                            "EA reset table should not be sized up (non-reroll-aware)")
+        # EA risk table must also be sized to base_rerolls + 1
+        self.assertIsNotNone(risk_tbl)
+        self.assertEqual(risk_tbl._max_rerolls, expected,
+                         "EA risk table must be sized for the post-override reroll count")
+
+
 if __name__ == "__main__":
     unittest.main()

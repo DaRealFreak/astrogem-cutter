@@ -140,6 +140,15 @@ def has_progress_offer(
                          and state.second < 5)
 
     for o in offers:
+        # change_first/second_effect has delta == 0 and must be checked before
+        # the delta guard below.  When min_side_coeff is active and the current
+        # effect for a slot contributes nothing (side_coeff_* == 0), any change
+        # to that effect is potentially positive for the side-coeff goal — it is
+        # the rescue move and should count as progress.
+        if o.key == "change_first_effect" and min_side_coeff > 0 and side_coeff_first == 0:
+            return True
+        if o.key == "change_second_effect" and min_side_coeff > 0 and side_coeff_second == 0:
+            return True
         if o.delta <= 0:
             continue
         if o.kind == "will" and (need_will or need_wc_total or need_total):
@@ -455,7 +464,11 @@ def _legacy_early_finish_decision(
     ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
 ) -> Optional[Decision]:
     """Legacy `--early-finish-coeff` heuristic (used when `--confirm-risk`
-    is not set). Unchanged behavior from before the confirm gate.
+    is not set).
+
+    F10 removed the ``elif avg_coeff_change < 0`` branch that previously
+    triggered early finish on zero-risk turns (see inline comment below).
+    Behavior is therefore *not* identical to pre-confirm-gate code.
     """
     if ctx.early_finish_coeff < 0:
         return None
@@ -467,8 +480,9 @@ def _legacy_early_finish_decision(
     if p_miss > 0:
         should_stop = (ctx.early_finish_coeff == 0
                        or expected_total <= ctx.early_finish_coeff)
-    elif ctx.early_finish_coeff > 0 and m.avg_coeff_change < 0:
-        should_stop = True
+    # When p_miss == 0 the goal is in no danger: finishing early on a negative
+    # coefficient *average* (a 25%-random outcome, not a chosen one) would only
+    # abandon free points — F10.  The elif that did this is intentionally absent.
 
     if not should_stop:
         return None

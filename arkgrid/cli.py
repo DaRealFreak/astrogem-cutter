@@ -71,7 +71,8 @@ def _build_parser() -> argparse.ArgumentParser:
                              "gem. Pass a rarity (common/rare/epic) to use "
                              "the ticket only on gems of that rarity or "
                              "higher (e.g. 'epic' = epic-only, 'rare' = rare "
-                             "and epic). Default: run both with/without.")
+                             "and epic). Default: disabled for sim/auto; "
+                             "stats runs both with/without.")
         p.add_argument("--no-reset-ticket", action="store_false", dest="reset_ticket")
         p.add_argument("--side-threshold", type=float, default=0.5, metavar="F",
                         help="Goal-feasibility fraction above which side nodes are valued (default: 0.5)")
@@ -543,7 +544,13 @@ def cmd_stats(args: argparse.Namespace) -> None:
                 early_finish=ef,
                 max_rerolls=base_rerolls,
             )
-            summary: dict = {"dp_prob": dp_prob}
+            dp_prob_no_reroll = _compute_dp_prob(
+                goal, rarity, astro_gem, args.optimize,
+                args.bis_only, args.min_side_coeff,
+                early_finish=ef,
+                max_rerolls=0,
+            )
+            summary: dict = {"dp_prob": dp_prob, "dp_prob_no_reroll": dp_prob_no_reroll}
 
             # Relic+ DP probability (from initial state)
             relic_dp = _compute_dp_prob(
@@ -587,7 +594,10 @@ def cmd_stats(args: argparse.Namespace) -> None:
 def cmd_sim(args: argparse.Namespace) -> None:
     goal, astro_gem, rarities, reset_variants = _resolve_args(args)
     rarity = rarities[0]
-    use_reset = _reset_enabled_for_rarity(reset_variants[-1], rarity)
+    # [0] is load-bearing: when --reset-ticket is omitted reset_variants is
+    # [False, True] so [0] selects the disabled default; stats iterates both.
+    # Reverting to [-1] would silently enable the reset ticket by default.
+    use_reset = _reset_enabled_for_rarity(reset_variants[0], rarity)
     _print_config(args, goal, astro_gem)
 
     sim = GemSimulator(
@@ -623,10 +633,12 @@ def cmd_sim(args: argparse.Namespace) -> None:
     print(f"Rerolls left: {r.rerolls_left}")
     print()
 
+    print("(P(goal)~ is an optimistic estimate — reroll-aware DP)")
+    print()
     for t in (r.turn_log or []):
         hdr = f"Turn {t['turn']} (left={t['turns_left']})"
         if t.get("goal_prob") is not None:
-            hdr += f"  P(goal)={t['goal_prob']:.1%}"
+            hdr += f"  P(goal)~={t['goal_prob']:.1%}"
         if t.get("relic_prob") is not None:
             hdr += f"  P(r+)={t['relic_prob']:.1%}"
         if "rerolls_available" in t:
@@ -659,7 +671,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
                           f"(total={sa['total_points']})  "
                           f"effects={sa['first_effect']}/{sa['second_effect']}")
             if sa.get("goal_prob") is not None:
-                state_line += f"  P(goal)={sa['goal_prob']:.1%}"
+                state_line += f"  P(goal)~={sa['goal_prob']:.1%}"
             if sa.get("relic_prob") is not None:
                 state_line += f"  P(r+)={sa['relic_prob']:.1%}"
             print(state_line)
@@ -932,7 +944,7 @@ def cmd_live(args: argparse.Namespace) -> None:
     if min_side_coeff > 0:
         goal_parts.append(f"min_side_coeff={min_side_coeff}")
     print(f"Goal:       {', '.join(goal_parts) if goal_parts else '(none)'}")
-    print(f"P(goal):    {p_current:.1%}")
+    print(f"P(goal)~:   {p_current:.1%}  (reroll-aware DP, optimistic estimate)")
 
     # Relic+ (>=16 total points) probability from current state
     relic_table = GoalProbabilityTable(
@@ -975,15 +987,15 @@ def cmd_live(args: argparse.Namespace) -> None:
         kind_note = ""
         if kind in ("cost", "view", "other"):
             kind_note = f"  ({kind}, no stat change)"
-        print(f"  {i+1}. {label:28s} -> P(goal) = {p_after:.1%}{kind_note}{best_marker}")
+        print(f"  {i+1}. {label:28s} -> P(goal)~ = {p_after:.1%}{kind_note}{best_marker}")
 
     print()
     can_reroll = reroll_count > 0 and current_turn != 1 and turns_left != 1
     reroll_val_str = ""
     if can_reroll and reroll_count > 0:
         reroll_val = prob_table.lookup(state, turns_left, rerolls=reroll_count - 1)
-        reroll_val_str = f"  |  Reroll value: {reroll_val:.1%}"
-    print(f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline: {p_current:.1%}  "
+        reroll_val_str = f"  |  Reroll value~: {reroll_val:.1%}"
+    print(f"  Avg offers: {p_avg_offers:.1%}  |  DP baseline~: {p_current:.1%}  "
           f"|  Best pick: {p_best_option:.1%}{reroll_val_str}")
     # --- Early finish check ---
     should_early_finish = False
@@ -1111,7 +1123,10 @@ def cmd_auto(args: argparse.Namespace) -> None:
 
     # Pass the raw --reset-ticket value through (True/False/None or a rarity
     # string); run_auto resolves against the detected gem's rarity per run.
-    use_reset = reset_variants[-1]
+    # [0] is load-bearing: when --reset-ticket is omitted reset_variants is
+    # [False, True] so [0] selects the disabled default; stats iterates both.
+    # Reverting to [-1] would silently enable the reset ticket by default.
+    use_reset = reset_variants[0]
 
     run_auto(
         monitor_index=args.monitor,

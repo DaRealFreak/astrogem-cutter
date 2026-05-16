@@ -75,6 +75,14 @@ class GemSimulator:
         self.turns_total = self.RARITY_TURNS[rarity]
         self.pool = pool or OptionPool()
 
+        # The relic+ reroll override grants one extra reroll mid-run by doing
+        # state.rerolls += 1.  If that count exceeds the max_rerolls the DP
+        # tables were built with, GoalProbabilityTable.lookup clamps it and
+        # under-prices the granted reroll for every subsequent decision.
+        # Size all reroll-aware tables to cover the post-override maximum.
+        dp_max_rerolls = self.base_rerolls + (1 if relic_reroll_threshold > 0.0 else 0)
+        self._dp_max_rerolls = dp_max_rerolls
+
         # DP probability table (built once, reused across all trials)
         self.prob_reset_threshold = prob_reset_threshold
         self.reset_min_coeff = reset_min_coeff
@@ -109,7 +117,7 @@ class GemSimulator:
             side_coeff_second=side_coeff_second,
             min_side_coeff=dp_min_side_coeff,
             early_finish=early_finish_coeff >= 0,
-            max_rerolls=self.base_rerolls,
+            max_rerolls=dp_max_rerolls,
         )
         # Standard (non-reroll) DP for reset decisions — the reroll-aware
         # DP overestimates p_fresh because the per-option max model
@@ -137,7 +145,7 @@ class GemSimulator:
             self._relic_prob_table = GoalProbabilityTable(
                 LastTurnGoal(min_total=16), self.turns_total, self.pool,
                 early_finish=False,
-                max_rerolls=self.base_rerolls,
+                max_rerolls=dp_max_rerolls,
             )
 
         # Risk table: goal DP with early_finish=False, so its value at a
@@ -151,7 +159,7 @@ class GemSimulator:
                 side_coeff_second=side_coeff_second,
                 min_side_coeff=dp_min_side_coeff,
                 early_finish=False,
-                max_rerolls=self.base_rerolls,
+                max_rerolls=dp_max_rerolls,
             )
 
     def _get_ea_tables(self, gem_type: str) -> tuple:
@@ -166,7 +174,7 @@ class GemSimulator:
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
             early_finish=self.early_finish_coeff >= 0,
-            max_rerolls=self.base_rerolls,
+            max_rerolls=self._dp_max_rerolls,
             effect_aware=True,
             gem_type=gem_type,
             optimize=self.optimize,
@@ -187,7 +195,7 @@ class GemSimulator:
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
             early_finish=False,
-            max_rerolls=self.base_rerolls,
+            max_rerolls=self._dp_max_rerolls,
             effect_aware=True,
             gem_type=gem_type,
             optimize=self.optimize,

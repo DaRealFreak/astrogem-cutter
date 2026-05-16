@@ -48,6 +48,22 @@ class GemAnalyzer:
         relic_plus = 0
         ancient = 0
 
+        # `--trials 0` is a documented DP-only mode (no Monte Carlo). Return a
+        # fully-keyed zeroed summary so callers can consume all keys safely.
+        if trials <= 0:
+            # Keep keys in sync with the normal-path summary dict below.
+            return {
+                "p_success": 0.0,
+                "p_success_ci_lo": 0.0,
+                "p_success_ci_hi": 1.0,
+                "avg_total_points": 0.0,
+                "avg_side_coeff": 0.0,
+                "p_relic_plus": 0.0,
+                "p_ancient": 0.0,
+                "reset_rate": 0.0,
+                "extra_ticket_available_rate": 0.0,
+            }
+
         for _ in range(trials):
             s = rng.randrange(1, 2 ** 31 - 1)
             r = simulator.simulate_one(seed=s, log=False)
@@ -73,15 +89,17 @@ class GemAnalyzer:
             "p_relic_plus": relic_plus / trials,
             "p_ancient": ancient / trials,
             "reset_rate": resets / trials,
-            "extra_ticket_rate": extra_tickets / trials,
+            "extra_ticket_available_rate": extra_tickets / trials,
         }
 
 
 def pprint_result(title: str, result: Dict[str, float]) -> None:
     print(title)
     if "dp_prob" in result:
-        line = f"  DP probability: {result['dp_prob'] * 100:.2f}%"
+        line = f"  DP probability (reroll-aware, optimistic): {result['dp_prob'] * 100:.2f}%"
         print(line)
+    if "dp_prob_no_reroll" in result:
+        print(f"  DP probability (no-reroll, conservative):  {result['dp_prob_no_reroll'] * 100:.2f}%")
     if "relic_dp_prob" in result:
         print(f"  DP relic+ (>=16): {result['relic_dp_prob'] * 100:.2f}%")
     if "p_success" in result:
@@ -94,5 +112,5 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
         print(f"  Relic+ rate (>=16): {result['p_relic_plus'] * 100:.2f}%")
         print(f"  Ancient rate (>=19): {result['p_ancient'] * 100:.2f}%")
         print(f"  Reset usage rate: {result['reset_rate'] * 100:.2f}%")
-        print(f"  Extra ticket usage rate: {result['extra_ticket_rate'] * 100:.2f}%")
+        print(f"  Extra ticket available rate: {result['extra_ticket_available_rate'] * 100:.2f}%")
     print("")

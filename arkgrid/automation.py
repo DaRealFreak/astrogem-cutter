@@ -74,6 +74,11 @@ BTN_CONFIRM_TICKET = (897, 643)
 BTN_CONFIRM_TICKET_WITH_ITEM = (917, 668)
 TICKET_ITEM_CHECK_POS = (960, 493)
 TICKET_ITEM_CHECK_RGB = 0x0B92A9
+# F6: The teal pixel above is a POSITIVE signal that the item-ticket dialog is
+# present.  For the standard (no-item) dialog variant no equivalent positive
+# signal has been identified yet (no screenshot available).  We guard what we
+# can (see the needs_confirm block in run_auto) and log the observed pixel so
+# the owner can derive the correct value from a live session.
 BTN_CONFIRM_GEM_DONE = (957, 766)
 BTN_NEXT_GEM = (356, 113)
 TICKET_CONFIRM_DELAY = 0.5
@@ -155,12 +160,38 @@ def _get_monitor(monitor_index: int) -> dict:
         return dict(monitors[monitor_index])
 
 
+def scale_to_screen(ref_x: int, ref_y: int, width: int, height: int) -> tuple[int, int]:
+    """Convert 1920x1080 reference coordinates to physical screen coordinates.
+
+    Uses uniform (letterbox/pillar-box) scaling so the game UI is treated as
+    a fixed-aspect-ratio viewport centred inside the actual monitor, matching
+    how Lost Ark renders on non-16:9 displays.
+
+    Formula::
+
+        s        = min(width / 1920, height / 1080)
+        offset_x = (width  - 1920 * s) / 2
+        offset_y = (height - 1080 * s) / 2
+        screen_x = int(round(ref_x * s + offset_x))
+        screen_y = int(round(ref_y * s + offset_y))
+
+    On a native 1920x1080 monitor s == 1.0, both offsets are 0, and the
+    mapping is the identity.  Rounding is ``int(round(...))`` (nearest
+    integer) rather than bare ``int(...)`` (truncation); the old truncation
+    was an unintended artifact of earlier code, not a deliberate choice, and
+    nearest-integer rounding gives smaller maximum error across all scales.
+    """
+    s = min(width / 1920, height / 1080)
+    offset_x = (width - 1920 * s) / 2
+    offset_y = (height - 1080 * s) / 2
+    return int(round(ref_x * s + offset_x)), int(round(ref_y * s + offset_y))
+
+
 def _move_cursor(ref_x: int, ref_y: int, monitor: dict) -> None:
     """Move cursor to 1920x1080 reference coordinates, scaled to actual screen."""
-    scale_x = monitor["width"] / 1920
-    scale_y = monitor["height"] / 1080
-    x = monitor["left"] + int(ref_x * scale_x)
-    y = monitor["top"] + int(ref_y * scale_y)
+    sx, sy = scale_to_screen(ref_x, ref_y, monitor["width"], monitor["height"])
+    x = monitor["left"] + sx
+    y = monitor["top"] + sy
     ctypes.windll.user32.SetCursorPos(x, y)
 
 
@@ -175,10 +206,9 @@ def _click(ref_x: int, ref_y: int, monitor: dict) -> None:
 
 def _get_pixel_rgb(ref_x: int, ref_y: int, monitor: dict) -> int:
     """Read pixel color at 1920x1080 reference coords. Returns 0xRRGGBB."""
-    scale_x = monitor["width"] / 1920
-    scale_y = monitor["height"] / 1080
-    x = monitor["left"] + int(ref_x * scale_x)
-    y = monitor["top"] + int(ref_y * scale_y)
+    sx, sy = scale_to_screen(ref_x, ref_y, monitor["width"], monitor["height"])
+    x = monitor["left"] + sx
+    y = monitor["top"] + sy
     hdc = ctypes.windll.user32.GetDC(0)
     try:
         colorref = ctypes.windll.gdi32.GetPixel(hdc, x, y)
@@ -542,6 +572,7 @@ def run_auto(
     print("=== Astrogem Auto Mode ===")
     print(f"Press Escape to stop.{' (DRY RUN)' if dry_run else ''}"
           f"{' [ALL GEMS]' if all_gems else ''}")
+    print("(P(goal)~ is an optimistic estimate — reroll-aware DP)")
     if not dry_run:
         for i in range(3, 0, -1):
             if _is_stop_pressed():
@@ -592,6 +623,10 @@ def run_auto(
         # then we optimistically enable it (any truthy --reset-ticket value).
         reset_available = bool(reset_ticket)
         extra_ticket_active = bool(extra_ticket)
+        # F3-B: once the extra-reroll ticket is actually spent, stop adding
+        # the phantom +1 in parse_rerolls even if the game still shows the
+        # ticket icon as "available".
+        extra_ticket_consumed = False
         force_reroll_active = False  # gated by starting coeff, set on first detection
         reset_used = False
         internal_rerolls: Optional[int] = None
@@ -754,12 +789,18 @@ def run_auto(
                 rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
                 base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
                 total_rerolls = base_rerolls + (1 if extra_ticket_active else 0)
+                # The relic+ reroll override grants one extra reroll mid-run
+                # (state.rerolls += 1).  Size all reroll-aware tables to cover
+                # the post-override maximum so GoalProbabilityTable.lookup
+                # never clamps the granted reroll.
+                dp_max_rerolls = total_rerolls + (
+                    1 if relic_reroll_threshold > 0.0 else 0)
                 prob_table, target_effects, side_coeff_first, side_coeff_second = (
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
                         bis_only, optimize, min_side_coeff,
                         gem_type_domain, early_finish=early_finish_coeff >= 0,
-                        max_rerolls=total_rerolls,
+                        max_rerolls=dp_max_rerolls,
                         effect_aware=effect_aware_dp,
                     ))
                 # Build relic+ table once (doesn't depend on effects).
@@ -770,7 +811,7 @@ def run_auto(
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,
-                        max_rerolls=total_rerolls,
+                        max_rerolls=dp_max_rerolls,
                     )
                 # Use standard (non-reroll) DP for p_fresh — the reroll-aware
                 # DP overestimates fresh start probability.
@@ -789,7 +830,7 @@ def run_auto(
                         goal, det.total_steps, pool, temp_state,
                         bis_only, optimize, min_side_coeff,
                         gem_type_domain, early_finish=False,
-                        max_rerolls=base_rerolls,
+                        max_rerolls=dp_max_rerolls,
                         effect_aware=effect_aware_dp,
                     )
                     risk_table = risk_tbl_result
@@ -897,6 +938,43 @@ def run_auto(
                     risk_prob_table=risk_table,
                 )
 
+            # --- Relic+ reroll ticket override (per-turn check, F3-A) ---
+            # Must run BEFORE _analyze_frame so the granted reroll is visible
+            # to decide_post_roll on the very frame the override triggers.
+            # Mirrors simulator.simulate_one which applies the grant at the
+            # top of the per-turn loop, before TurnInput is built.
+            if (not extra_ticket_active and extra_ticket
+                    and relic_reroll_threshold > 0.0 and relic_table is not None):
+                # Build a minimal state from det for the relic table lookup.
+                # _pre_state is provisional: used ONLY to gate this override via
+                # relic_table.lookup().  It deliberately does not reuse _analyze_frame's
+                # GemState because the override must run before _analyze_frame is called.
+                _pre_state = GemState(
+                    will=det.willpower or 1,
+                    chaos=det.chaos or 1,
+                    first=det.first_level or 1,
+                    second=det.second_level or 1,
+                    first_effect=det.first_effect or "",
+                    second_effect=det.second_effect or "",
+                    rerolls=(internal_rerolls if internal_rerolls is not None else 0),
+                )
+                _pre_turns_left = det.current_step  # current_step == turns_left
+                p_relic_cur = relic_table.lookup(
+                    _pre_state, _pre_turns_left,
+                    rerolls=_pre_state.rerolls)
+                if p_relic_cur >= relic_reroll_threshold:
+                    extra_ticket_active = True
+                    # Grant +1 reroll to internal tracking so _analyze_frame
+                    # sees the updated count (same as simulator state.rerolls += 1).
+                    if internal_rerolls is not None:
+                        internal_rerolls += 1
+                    # else: internal_rerolls is None → _analyze_frame will re-read from
+                    # OCR via parse_rerolls(extra_ticket=True), which already returns
+                    # the ticket-inclusive count; skipping the +1 is correct, not a miss.
+                    print(f"  [info] Extra reroll ticket re-enabled "
+                          f"(P(relic+)={p_relic_cur:.1%} >= "
+                          f"{relic_reroll_threshold:.1%})")
+
             # --- Analyze ---
             # Use OCR for rerolls only when a new turn is detected (turn
             # changed since last action).  Within the same turn keep internal
@@ -909,8 +987,12 @@ def run_auto(
                         or det_current_turn != prev_analysis.current_turn):
                     reroll_override = None
 
+            # F3-B: pass extra_ticket=False once the ticket has been consumed
+            # so parse_rerolls no longer adds the phantom +1 even if the game
+            # still shows the ticket icon as "available".
             analysis = _analyze_frame(
-                det, goal, extra_ticket_active,
+                det, goal,
+                extra_ticket_active and not extra_ticket_consumed,
                 prob_table, target_effects, bis_only,
                 override_reroll_count=reroll_override,
             )
@@ -925,7 +1007,7 @@ def run_auto(
                               f"1st={s.first} 2nd={s.second}  "
                               f"(total={s.total_points()})  "
                               f"effects={s.first_effect}/{s.second_effect}  "
-                              f"P(goal)={analysis.p_current:.1%}")
+                              f"P(goal)~={analysis.p_current:.1%}")
                 if relic_table is not None:
                     p_r = relic_table.lookup(s, analysis.turns_left,
                                              rerolls=analysis.reroll_count)
@@ -964,21 +1046,6 @@ def run_auto(
                 internal_rerolls = None
                 current_turn_rerolls = 0
 
-            # --- Relic+ reroll ticket override (per-turn check) ---
-            if (not extra_ticket_active and extra_ticket
-                    and relic_reroll_threshold > 0.0 and relic_table is not None):
-                p_relic_cur = relic_table.lookup(
-                    analysis.state, analysis.turns_left,
-                    rerolls=analysis.reroll_count)
-                if p_relic_cur >= relic_reroll_threshold:
-                    extra_ticket_active = True
-                    # Grant +1 reroll to internal tracking
-                    if internal_rerolls is not None:
-                        internal_rerolls += 1
-                    print(f"  [info] Extra reroll ticket re-enabled "
-                          f"(P(relic+)={p_relic_cur:.1%} >= "
-                          f"{relic_reroll_threshold:.1%})")
-
             # --- Print turn header ---
             note = ""
             if (prev_action == "reroll" and prev_analysis
@@ -991,7 +1058,7 @@ def run_auto(
                 relic_info = f"  P(r+)={p_r:.1%}"
             print(f"Turn {analysis.current_turn}/{analysis.turns_total} "
                   f"(left={analysis.turns_left})  "
-                  f"P(goal)={analysis.p_current:.1%}{relic_info}  "
+                  f"P(goal)~={analysis.p_current:.1%}{relic_info}  "
                   f"rerolls={analysis.reroll_count}{note}")
             opts_with_prob = [
                 f"{lbl} ({p:.1%})"
@@ -1145,6 +1212,7 @@ def run_auto(
 
             # Ticket confirmation for reset and ticket-based rerolls
             needs_confirm = False
+            _reroll_ticket_confirm = False  # track whether this is the extra-reroll ticket
             if action == "reset" and reset_available:
                 needs_confirm = True
             elif action == "reroll" and extra_ticket_active:
@@ -1154,22 +1222,82 @@ def run_auto(
                     (base_rerolls + 1)  # total with ticket
                     - analysis.reroll_count
                 )
+                # Invariant: reroll_count <= 1 means only the extra-ticket reroll
+                # remains, so this reroll is the one that spends the ticket.
                 if rerolls_used_this_run >= base_rerolls:
                     needs_confirm = True
+                    _reroll_ticket_confirm = True
 
             if needs_confirm:
                 time.sleep(TICKET_CONFIRM_DELAY)
+                # F6: Guard against blind-clicking when the confirmation dialog
+                # has not actually appeared (e.g. reroll-count tracking drifted).
+                # _get_pixel_rgb returns -1 (CLR_INVALID) when the coordinate is
+                # outside the screen's clipping region (off-screen); any other
+                # read may come from either dialog variant or the live cutting
+                # screen.
                 pixel = _get_pixel_rgb(*TICKET_ITEM_CHECK_POS, monitor)
-                if pixel == TICKET_ITEM_CHECK_RGB:
+                if pixel == -1:
+                    # Coordinate is off-screen — dialog state is unknown.
+                    # Skip the confirm click entirely to avoid a misclick.
+                    # The reset/reroll button was already clicked this iteration
+                    # but the confirm dialog was NOT confirmed, so the action has
+                    # not completed and we must not record it as complete.  Set
+                    # waiting_for_change so the loop pauses for the screen to
+                    # settle and re-detects (guarding against an immediate
+                    # re-decide that could double-click the action button), then
+                    # continue to skip all post-action bookkeeping.
+                    print(
+                        f"  [warn] ticket-confirm dialog not verified "
+                        f"(pixel read failed at {TICKET_ITEM_CHECK_POS}) — "
+                        f"skipping confirm click to avoid misclick on cutting screen"
+                    )
+                    target = 1 if action == "reset" else None
+                    waiting_for_change = (analysis.current_turn, det.rerolls, target)
+                    # Mirror the post-action bookkeeping block below (must stay
+                    # in sync with prev_analysis / prev_action / prev_action_reason
+                    # assignments at the end of the normal action path).
+                    prev_analysis = analysis
+                    prev_action = action
+                    prev_action_reason = action_reason
+                    time.sleep(animation_delay)
+                    continue
+                elif pixel == TICKET_ITEM_CHECK_RGB:
+                    # Positive confirmation: item-ticket dialog is present.
+                    # The teal pill at TICKET_ITEM_CHECK_POS is only rendered
+                    # when the item-variant dialog is visible.
                     confirm_pos = BTN_CONFIRM_TICKET_WITH_ITEM
-                    confirm_note = " (item ticket)"
+                    print(f"  >>> Confirming ticket (item ticket, pixel={pixel:#08x})...",
+                          end="", flush=True)
+                    _click(*confirm_pos, monitor)
+                    print(" done")
+                    # F3-B: mark ticket consumed so parse_rerolls no longer adds
+                    # the phantom +1 if the game still shows the icon after spending.
+                    if _reroll_ticket_confirm:
+                        extra_ticket_consumed = True
                 else:
+                    # F6: Teal pixel absent — either the standard (no-item)
+                    # confirm dialog is up, or the dialog never appeared.
+                    # No reliable positive pixel signal is known for the standard
+                    # dialog variant (no in-game screenshot captured).  Log the
+                    # observed pixel for future calibration and proceed with the
+                    # standard confirm click; this preserves the pre-F6 behaviour
+                    # for the standard variant while making the uncertainty visible.
+                    # TODO(F6-std): capture the pixel value here during a live reset
+                    # (standard dialog, no item ticket) to add a positive guard.
+                    print(
+                        f"  [info] teal item-ticket pixel absent at {TICKET_ITEM_CHECK_POS} "
+                        f"(pixel={pixel:#08x}); assuming standard confirm dialog"
+                    )
                     confirm_pos = BTN_CONFIRM_TICKET
-                    confirm_note = ""
-                print(f"  >>> Confirming ticket{confirm_note}...",
-                      end="", flush=True)
-                _click(*confirm_pos, monitor)
-                print(" done")
+                    print(f"  >>> Confirming ticket (standard)...",
+                          end="", flush=True)
+                    _click(*confirm_pos, monitor)
+                    print(" done")
+                    # F3-B: mark ticket consumed so parse_rerolls no longer adds
+                    # the phantom +1 if the game still shows the icon after spending.
+                    if _reroll_ticket_confirm:
+                        extra_ticket_consumed = True
 
             # Post-action tracking
             if action == "finish":
@@ -1217,7 +1345,10 @@ def run_auto(
                 })
                 current_turn_rerolls = 0
 
-            if action in ("process", "reset"):
+            # F4: also guard after reroll — block re-decision until the
+            # reroll count decrements on-screen, confirming the animation
+            # has settled and the new offer set is visible.
+            if action in ("process", "reset", "reroll"):
                 target = 1 if action == "reset" else None
                 waiting_for_change = (analysis.current_turn, det.rerolls, target)
 
@@ -1244,7 +1375,7 @@ def run_auto(
                             f"w={sa['will']} c={sa['chaos']} "
                             f"1st={sa['first']} 2nd={sa['second']}  "
                             f"(total={sa['total']})  "
-                            f"P(goal)={entry['p_goal']:.1%}  "
+                            f"P(goal)~={entry['p_goal']:.1%}  "
                             f"EARLY FINISH{reason_part}")
                     print(line)
                 else:
@@ -1254,7 +1385,7 @@ def run_auto(
                             f"w={sa['will']} c={sa['chaos']} "
                             f"1st={sa['first']} 2nd={sa['second']}  "
                             f"(total={sa['total']})  "
-                            f"P(goal)={entry['p_goal']:.1%}")
+                            f"P(goal)~={entry['p_goal']:.1%}")
                     if entry["rerolls_used"] > 0:
                         line += f"  ({entry['rerolls_used']} rerolls used)"
                     picked = entry.get("picked")
