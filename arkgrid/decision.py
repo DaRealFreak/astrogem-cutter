@@ -30,7 +30,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from arkgrid.constants import (
-    DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS,
+    DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS,
     change_dest_max_coeff,
 )
 from arkgrid.models import GemState, LastTurnGoal, Option
@@ -177,10 +177,13 @@ class TurnMetrics:
     p_keep_goal: float            # prob_table.expected_prob_after_click
     p_keep_goal_reset: float      # reset_prob_table.expected_prob_after_click
     p_keep_relic: float           # relic_table.expected_prob_after_click (0 if None)
-    p_reroll_relic: float         # relic_table.lookup(state, tl, rerolls-1) (0 if None or no reroll)
+    p_reroll_relic: float         # relic_table.lookup(state, tl, rerolls-1) (0 if None/no reroll)
     feasible_count: int           # # offers where prob_table DP > 0 after pick
-    miss_count: int               # # offers that break goal_fully_satisfied (early-finish only)
-    avg_coeff_change: float       # avg side-coeff delta from offers
+    miss_count: int               # # offers that break goal_fully_satisfied
+    avg_coeff_change: float       # avg side-coeff EV (clamped, change_effect-aware)
+    ev_points: float              # avg total-points EV
+    improving_count: int          # # offers that strictly improve the gem
+    degrading_count: int          # # offers that strictly degrade the gem
 
 
 def _apply_option_for_metrics(state: GemState, opt: Option) -> GemState:
@@ -306,6 +309,32 @@ def _maybe_confirm(ctx: DecisionContext, ti: TurnInput,
                    confirm_choices=_legal_actions(ti))
 
 
+def _change_effect_ev(ctx: DecisionContext, state: GemState,
+                      slot: str) -> float:
+    """Expected side-coefficient delta from a change_{slot}_effect option.
+
+    The new effect is drawn uniformly from the gem-pool effects not
+    currently equipped, so the expected delta is
+    `level * (mean destination coeff - current coeff)`.
+
+    Replaces the old `-= full contribution` model, which over-counted
+    the loss whenever a destination was itself a target effect (the
+    inaccuracy F10 flagged). Returns 0.0 when the gem type is unknown.
+    """
+    coeff_map = DPS_COEFF if ctx.optimize == "dps" else SUPPORT_COEFF
+    target = DPS_EFFECTS if ctx.optimize == "dps" else SUPPORT_EFFECTS
+    cur_eff = getattr(state, f"{slot}_effect")
+    cur = coeff_map.get(cur_eff, 0) if cur_eff in target else 0
+    lvl = getattr(state, slot)
+    dests = [e for e in GEM_TYPES.get(ctx.gem_type, ())
+             if e not in (state.first_effect, state.second_effect)]
+    if not dests:
+        return 0.0
+    mean_dest = sum((coeff_map.get(e, 0) if e in target else 0)
+                    for e in dests) / len(dests)
+    return lvl * (mean_dest - cur)
+
+
 def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetrics:
     """Compute every probability and aggregate a branch helper might need.
 
@@ -314,7 +343,7 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
     the work.
     """
     if not ti.offers:
-        return TurnMetrics(0.0, 0.0, 0.0, 0.0, 0, 0, 0.0)
+        return TurnMetrics(0.0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0.0, 0, 0)
 
     tla = ti.turns_left - 1   # turns_left after this click
 
@@ -343,6 +372,9 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
     feasible_count = 0
     miss_count = 0
     coeff_total = 0.0
+    point_total = 0
+    improving_count = 0
+    degrading_count = 0
 
     for o in ti.offers:
         ns = _apply_option_for_metrics(ti.state, o)
@@ -353,22 +385,29 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
             feasible_count += 1
         if not _goal_fully_satisfied(ctx, ns):
             miss_count += 1
-        # Side-coeff change from level offers; change_*_effect loses
-        # the current effect's contribution (gain side modeled as 0
-        # since the destination is random and usually a downgrade once
-        # you've leveled up the original).
+        # Per-offer EV on two axes. Total-points: clamped delta straight
+        # off the applied state. Side-coeff: clamped level delta, or the
+        # expected destination coefficient for change_effect offers.
+        dp = ns.total_points() - ti.state.total_points()
+        dc = 0.0
         if o.kind in ("first", "second"):
             eff = getattr(ti.state, f"{o.kind}_effect")
             if eff in target_set:
-                coeff_total += o.delta * coeff_map.get(eff, 0)
+                actual = getattr(ns, o.kind) - getattr(ti.state, o.kind)
+                dc = actual * coeff_map.get(eff, 0)
         elif o.key in ("change_first_effect", "change_second_effect"):
             slot = "first" if o.key == "change_first_effect" else "second"
-            eff = getattr(ti.state, f"{slot}_effect")
-            if eff in target_set:
-                lvl = getattr(ti.state, slot)
-                coeff_total -= lvl * coeff_map.get(eff, 0)
+            dc = _change_effect_ev(ctx, ti.state, slot)
+        coeff_total += dc
+        point_total += dp
+        if dp > 0 or dc > 1e-9:
+            improving_count += 1
+        elif dp < 0 or dc < -1e-9:
+            degrading_count += 1
+        # else: neutral (maintain / capped / cost / view)
 
     avg_coeff_change = coeff_total / len(ti.offers)
+    ev_points = point_total / len(ti.offers)
 
     return TurnMetrics(
         p_keep_goal=p_keep_goal,
@@ -378,6 +417,9 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
         feasible_count=feasible_count,
         miss_count=miss_count,
         avg_coeff_change=avg_coeff_change,
+        ev_points=ev_points,
+        improving_count=improving_count,
+        degrading_count=degrading_count,
     )
 
 

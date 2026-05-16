@@ -889,5 +889,67 @@ class TestEarlyFinishZeroRiskNoStop(unittest.TestCase):
         )
 
 
+class TestEvMetrics(unittest.TestCase):
+    """Task 1: compute_post_roll_metrics produces accurate two-axis EV
+    and improving/degrading offer counts."""
+
+    def test_turn9_offer_set(self):
+        # order_fortitude, boss_damage(first)/attack_power(second).
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        min_side_coeff=2000,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        state = GemState(will=5, chaos=5, first=5, second=4,
+                         first_effect="boss_damage",
+                         second_effect="attack_power")
+        offers = make_offers("second+1", "chaos-1", "second-1",
+                             "change_second_effect")
+        m = compute_post_roll_metrics(ctx, build_ti(
+            state=state, offers=offers, turn=9, turns_left=1,
+            rerolls=0, reset_available=False))
+        # second+1: +400, chaos-1: 0, second-1: -400,
+        # change_second_effect: 4*(0-400) = -1600  ->  -1600/4
+        self.assertAlmostEqual(m.avg_coeff_change, -400.0, places=3)
+        # points: +1, -1, -1, 0  ->  -1/4
+        self.assertAlmostEqual(m.ev_points, -0.25, places=3)
+        # improving: second+1 only. degrading: chaos-1, second-1, EC.
+        self.assertEqual(m.improving_count, 1)
+        self.assertEqual(m.degrading_count, 3)
+
+    def test_f10_offer_set(self):
+        # change_first dest pool {additional_damage(700), ally_attack(0)}
+        # -> mean 350; boss_damage current 1000; level 4 -> 4*(350-1000).
+        ctx = build_ctx(gem_type="order_immutability", optimize="dps",
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        state = GemState(will=4, chaos=4, first=4, second=2,
+                         first_effect="boss_damage",
+                         second_effect="brand_power")
+        offers = make_offers("change_first_effect", "first+1",
+                             "second+2", "will+1")
+        m = compute_post_roll_metrics(ctx, build_ti(
+            state=state, offers=offers, turn=5, turns_left=5,
+            rerolls=0, reset_available=False))
+        self.assertAlmostEqual(m.avg_coeff_change, -400.0, places=3)
+        self.assertAlmostEqual(m.ev_points, 1.0, places=3)
+        # improving: first+1, second+2, will+1. degrading: change_first.
+        self.assertEqual(m.improving_count, 3)
+        self.assertEqual(m.degrading_count, 1)
+
+    def test_capped_level_offer_is_neutral(self):
+        # first/second already at 5: first+1 / second+1 are no-ops.
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps")
+        state = GemState(will=5, chaos=5, first=5, second=5,
+                         first_effect="boss_damage",
+                         second_effect="attack_power")
+        offers = make_offers("first+1", "second+1", "will-1", "chaos-1")
+        m = compute_post_roll_metrics(ctx, build_ti(
+            state=state, offers=offers, turn=9, turns_left=1,
+            rerolls=0, reset_available=False))
+        self.assertAlmostEqual(m.avg_coeff_change, 0.0, places=3)
+        self.assertAlmostEqual(m.ev_points, -0.5, places=3)
+        # first+1 / second+1 clamped -> neutral; will-1 / chaos-1 degrade.
+        self.assertEqual(m.improving_count, 0)
+        self.assertEqual(m.degrading_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
