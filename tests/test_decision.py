@@ -582,6 +582,45 @@ class TestGate1ConfirmFinish(unittest.TestCase):
         d = early_finish_decision(ctx, ti, m)
         self.assertIsNone(d, f"relic+ override should suppress finish but got {d}")
 
+    def test_change_effect_offer_does_not_force_finish(self):
+        """Regression lock: a change_effect card in the offer set must NOT
+        cause an instant finish via the confirmation gate.
+
+        The OLD legacy --early-finish-coeff path had a bug where a
+        change_effect offer drove avg_coeff_change negative and triggered
+        a finish even when the goal was met and the player should continue.
+        The new --confirm-risk path computes risk from the DP risk_prob_table
+        and does not inspect the offer set's coefficient deltas at all, so it
+        is immune by construction.  This test locks that in: with
+        confirm_risk=0.99 (almost any risk is acceptable), the gate should
+        return None (continue silently) even when a change_effect card appears
+        in the offer set.
+        """
+        # confirm_risk=0.99 means the gate only fires when P(miss) >= 99%,
+        # which cannot happen from a normal mid-run state -> gate returns None.
+        ctx = build_ctx(confirm_risk=0.99, confirm_min_coeff=1000,
+                        optimize="dps", relic_no_early_finish=0.0)
+        # Goal min_will=4/min_chaos=3 fully met, side nodes mid-level.
+        # boss_damage(1000)*3 + attack_power(400)*3 = 4200 >= 1000 floor.
+        st = GemState(will=4, chaos=3, first=3, second=3,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        # Offer set deliberately includes a change_first_effect card alongside
+        # normal progress offers — this is the shape that triggered the old bug.
+        offers = make_offers("change_first_effect", "will+1", "chaos+1",
+                             "second+1")
+        ti = build_ti(state=st, offers=offers, turn=5, turns_left=5,
+                      rerolls=2, reset_available=True)
+        m = compute_post_roll_metrics(ctx, ti)
+        # With confirm_risk=0.99 the DP risk (well below 99%) must not
+        # trigger a finish — gate must return None (continue silently).
+        d = early_finish_decision(ctx, ti, m)
+        self.assertIsNone(
+            d,
+            f"change_effect offer must not force an instant finish "
+            f"when risk < confirm_risk=0.99, got: {d}",
+        )
+
 
 class TestGate2And3Confirm(unittest.TestCase):
     """Gate #2 (infeasibility) and #3 (reset) stamp needs_confirmation."""

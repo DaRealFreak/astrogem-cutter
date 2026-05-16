@@ -127,6 +127,8 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--relic-no-early-finish F` | Suppress early finish when P(relic+ >=16) from current state exceeds this threshold — chase 16+ total points even when goal is met. `0.0` = disabled. Default: `0.0`. |
 | `--relic-reroll-threshold F` | Re-enable extra reroll ticket mid-run when P(relic+ >=16) from current state exceeds this threshold, overriding `--reroll-min-coeff` gating. `0.0` = disabled. Default: `0.0`. |
 | `--force-reroll-no-progress N` | Heuristic override: when the gem's starting target-effect coefficient is ≥ `N`, force a reroll (if rerolls remain) on any turn where no offer progresses the goal (no will/chaos/needed side level/coefficient increase). Bypasses the DP's marginal keep-vs-reroll calculation. On high-coeff gems this boosts main-goal success at some cost to relic+ / total-points upside. `0` = disabled. Try `1050+` on support, `1400+` on DPS. Default: `0`. See [strategy: forced reroll](documentation/strategy.md#forced-reroll-on-no-progress-turns). |
+| `--confirm-risk F` | Activate the interactive confirmation gate (`auto`). When the goal is already met and continuing has side-coefficient upside, pause and ask the player if `P(losing the goal if you keep cutting) >= F`. Either this flag or `--confirm-min-coeff` activates the gate. Overrides `--early-finish-coeff`. `0.0` = gate always prompts when goal is met and any risk exists. Default: `0.0` when unset. |
+| `--confirm-min-coeff N` | Side-coefficient floor for the confirmation gate: only prompt about gems whose current side coefficient `>= N`. Setting this flag alone also activates the gate. `0` = prompt for every gem regardless of coefficient. Default: `0`. |
 
 ### Stats-only options
 
@@ -247,6 +249,10 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 --dry-run
 
 # Automation with risk tolerance
 python -m arkgrid auto --min-will 4 --min-chaos 4 --early-finish-coeff 1000
+
+# Automation with interactive confirmation gate: pause and ask when P(miss goal) >= 10%
+# and the gem's side coefficient is at least 3000
+python -m arkgrid auto --min-will 4 --min-chaos 4 --confirm-risk 0.10 --confirm-min-coeff 3000
 
 # Automation for --all mode with min_side_coeff (effect-aware DP avoids false 0% resets
 # on gems whose starting effects don't hit the target side)
