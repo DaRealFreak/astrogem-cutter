@@ -57,6 +57,8 @@ class Decision:
     branch: str
     reason: str
     metrics: Dict[str, Any] = field(default_factory=dict)
+    needs_confirmation: bool = False
+    confirm_choices: tuple = ()
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +90,10 @@ class DecisionContext:
     relic_prob_table: Optional[GoalProbabilityTable]
     gem_type: str
     force_reroll_active: bool                      # gated by starting coeff
+    confirm_active: bool = False
+    confirm_risk: float = 0.0
+    confirm_min_coeff: int = 0
+    risk_prob_table: Optional[GoalProbabilityTable] = None
 
 
 @dataclass

@@ -14,7 +14,7 @@ import unittest
 from typing import List, Optional
 
 from arkgrid.decision import (
-    ActionKind, DecisionContext, TurnInput,
+    ActionKind, Decision, DecisionContext, TurnInput,
     compute_post_roll_metrics, decide_post_roll,
     early_finish_decision, has_progress_offer,
     infeasibility_decision, last_turn_reset_decision,
@@ -400,6 +400,22 @@ class TestDecidePostRollOrder(unittest.TestCase):
         d = decide_post_roll(ctx, ti)
         self.assertEqual(d.action, ActionKind.PROCESS)
         self.assertEqual(d.branch, "default_process")
+
+
+class TestConfirmFields(unittest.TestCase):
+    """Decision and DecisionContext carry the confirmation fields."""
+
+    def test_decision_defaults(self):
+        d = Decision(action=ActionKind.FINISH, branch="x", reason="y")
+        self.assertFalse(d.needs_confirmation)
+        self.assertEqual(d.confirm_choices, ())
+
+    def test_context_defaults(self):
+        ctx = build_ctx()
+        self.assertFalse(ctx.confirm_active)
+        self.assertEqual(ctx.confirm_risk, 0.0)
+        self.assertEqual(ctx.confirm_min_coeff, 0)
+        self.assertIsNone(ctx.risk_prob_table)
 
 
 if __name__ == "__main__":
