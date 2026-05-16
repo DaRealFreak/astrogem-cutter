@@ -58,7 +58,7 @@ At runtime, `should_reroll_dp()` compares the expected value of keeping the curr
 
 The simulator builds two DP tables:
 
-1. **Reroll-aware DP** (`prob_table`): State includes reroll count. Used for reroll decisions via `should_reroll_dp()`. Build time: ~50ms single-draw, ~1s exact-draw.
+1. **Reroll-aware DP** (`prob_table`): State includes reroll count. Used for reroll decisions via `should_reroll_dp()`. Build time: ~50ms.
 
 2. **Standard DP** (`_reset_prob_table`): State does not include rerolls. Used for reset decisions and `p_fresh` comparison.
 
@@ -302,7 +302,7 @@ Two backward-induction probability tables are precomputed once at startup:
 
 ### Reroll-aware DP (primary)
 
-State: `(will, chaos, first, second, rerolls, turns_left)` — ~25,000 entries for epic with 3 rerolls. Build time: ~50ms single-draw, ~1s exact-draw. This table drives:
+State: `(will, chaos, first, second, rerolls, turns_left)` — ~25,000 entries for epic with 3 rerolls. Build time: ~50ms. This table drives:
 - **Optimal reroll timing** via `should_reroll_dp()` — compares keep-vs-reroll value at each state
 - The `P(goal)` and `P(click)` values shown in `sim`, `live`, and `auto` output
 
@@ -310,7 +310,7 @@ The per-option max model captures the value of selective rejection (keep good dr
 
 ### Standard DP (for reset decisions)
 
-State: `(will, chaos, first, second, turns_left)` — 6,250 entries for epic. Build time: ~20ms single-draw, ~1s exact-draw. This table drives:
+State: `(will, chaos, first, second, turns_left)` — 6,250 entries for epic. Build time: ~20ms. This table drives:
 - Probability-based early resets (when `--prob-reset-threshold` > 0)
 - Fresh-start probability (`p_fresh`) for last-turn reset comparison
 - Early finish decisions (P=1.0 at goal-satisfied states when enabled)
@@ -318,7 +318,7 @@ State: `(will, chaos, first, second, turns_left)` — 6,250 entries for epic. Bu
 
 The standard DP is used for reset decisions because the reroll-aware DP overestimates `p_fresh` (fresh start with full rerolls appears ~2x more valuable than it actually is, due to the per-option max approximation vs actual 4-draw-pick-1 mechanics).
 
-Both tables use single-draw transition probabilities (option weight / total eligible weight) as a base approximation, with exact PPSWOR(4) inclusion probabilities available via `--exact-dp`. When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space.
+Both tables use single-draw transition probabilities (option weight / total eligible weight). When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space.
 
 ### Relic+ DP (optional)
 
@@ -326,9 +326,9 @@ State: `(will, chaos, first, second, turns_left)` — same as standard DP. Goal:
 
 ## Effect-aware DP
 
-Flag: `--effect-aware-dp` (available on `stats` and `auto`).
+Effect-aware + reroll-aware DP is the default mode used at runtime (it self-disables only when no gem type is known). It correctly prices `--min-side-coeff` goals by tracking effect identity in the DP state and modelling `change_effect` transitions.
 
-The standard DP treats each gem's `first_effect` and `second_effect` as fixed scalars at construction time (via `side_coeff_first` / `side_coeff_second`). It does not model `change_first_effect` / `change_second_effect` as state transitions — those options are treated as no-ops in the transition function. This creates two related issues:
+A simpler DP that treats each gem's `first_effect` and `second_effect` as fixed scalars at construction time (via `side_coeff_first` / `side_coeff_second`) would not model `change_first_effect` / `change_second_effect` as state transitions — those options would be treated as no-ops in the transition function. This creates two related issues:
 
 1. **False 0% on wrong-side gems.** If the starting effects don't belong to the optimize side (e.g. `ally_damage + ally_attack` under `--optimize dps`), both side coefficients are 0. With `--min-side-coeff 2000`, the terminal success check `coeff_first*f + coeff_second*s >= 2000` can never pass. The DP reports 0% for every state, and automation triggers an early reset on turn 2 as soon as rule 3 (`no offer keeps goal feasible`) fires.
 
@@ -348,9 +348,8 @@ Coefficient check: `effect_coeffs[first_idx] * first + effect_coeffs[second_idx]
 
 | Mode | States | Build time |
 |---|---|---|
-| Non-reroll, single-draw | ~68k (epic) | ~160ms |
-| Reroll-aware, single-draw | ~270k (epic, 3 rerolls) | ~1.3s |
-| Reroll-aware, exact-draw | ~270k | ~2.5s |
+| Non-reroll | ~68k (epic) | ~160ms |
+| Reroll-aware | ~270k (epic, 3 rerolls) | ~1.3s |
 
 Tables are cached per gem type. In `--all` automation or `stats` with random gems, a single table per gem type (6 types total) is reused across all runs of that type.
 
