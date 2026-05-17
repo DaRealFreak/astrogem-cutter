@@ -15,7 +15,7 @@ from arkgrid.decision import (
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
 from arkgrid.policy import RerollPolicy
-from arkgrid.probability import GoalProbabilityTable
+from arkgrid.probability import GoalProbabilityTable, SideValueTable
 
 
 class GemSimulator:
@@ -45,6 +45,8 @@ class GemSimulator:
             confirm_risk: Optional[float] = None,
             confirm_min_coeff: Optional[int] = None,
             endgame_risk: bool = False,
+            relic_coeff: int = 0,
+            ancient_coeff: int = 0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -59,6 +61,10 @@ class GemSimulator:
         self.confirm_min_coeff = (confirm_min_coeff
                                   if confirm_min_coeff is not None else 0)
         self.endgame_risk = endgame_risk
+        self.relic_coeff = relic_coeff
+        self.ancient_coeff = ancient_coeff
+        self._side_value_table_cache: Dict[str, SideValueTable] = {}
+        self._side_value_table: Optional[SideValueTable] = None
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_risk_table_cache: Dict[str, GoalProbabilityTable] = {}
@@ -207,6 +213,26 @@ class GemSimulator:
         self._ea_risk_table_cache[gem_type] = risk_tbl
         return reroll_tbl, reset_tbl, risk_tbl
 
+    def _get_side_value_table(self, gem_type: str) -> SideValueTable:
+        """Build or fetch the cached side-value DP table for a gem type.
+
+        One table per gem type covers all effect configs (the effect pair
+        is in the DP state), so `--all` / random-gem runs amortize the
+        build the same way `_get_ea_tables` does.
+        """
+        cached = self._side_value_table_cache.get(gem_type)
+        if cached is not None:
+            return cached
+        table = SideValueTable(
+            self.goal, self.turns_total, self.pool,
+            gem_type=gem_type, optimize=self.optimize,
+            min_side_coeff=self.min_side_coeff,
+            relic_coeff=self.relic_coeff,
+            ancient_coeff=self.ancient_coeff,
+        )
+        self._side_value_table_cache[gem_type] = table
+        return table
+
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
         """Generate a random AstroGem: random type, random 2-of-4 effects."""
@@ -339,6 +365,7 @@ class GemSimulator:
             confirm_min_coeff=self.confirm_min_coeff,
             risk_prob_table=self._risk_prob_table,
             endgame_risk=self.endgame_risk,
+            side_value_table=self._side_value_table,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],
@@ -466,6 +493,9 @@ class GemSimulator:
             self._reset_prob_table = ea_reset
             if self.confirm_active:
                 self._risk_prob_table = ea_risk
+        self._side_value_table = (
+            self._get_side_value_table(run_gem.gem_type)
+            if run_gem.gem_type in GEM_TYPES else None)
 
         reset_available = bool(self.use_reset_ticket)
         extra_ticket_active = bool(self.use_extra_ticket)

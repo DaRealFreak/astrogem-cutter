@@ -35,7 +35,7 @@ from arkgrid.constants import (
 )
 from arkgrid.models import GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable
+from arkgrid.probability import GoalProbabilityTable, SideValueTable
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +95,7 @@ class DecisionContext:
     confirm_min_coeff: int = 0
     risk_prob_table: Optional[GoalProbabilityTable] = None
     endgame_risk: bool = False
+    side_value_table: Optional[SideValueTable] = None
 
 
 @dataclass

@@ -468,5 +468,47 @@ class TestEndgameRiskPlumbing(unittest.TestCase):
         self.assertFalse(sim.endgame_risk)
 
 
+class TestSideValueTableWiring(unittest.TestCase):
+    """Task 2: GemSimulator builds a per-gem-type side-value table and
+    threads it into the DecisionContext."""
+
+    def test_side_value_table_built_for_configured_gem(self):
+        from arkgrid.models import AstroGem
+        from arkgrid.probability import SideValueTable
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+            astro_gem=AstroGem("order_fortitude", "boss_damage",
+                               "attack_power", "dps"),
+            relic_coeff=3000, ancient_coeff=8000,
+        )
+        sim.simulate_one(seed=1)
+        tbl = sim._get_side_value_table("order_fortitude")
+        self.assertIsInstance(tbl, SideValueTable)
+        self.assertTrue(tbl.enabled)
+        # Cached: a second call returns the same object.
+        self.assertIs(tbl, sim._get_side_value_table("order_fortitude"))
+
+    def test_decision_context_carries_side_value_table(self):
+        from arkgrid.models import AstroGem
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+            astro_gem=AstroGem("order_fortitude", "boss_damage",
+                               "attack_power", "dps"),
+        )
+        sim.simulate_one(seed=1)
+        ctx = sim._decision_context()
+        self.assertIsNotNone(ctx.side_value_table)
+
+    def test_relic_ancient_coeff_default_zero(self):
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+        )
+        self.assertEqual(sim.relic_coeff, 0)
+        self.assertEqual(sim.ancient_coeff, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
