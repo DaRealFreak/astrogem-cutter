@@ -83,19 +83,13 @@ class ScenarioHelper:
         goal: LastTurnGoal,
         # Policy / simulator params
         min_side_coeff: int = 0,
-        early_finish_coeff: int = -1,
         use_extra_ticket: bool = False,
         use_reset_ticket: bool = False,
         side_node_threshold: float = 0.5,
         bis_only: bool = False,
-        relic_no_early_finish: float = 0.0,
         relic_reroll_threshold: float = 0.0,
     ) -> ScenarioResult:
         astro_gem = AstroGem(gem_type, first_effect, second_effect, optimize)
-        # early_finish_coeff / relic_no_early_finish are retired flags —
-        # accepted here for call-site compatibility but no longer wired
-        # into GemSimulator.
-        del early_finish_coeff, relic_no_early_finish
         sim = GemSimulator(
             rarity=rarity,
             use_extra_ticket=use_extra_ticket,
@@ -236,7 +230,6 @@ class TestScenarioEpicTurn7SideCoeff(unittest.TestCase):
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_goal_satisfied_but_not_fully(self) -> None:
@@ -289,7 +282,6 @@ class TestScenarioEpicTurn7SideCoeffWithRerolls(unittest.TestCase):
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_still_no_reroll(self) -> None:
@@ -318,7 +310,6 @@ class TestScenarioEarlyFinishWhenFullGoalMet(unittest.TestCase):
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=800,
         )
 
     def test_goal_fully_satisfied(self) -> None:
@@ -352,7 +343,6 @@ class TestScenarioEarlyFinishSafeOffers(unittest.TestCase):
             offer_keys=("first+1", "second+1", "maintain", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_no_early_finish(self) -> None:
@@ -381,7 +371,6 @@ class TestScenarioDesperateMode(unittest.TestCase):
             offer_keys=("first+3", "second+2", "cost-100", "maintain"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_rerolls_due_to_no_goal_upgrade(self) -> None:
@@ -418,7 +407,6 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
             turn=7,
             offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
-            early_finish_coeff=0,
         )
         # relic_reroll_threshold>0 builds the relic+ DP table so relic_prob
         # is populated; P(relic+) itself is a pure DP figure.

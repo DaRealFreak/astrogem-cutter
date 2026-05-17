@@ -51,7 +51,6 @@ def mc_success_rate(rarity: str, use_extra_ticket: bool, seed: int, trials: int)
         use_reset_ticket=False,
         goal=GOAL,
         optimize=OPTIMIZE,
-        early_finish_coeff=0,
         effect_aware=True,
     )
     wins = 0

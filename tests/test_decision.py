@@ -60,11 +60,6 @@ def build_ctx(
     endgame_risk: float = 0.0,
     relic_coeff: int = 0,
     ancient_coeff: int = 0,
-    # Retired kwargs — accepted for backward compatibility with older
-    # callers/plans but no longer wired into DecisionContext.
-    early_finish_coeff: int = 0,
-    relic_no_early_finish: float = 0.0,
-    confirm_risk: Optional[float] = None,
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
@@ -259,7 +254,7 @@ class TestInfeasibilityRelicChase(unittest.TestCase):
         # Goal infeasible (need will=5 in 0 turns left). Offers can
         # still reach total >= 16 by bumping first/second/chaos.
         goal = LastTurnGoal(min_will=5, min_chaos=4)  # impossible from 1,1
-        ctx = build_ctx(goal=goal, relic_no_early_finish=0.0)
+        ctx = build_ctx(goal=goal)
         state = GemState(
             will=4, chaos=3, first=4, second=4, rerolls=0,
             first_effect="attack_power", second_effect="boss_damage",
@@ -331,7 +326,6 @@ class TestNoFeasibleOfferBranch(unittest.TestCase):
         # the old code returned FINISH "goal & relic+ both unreachable".
         goal = LastTurnGoal(min_will=3, min_chaos=3)
         ctx = build_ctx(goal=goal, turns_total=7, base_rerolls=2,
-                        relic_no_early_finish=0.25,
                         gem_type="order_fortitude")
         state = GemState(
             will=4, chaos=1, first=2, second=1, rerolls=1,
@@ -363,7 +357,6 @@ class TestNoFeasibleOfferBranch(unittest.TestCase):
         # fallback shouldn't fire — FINISH is correct.
         goal = LastTurnGoal(min_will=3, min_chaos=3)
         ctx = build_ctx(goal=goal, turns_total=7, base_rerolls=2,
-                        relic_no_early_finish=0.25,
                         gem_type="order_fortitude")
         state = GemState(
             will=4, chaos=1, first=2, second=1, rerolls=0,
@@ -580,7 +573,6 @@ class TestSideValueFinish(unittest.TestCase):
         kw.setdefault("gem_type", "order_fortitude")
         kw.setdefault("optimize", "dps")
         kw.setdefault("goal", LastTurnGoal(min_will=4, min_chaos=4))
-        kw.setdefault("relic_no_early_finish", 0.0)
         return build_ctx(**kw)
 
     def test_played_out_gem_last_turn_finishes(self):
