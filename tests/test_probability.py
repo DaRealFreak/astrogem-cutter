@@ -306,7 +306,7 @@ class TestSideValueTable(unittest.TestCase):
             goal=LastTurnGoal(min_will=4, min_chaos=4),
             max_turns=9, pool=self.POOL,
             gem_type="order_fortitude", optimize="dps",
-            max_rerolls=2, relic_coeff=3000, ancient_coeff=8000,
+            relic_coeff=3000, ancient_coeff=8000,
         )
         defaults.update(kw)
         return SideValueTable(**defaults)
@@ -339,7 +339,7 @@ class TestSideValueTable(unittest.TestCase):
         t = self._table()
         st = GemState(will=4, chaos=4, first=5, second=3,
                       first_effect="boss_damage", second_effect="attack_power")
-        self.assertAlmostEqual(t.lookup(st, 0, rerolls=0),
+        self.assertAlmostEqual(t.lookup(st, 0),
                                t.gem_value(st), places=3)
 
     def test_lookup_floored_by_finish(self):
@@ -349,7 +349,7 @@ class TestSideValueTable(unittest.TestCase):
             st = GemState(will=4, chaos=4, first=3, second=2,
                           first_effect="boss_damage",
                           second_effect="attack_power")
-            self.assertGreaterEqual(t.lookup(st, tl, rerolls=2) + 1e-6,
+            self.assertGreaterEqual(t.lookup(st, tl) + 1e-6,
                                     t.gem_value(st))
 
     def test_improvable_state_has_continuation_upside(self):
@@ -358,22 +358,54 @@ class TestSideValueTable(unittest.TestCase):
         t = self._table()
         st = GemState(will=4, chaos=4, first=2, second=2,
                       first_effect="boss_damage", second_effect="attack_power")
-        self.assertGreater(t.lookup(st, 5, rerolls=2), t.gem_value(st))
+        self.assertGreater(t.lookup(st, 5), t.gem_value(st))
 
     def test_expected_value_after_click_averages_offers(self):
         # process EV = mean of V over the 4 applied offers.
         t = self._table()
         st = GemState(will=4, chaos=4, first=3, second=3,
                       first_effect="boss_damage", second_effect="attack_power")
-        offers = [t.pool.pool[0]] * 4 if False else None  # see below
         # Build a real 4-offer list from the canonical pool.
         by_key = {o.key: o for o in self.POOL.pool}
         offers = [by_key["will+1"], by_key["chaos+1"],
                   by_key["first+1"], by_key["second+1"]]
-        ev = t.expected_value_after_click(st, offers, 4, rerolls=2)
+        ev = t.expected_value_after_click(st, offers, 4)
         manual = sum(
-            t.lookup(_apply(st, o), 4, rerolls=2) for o in offers) / 4
+            t.lookup(_apply(st, o), 4) for o in offers) / 4
         self.assertAlmostEqual(ev, manual, places=3)
+
+    def test_gem_value_zero_below_side_coeff_floor(self):
+        # min_side_coeff floor: a goal-met state whose side coeff is below
+        # the floor is a failed gem -> value 0.
+        t = self._table(min_side_coeff=5000)
+        st = GemState(will=4, chaos=4, first=3, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # side_coeff = 3*1000 + 3*400 = 4200 < 5000.
+        self.assertEqual(t.gem_value(st), 0.0)
+
+    def test_gem_value_collapses_to_side_coeff_at_zero_tier_knobs(self):
+        # relic_coeff=ancient_coeff=0 -> gem_value == side_coeff, no bonus.
+        t = self._table(relic_coeff=0, ancient_coeff=0)
+        st = GemState(will=5, chaos=5, first=5, second=4,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # total 19 but both tier knobs 0 -> just side_coeff 5*1000+4*400=6600.
+        self.assertAlmostEqual(t.gem_value(st), 6600.0, places=3)
+
+    def test_expected_value_after_click_handles_change_effect(self):
+        # change_first_effect routes V over the 2 non-equipped pool members.
+        t = self._table()
+        st = GemState(will=4, chaos=4, first=3, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        by_key = {o.key: o for o in self.POOL.pool}
+        offers = [by_key["change_first_effect"], by_key["will+1"],
+                  by_key["chaos+1"], by_key["second+1"]]
+        ev = t.expected_value_after_click(st, offers, 4)
+        self.assertGreater(ev, 0.0)
+        fi, si = t._effect_indices(st)
+        dests = t._change_dests[(fi, si)]
+        cfe = sum(t._dp[(4, 4, 3, 3, d, si, 4)] for d in dests) / len(dests)
+        rest = sum(t.lookup(_apply(st, o), 4) for o in offers[1:])
+        self.assertAlmostEqual(ev, (cfe + rest) / 4, places=3)
 
     def test_disabled_when_gem_type_unknown(self):
         t = self._table(gem_type="")
@@ -381,7 +413,7 @@ class TestSideValueTable(unittest.TestCase):
         st = GemState(will=4, chaos=4, first=4, second=4,
                       first_effect="boss_damage", second_effect="attack_power")
         self.assertEqual(t.gem_value(st), 0.0)
-        self.assertEqual(t.lookup(st, 3, rerolls=1), 0.0)
+        self.assertEqual(t.lookup(st, 3), 0.0)
 
 
 if __name__ == "__main__":
