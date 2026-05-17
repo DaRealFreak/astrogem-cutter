@@ -44,6 +44,7 @@ class GemSimulator:
             effect_aware: bool = True,
             confirm_risk: Optional[float] = None,
             confirm_min_coeff: Optional[int] = None,
+            endgame_risk: bool = False,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -57,6 +58,7 @@ class GemSimulator:
         self.confirm_risk = confirm_risk if confirm_risk is not None else 0.0
         self.confirm_min_coeff = (confirm_min_coeff
                                   if confirm_min_coeff is not None else 0)
+        self.endgame_risk = endgame_risk
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_risk_table_cache: Dict[str, GoalProbabilityTable] = {}
@@ -336,6 +338,7 @@ class GemSimulator:
             confirm_risk=self.confirm_risk,
             confirm_min_coeff=self.confirm_min_coeff,
             risk_prob_table=self._risk_prob_table,
+            endgame_risk=self.endgame_risk,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],

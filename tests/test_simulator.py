@@ -443,5 +443,30 @@ class TestRelicRerollTableSizing(unittest.TestCase):
                          "EA risk table must be sized for the post-override reroll count")
 
 
+class TestEndgameRiskPlumbing(unittest.TestCase):
+    """Task 5: GemSimulator stores endgame_risk and forwards it onto
+    the DecisionContext."""
+
+    def test_decision_context_carries_flag(self):
+        from arkgrid.models import LastTurnGoal
+        from arkgrid.simulator import GemSimulator
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+            endgame_risk=True,
+        )
+        self.assertTrue(sim.endgame_risk)
+        self.assertTrue(sim._decision_context().endgame_risk)
+
+    def test_default_is_false(self):
+        from arkgrid.models import LastTurnGoal
+        from arkgrid.simulator import GemSimulator
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+        )
+        self.assertFalse(sim.endgame_risk)
+
+
 if __name__ == "__main__":
     unittest.main()

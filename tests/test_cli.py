@@ -92,5 +92,20 @@ class TestResetTicketVariants(unittest.TestCase):
                          "so cmd_stats iterates both variants")
 
 
+class TestEndgameRiskFlag(unittest.TestCase):
+    """Task 5: --endgame-risk parses and defaults to off."""
+
+    def test_default_is_false(self):
+        from arkgrid.cli import _build_parser
+        args = _build_parser().parse_args(["sim", "--min-will", "4"])
+        self.assertFalse(args.endgame_risk)
+
+    def test_flag_sets_true(self):
+        from arkgrid.cli import _build_parser
+        args = _build_parser().parse_args(
+            ["auto", "--min-will", "4", "--endgame-risk"])
+        self.assertTrue(args.endgame_risk)
+
+
 if __name__ == "__main__":
     unittest.main()

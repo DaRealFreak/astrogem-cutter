@@ -104,6 +104,16 @@ def _build_parser() -> argparse.ArgumentParser:
                              "0 = always finish when met (safe). "
                              "E.g. 750 = continue for boss_damage+3 at 25%% miss "
                              "(3000*0.25=750). Default: 0")
+        p.add_argument("--endgame-risk", action="store_true",
+                        default=False, dest="endgame_risk",
+                        help="On a goal-locked gem, keep cutting through the "
+                             "borderline turns — coinflips (good offers tie "
+                             "bad ones at zero EV) and good-odds-but-"
+                             "negative-EV gambles — instead of finishing. "
+                             "For endgame gems where you have to take some "
+                             "risk. Default: off (finish on those turns). "
+                             "Has no effect when --confirm-risk is set "
+                             "(those turns become a prompt instead).")
         p.add_argument("--relic-no-early-finish", type=float, default=0.0, metavar="F",
                         help="Don't finish early when P(relic+ >=16 total) from the current "
                              "state exceeds this threshold. Keeps playing to chase relic+ "
@@ -235,6 +245,8 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--min-second", type=int, default=None, metavar="N")
     p.add_argument("--min-side-coeff", type=int, default=0, metavar="N")
     p.add_argument("--early-finish-coeff", type=int, default=0, metavar="N")
+    p.add_argument("--endgame-risk", action="store_true",
+                   default=False, dest="endgame_risk")
     p.add_argument("--reset-min-coeff", type=int, default=0, metavar="N")
     p.add_argument("--reroll-min-coeff", type=int, default=0, metavar="N")
     p.add_argument("--force-reroll-no-progress", type=int, default=0,
@@ -582,6 +594,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     effect_aware=True,
                     confirm_risk=args.confirm_risk,
                     confirm_min_coeff=args.confirm_min_coeff,
+                    endgame_risk=args.endgame_risk,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -620,6 +633,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         effect_aware=True,
         confirm_risk=args.confirm_risk,
         confirm_min_coeff=args.confirm_min_coeff,
+        endgame_risk=args.endgame_risk,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -1069,6 +1083,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             early_finish_coeff=early_finish_coeff,
             force_reroll_no_progress=getattr(args, "force_reroll_no_progress", False),
             effect_aware=True,
+            endgame_risk=getattr(args, "endgame_risk", False),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,
@@ -1152,6 +1167,7 @@ def cmd_auto(args: argparse.Namespace) -> None:
         args=args,
         confirm_risk=args.confirm_risk,
         confirm_min_coeff=args.confirm_min_coeff,
+        endgame_risk=args.endgame_risk,
     )
 
 

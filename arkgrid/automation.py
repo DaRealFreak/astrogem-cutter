@@ -554,6 +554,7 @@ def run_auto(
     effect_aware_dp: bool = True,
     confirm_risk: Optional[float] = None,
     confirm_min_coeff: Optional[int] = None,
+    endgame_risk: bool = False,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -936,6 +937,7 @@ def run_auto(
                     confirm_risk=confirm_risk,
                     confirm_min_coeff=confirm_min_coeff,
                     risk_prob_table=risk_table,
+                    endgame_risk=endgame_risk,
                 )
 
             # --- Relic+ reroll ticket override (per-turn check, F3-A) ---
