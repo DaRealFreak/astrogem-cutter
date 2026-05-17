@@ -641,10 +641,10 @@ class TestSideValueFinish(unittest.TestCase):
         d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNone(d)
 
-    def test_played_out_gem_finishes_with_free_rerolls(self):
-        # A maxed gem finishes even mid-run with free rerolls available:
-        # the turns-aware DP knows rerolling cannot beat finishing
-        # (reroll_val ties finish_val), so it does not burn a reroll.
+    def test_uses_free_reroll_before_finishing(self):
+        # A maxed gem with free rerolls REROLLs rather than finishing:
+        # rerolls are free and gems are scarce, so leftover rerolls are
+        # always spent fishing for better offers before finishing.
         ctx = self._ctx()
         st = GemState(will=5, chaos=5, first=5, second=5,
                       first_effect="boss_damage", second_effect="attack_power")
@@ -654,8 +654,7 @@ class TestSideValueFinish(unittest.TestCase):
                       turn=8, turns_left=2, rerolls=2, reset_available=False)
         d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNotNone(d)
-        self.assertEqual(d.action, ActionKind.FINISH)
-        self.assertFalse(d.needs_confirmation)
+        self.assertEqual(d.action, ActionKind.REROLL)
 
     def test_rerolls_when_reroll_beats_bad_offers(self):
         # Goal met, gem still improvable, but all 4 offers are degrades
