@@ -510,13 +510,54 @@ def _confirm_finish_decision(
             metrics={"side_coeff": _side_coeff(ctx, ti.state)},
         )
 
-    # Relic+ override: keep cutting silently when relic+ is likely.
-    if (ctx.relic_no_early_finish > 0.0
-            and ctx.relic_prob_table is not None
-            and m.p_keep_relic > ctx.relic_no_early_finish):
+    # Relic+ override: keep cutting silently while relic+ is still
+    # being chased (not yet locked in — see _relic_chase_active).
+    if _relic_chase_active(ctx, ti, m):
         return None
 
     coeff = _side_coeff(ctx, ti.state)
+
+    # EV cell: the goal is safe; classify the offers. A free reroll is
+    # preferred; mid-run with no rerolls we defer (a single bad set must
+    # not end a goal-met multi-turn gem); on the last turn a 'finish'
+    # cell finishes silently and an 'optin' cell asks the player.
+    cell = _ev_cell(m)
+    if cell != "continue":
+        ev_metrics = {"avg_coeff": m.avg_coeff_change,
+                      "ev_points": m.ev_points,
+                      "improving": m.improving_count,
+                      "degrading": m.degrading_count,
+                      "ev_cell": cell, "side_coeff": coeff}
+        if ti.rerolls > 0 and ti.turn != 1:
+            return Decision(
+                action=ActionKind.REROLL, branch="confirm_finish",
+                reason=(f"goal met, EV cell '{cell}' "
+                        f"(odds {m.improving_count}:{m.degrading_count}) "
+                        f"— rerolling"),
+                metrics=ev_metrics,
+            )
+        if ti.turns_left > 1:
+            return None
+        if cell == "optin" and coeff >= ctx.confirm_min_coeff:
+            return Decision(
+                action=ActionKind.FINISH, branch="confirm_finish",
+                reason=(f"last turn, goal met, borderline EV "
+                        f"(coeff={m.avg_coeff_change:.0f}, "
+                        f"pts={m.ev_points:+.2f}, "
+                        f"odds {m.improving_count}:{m.degrading_count}) "
+                        f"— player confirmation required"),
+                metrics=ev_metrics,
+                needs_confirmation=True,
+                confirm_choices=_legal_actions(ti),
+            )
+        return Decision(
+            action=ActionKind.FINISH, branch="confirm_finish",
+            reason=(f"last turn, goal met, EV cell '{cell}' "
+                    f"(coeff={m.avg_coeff_change:.0f}, "
+                    f"pts={m.ev_points:+.2f}) — finishing"),
+            metrics=ev_metrics,
+        )
+
     risk = 1.0
     if ctx.risk_prob_table is not None:
         risk = 1.0 - ctx.risk_prob_table.lookup(

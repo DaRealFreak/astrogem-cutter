@@ -655,26 +655,19 @@ class TestGate1ConfirmFinish(unittest.TestCase):
         self.assertIsNone(d, f"should continue silently but got {d}")
 
     def test_relic_override_suppresses_confirm_finish(self):
-        # The relic+ override inside _confirm_finish_decision must fire
-        # before the risk/coeff checks, returning None to keep cutting.
-        #
-        # State: will=4, chaos=4, first=5, second=5 (boss_damage, attack_power)
-        #   total_points=18 < 19 -> upside exists (still < ancient tier)
-        #   goal min_will=4/min_chaos=3 satisfied
-        #   risk ~6.9% > confirm_risk=0.05 (risk check would proceed)
-        #   p_keep_relic = 1.0 (100% chance of relic+ from offers that boost total)
-        #   p_keep_relic 1.0 > relic_no_early_finish 0.25 -> override fires -> None
+        # The relic+ override inside _confirm_finish_decision keeps cutting
+        # while relic+ (>=16) is still being chased. State total = 15 < 16
+        # so _relic_chase_active applies; offers push toward 16 so
+        # p_keep_relic clears the 0.25 threshold -> override returns None.
         ctx = build_ctx(confirm_risk=0.05, relic_no_early_finish=0.25,
                         optimize="dps")
-        st = GemState(will=4, chaos=4, first=5, second=5,
+        st = GemState(will=4, chaos=4, first=4, second=3,
                       first_effect="boss_damage",
                       second_effect="attack_power")
-        # risky offers ensure risk > confirm_risk so relic path is truly needed
-        ti = build_ti(state=st, offers=make_offers("will-1", "chaos-1",
-                                                   "first+1", "second+1"),
+        ti = build_ti(state=st, offers=make_offers("first+1", "chaos+1",
+                                                   "will+1", "second+1"),
                       turn=9, turns_left=1, rerolls=0, reset_available=False)
         m = compute_post_roll_metrics(ctx, ti)
-        # Empirically verified: p_keep_relic = 1.0 for this state
         self.assertGreater(m.p_keep_relic, 0.25,
                            f"p_keep_relic={m.p_keep_relic} should exceed 0.25")
         d = early_finish_decision(ctx, ti, m)
@@ -1216,6 +1209,95 @@ class TestLegacyEvCell(unittest.TestCase):
 
     def test_optin_cell_continues_with_flag(self):
         ctx, ti = self._coinflip(endgame_risk=True)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNone(d)
+
+
+class TestConfirmEvCell(unittest.TestCase):
+    """Task 4: gate-on wiring of _ev_cell in _confirm_finish_decision."""
+
+    def test_finish_cell_finishes_silently(self):
+        # turn 9 'finish' cell, gate on -> silent finish (no prompt).
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        min_side_coeff=2000, confirm_risk=0.05,
+                        confirm_min_coeff=1000, relic_no_early_finish=0.0,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        st = GemState(will=5, chaos=5, first=5, second=4,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("second+1", "chaos-1", "second-1",
+                                         "change_second_effect"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_optin_cell_prompts(self):
+        # coinflip 'optin' cell, gate on, last turn -> F1-F4 prompt.
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        confirm_risk=0.05, confirm_min_coeff=1000,
+                        relic_no_early_finish=0.0,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        st = GemState(will=5, chaos=5, first=3, second=3,
+                      first_effect="boss_damage",
+                      second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("first+1", "second+1", "first-1",
+                                         "second-1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertTrue(d.needs_confirmation)
+        self.assertIn(ActionKind.PROCESS, d.confirm_choices)
+
+    def test_optin_cell_below_coeff_floor_finishes_silently(self):
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        confirm_risk=0.05, confirm_min_coeff=999999,
+                        relic_no_early_finish=0.0,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        st = GemState(will=5, chaos=5, first=3, second=3,
+                      first_effect="boss_damage",
+                      second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("first+1", "second+1", "first-1",
+                                         "second-1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_stop_cell_rerolls_when_rerolls_remain(self):
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        min_side_coeff=2000, confirm_risk=0.05,
+                        confirm_min_coeff=1000, relic_no_early_finish=0.0,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        st = GemState(will=5, chaos=5, first=5, second=4,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("second+1", "chaos-1", "second-1",
+                                         "change_second_effect"),
+                      turn=9, turns_left=1, rerolls=2, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertEqual(d.action, ActionKind.REROLL)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_stop_cell_mid_run_no_rerolls_defers(self):
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        min_side_coeff=2000, confirm_risk=0.05,
+                        confirm_min_coeff=1000, relic_no_early_finish=0.0,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        st = GemState(will=5, chaos=5, first=5, second=4,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("second+1", "chaos-1", "second-1",
+                                         "change_second_effect"),
+                      turn=6, turns_left=4, rerolls=0, reset_available=False)
         d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNone(d)
 
