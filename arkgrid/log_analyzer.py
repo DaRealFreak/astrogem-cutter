@@ -120,12 +120,12 @@ _NULLABLE_INT_FILTERS = (
 # Filter args whose CLI default is 0 / False / empty: a "falsy" value means
 # "don't filter on this". Comparisons are exact.
 _INT_FILTERS = (
-    "min_side_coeff", "early_finish_coeff", "reset_min_coeff",
+    "min_side_coeff", "reset_min_coeff",
     "reroll_min_coeff", "force_reroll_no_progress",
 )
 _FLOAT_FILTERS = (
     "side_threshold", "prob_reset_threshold",
-    "relic_no_early_finish", "relic_reroll_threshold",
+    "relic_reroll_threshold",
 )
 
 

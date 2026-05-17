@@ -77,9 +77,7 @@ class DecisionContext:
     optimize: str                                  # "dps" | "support"
     bis_only: bool
     min_side_coeff: int
-    early_finish_coeff: int                        # -1 = disabled
     prob_reset_threshold: float
-    relic_no_early_finish: float
     relic_reroll_threshold: float
     force_reroll_no_progress: int
     turns_total: int
@@ -91,9 +89,7 @@ class DecisionContext:
     gem_type: str
     force_reroll_active: bool                      # gated by starting coeff
     confirm_active: bool = False
-    confirm_risk: float = 0.0
     confirm_min_coeff: int = 0
-    risk_prob_table: Optional[GoalProbabilityTable] = None
     endgame_risk: float = 0.0
     side_value_table: Optional[SideValueTable] = None
 

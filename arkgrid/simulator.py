@@ -37,14 +37,11 @@ class GemSimulator:
             reset_min_coeff: int = 0,
             reroll_min_coeff: int = 0,
             min_side_coeff: int = 0,
-            early_finish_coeff: int = 0,
-            relic_no_early_finish: float = 0.0,
             relic_reroll_threshold: float = 0.0,
             force_reroll_no_progress: int = 0,
             effect_aware: bool = True,
-            confirm_risk: Optional[float] = None,
             confirm_min_coeff: Optional[int] = None,
-            endgame_risk: bool = False,
+            endgame_risk: float = 0.0,
             relic_coeff: int = 0,
             ancient_coeff: int = 0,
     ) -> None:
@@ -55,9 +52,7 @@ class GemSimulator:
         self.bis_only = bis_only
         self.min_side_coeff = min_side_coeff
         self.effect_aware = effect_aware
-        self.confirm_active = (confirm_risk is not None
-                               or confirm_min_coeff is not None)
-        self.confirm_risk = confirm_risk if confirm_risk is not None else 0.0
+        self.confirm_active = confirm_min_coeff is not None
         self.confirm_min_coeff = (confirm_min_coeff
                                   if confirm_min_coeff is not None else 0)
         self.endgame_risk = endgame_risk
@@ -67,7 +62,6 @@ class GemSimulator:
         self._side_value_table: Optional[SideValueTable] = None
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
-        self._ea_risk_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
@@ -107,7 +101,6 @@ class GemSimulator:
                 side_coeff_second = coeff[astro_gem.second_effect]
         self._side_coeff_first = side_coeff_first
         self._side_coeff_second = side_coeff_second
-        self.early_finish_coeff = early_finish_coeff
 
         # When no gem is configured, coefficients are (0, 0) — don't pass
         # min_side_coeff to the DP or it would think the goal is always
@@ -124,7 +117,7 @@ class GemSimulator:
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=dp_min_side_coeff,
-            early_finish=early_finish_coeff >= 0,
+            early_finish=True,
             max_rerolls=dp_max_rerolls,
         )
         # Standard (non-reroll) DP for reset decisions — the reroll-aware
@@ -135,17 +128,16 @@ class GemSimulator:
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
             min_side_coeff=dp_min_side_coeff,
-            early_finish=early_finish_coeff >= 0,
+            early_finish=True,
         )
 
         # Relic+ (>=16 total points) DP table for probability tracking
         # and decision overrides.
-        self.relic_no_early_finish = relic_no_early_finish
         self.relic_reroll_threshold = relic_reroll_threshold
         self.force_reroll_no_progress = force_reroll_no_progress
         self._force_reroll_active = False  # set per-run in simulate_one
         self._relic_prob_table: Optional[GoalProbabilityTable] = None
-        if relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0:
+        if relic_reroll_threshold > 0.0:
             # Reroll-aware so lookups account for the value of available
             # rerolls when chasing relic+.  Without max_rerolls the table
             # is the no-reroll DP and systematically underestimates P(r+),
@@ -156,32 +148,17 @@ class GemSimulator:
                 max_rerolls=dp_max_rerolls,
             )
 
-        # Risk table: goal DP with early_finish=False, so its value at a
-        # goal-satisfied state is P(goal still met at run end) — 1 minus
-        # that is the confirm-gate's goal-loss risk.
-        self._risk_prob_table: Optional[GoalProbabilityTable] = None
-        if self.confirm_active:
-            self._risk_prob_table = GoalProbabilityTable(
-                goal, self.turns_total, self.pool,
-                side_coeff_first=side_coeff_first,
-                side_coeff_second=side_coeff_second,
-                min_side_coeff=dp_min_side_coeff,
-                early_finish=False,
-                max_rerolls=dp_max_rerolls,
-            )
-
     def _get_ea_tables(self, gem_type: str) -> tuple:
-        """Build or fetch cached effect-aware (reroll, reset, risk) DP tables
+        """Build or fetch cached effect-aware (reroll, reset) DP tables
         for the given gem type. Used only when effect_aware is True.
         """
         if gem_type in self._ea_table_cache:
             return (self._ea_table_cache[gem_type],
-                    self._ea_reset_table_cache[gem_type],
-                    self._ea_risk_table_cache.get(gem_type))
+                    self._ea_reset_table_cache[gem_type])
         reroll_tbl = GoalProbabilityTable(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
-            early_finish=self.early_finish_coeff >= 0,
+            early_finish=True,
             max_rerolls=self._dp_max_rerolls,
             effect_aware=True,
             gem_type=gem_type,
@@ -190,28 +167,14 @@ class GemSimulator:
         reset_tbl = GoalProbabilityTable(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
-            early_finish=self.early_finish_coeff >= 0,
-            effect_aware=True,
-            gem_type=gem_type,
-            optimize=self.optimize,
-        )
-        if not self.confirm_active:
-            self._ea_table_cache[gem_type] = reroll_tbl
-            self._ea_reset_table_cache[gem_type] = reset_tbl
-            return reroll_tbl, reset_tbl, None
-        risk_tbl = GoalProbabilityTable(
-            self.goal, self.turns_total, self.pool,
-            min_side_coeff=self.min_side_coeff,
-            early_finish=False,
-            max_rerolls=self._dp_max_rerolls,
+            early_finish=True,
             effect_aware=True,
             gem_type=gem_type,
             optimize=self.optimize,
         )
         self._ea_table_cache[gem_type] = reroll_tbl
         self._ea_reset_table_cache[gem_type] = reset_tbl
-        self._ea_risk_table_cache[gem_type] = risk_tbl
-        return reroll_tbl, reset_tbl, risk_tbl
+        return reroll_tbl, reset_tbl
 
     def _get_side_value_table(self, gem_type: str) -> SideValueTable:
         """Build or fetch the cached side-value DP table for a gem type.
@@ -353,9 +316,7 @@ class GemSimulator:
             optimize=optimize,
             bis_only=self.bis_only,
             min_side_coeff=self.min_side_coeff,
-            early_finish_coeff=self.early_finish_coeff,
             prob_reset_threshold=self.prob_reset_threshold,
-            relic_no_early_finish=self.relic_no_early_finish,
             relic_reroll_threshold=self.relic_reroll_threshold,
             force_reroll_no_progress=self.force_reroll_no_progress,
             turns_total=self.turns_total,
@@ -367,9 +328,7 @@ class GemSimulator:
             gem_type=gem_type,
             force_reroll_active=self._force_reroll_active,
             confirm_active=self.confirm_active,
-            confirm_risk=self.confirm_risk,
             confirm_min_coeff=self.confirm_min_coeff,
-            risk_prob_table=self._risk_prob_table,
             endgame_risk=self.endgame_risk,
             side_value_table=side_value_table,
         )
@@ -494,11 +453,9 @@ class GemSimulator:
         # enforce min_side_coeff even when the starting effects don't
         # contribute to the target side.
         if self.effect_aware and run_gem.gem_type in GEM_TYPES:
-            ea_reroll, ea_reset, ea_risk = self._get_ea_tables(run_gem.gem_type)
+            ea_reroll, ea_reset = self._get_ea_tables(run_gem.gem_type)
             self.prob_table = ea_reroll
             self._reset_prob_table = ea_reset
-            if self.confirm_active:
-                self._risk_prob_table = ea_risk
         self._side_value_table = (
             self._get_side_value_table(run_gem.gem_type)
             if run_gem.gem_type in GEM_TYPES else None)

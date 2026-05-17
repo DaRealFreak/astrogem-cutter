@@ -49,30 +49,32 @@ def build_ctx(
     optimize: str = "dps",
     bis_only: bool = False,
     min_side_coeff: int = 0,
-    early_finish_coeff: int = 0,
     prob_reset_threshold: float = 0.0,
-    relic_no_early_finish: float = 0.25,
     relic_reroll_threshold: float = 0.0,
     force_reroll_no_progress: int = 0,
     force_reroll_active: bool = False,
     gem_type: str = "order_immutability",
     p_fresh: Optional[float] = None,
     with_relic: bool = True,
-    confirm_risk: Optional[float] = None,
     confirm_min_coeff: Optional[int] = None,
     endgame_risk: float = 0.0,
     relic_coeff: int = 0,
     ancient_coeff: int = 0,
+    # Retired kwargs — accepted for backward compatibility with older
+    # callers/plans but no longer wired into DecisionContext.
+    early_finish_coeff: int = 0,
+    relic_no_early_finish: float = 0.0,
+    confirm_risk: Optional[float] = None,
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
         g, turns_total, _POOL,
         max_rerolls=base_rerolls,
-        early_finish=early_finish_coeff >= 0,
+        early_finish=True,
     )
     reset_table = GoalProbabilityTable(
         g, turns_total, _POOL,
-        early_finish=early_finish_coeff >= 0,
+        early_finish=True,
     )
     relic_table = (
         GoalProbabilityTable(LastTurnGoal(min_total=16), turns_total,
@@ -81,13 +83,7 @@ def build_ctx(
     )
     if p_fresh is None:
         p_fresh = reset_table.lookup(GemState(1, 1, 1, 1), turns_total)
-    confirm_active = (confirm_risk is not None
-                      or confirm_min_coeff is not None)
-    risk_table = (
-        GoalProbabilityTable(g, turns_total, _POOL,
-                             max_rerolls=base_rerolls, early_finish=False)
-        if confirm_active else None
-    )
+    confirm_active = confirm_min_coeff is not None
     side_value_table = SideValueTable(
         g, turns_total, _POOL, gem_type=gem_type, optimize=optimize,
         min_side_coeff=min_side_coeff,
@@ -96,9 +92,7 @@ def build_ctx(
     return DecisionContext(
         goal=g, pool=_POOL, optimize=optimize, bis_only=bis_only,
         min_side_coeff=min_side_coeff,
-        early_finish_coeff=early_finish_coeff,
         prob_reset_threshold=prob_reset_threshold,
-        relic_no_early_finish=relic_no_early_finish,
         relic_reroll_threshold=relic_reroll_threshold,
         force_reroll_no_progress=force_reroll_no_progress,
         turns_total=turns_total, base_rerolls=base_rerolls,
@@ -107,10 +101,8 @@ def build_ctx(
         relic_prob_table=relic_table,
         gem_type=gem_type, force_reroll_active=force_reroll_active,
         confirm_active=confirm_active,
-        confirm_risk=confirm_risk if confirm_risk is not None else 0.0,
         confirm_min_coeff=(confirm_min_coeff
                            if confirm_min_coeff is not None else 0),
-        risk_prob_table=risk_table,
         endgame_risk=endgame_risk,
         side_value_table=side_value_table,
     )
@@ -479,9 +471,7 @@ class TestConfirmFields(unittest.TestCase):
     def test_context_defaults(self):
         ctx = build_ctx()
         self.assertFalse(ctx.confirm_active)
-        self.assertEqual(ctx.confirm_risk, 0.0)
         self.assertEqual(ctx.confirm_min_coeff, 0)
-        self.assertIsNone(ctx.risk_prob_table)
 
 
 class TestConfirmHelpers(unittest.TestCase):

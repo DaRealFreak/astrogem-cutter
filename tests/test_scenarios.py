@@ -92,6 +92,10 @@ class ScenarioHelper:
         relic_reroll_threshold: float = 0.0,
     ) -> ScenarioResult:
         astro_gem = AstroGem(gem_type, first_effect, second_effect, optimize)
+        # early_finish_coeff / relic_no_early_finish are retired flags —
+        # accepted here for call-site compatibility but no longer wired
+        # into GemSimulator.
+        del early_finish_coeff, relic_no_early_finish
         sim = GemSimulator(
             rarity=rarity,
             use_extra_ticket=use_extra_ticket,
@@ -103,8 +107,6 @@ class ScenarioHelper:
             bis_only=bis_only,
             pool=cls.POOL,
             min_side_coeff=min_side_coeff,
-            early_finish_coeff=early_finish_coeff,
-            relic_no_early_finish=relic_no_early_finish,
             relic_reroll_threshold=relic_reroll_threshold,
         )
 
@@ -418,7 +420,8 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             early_finish_coeff=0,
         )
-        # With relic+ override: early finish suppressed
+        # relic_reroll_threshold>0 builds the relic+ DP table so relic_prob
+        # is populated; P(relic+) itself is a pure DP figure.
         self.result_with_override = ScenarioHelper.evaluate(
             gem_type="order_immutability",
             first_effect="boss_damage",
@@ -430,8 +433,7 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
             turn=7,
             offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
-            early_finish_coeff=0,
-            relic_no_early_finish=0.3,
+            relic_reroll_threshold=0.3,
         )
 
     def test_early_finish_without_override(self) -> None:
@@ -467,8 +469,7 @@ class TestScenarioRelicNoEarlyFinishBelowThreshold(unittest.TestCase):
             turn=8,
             offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
-            early_finish_coeff=0,
-            relic_no_early_finish=0.3,
+            relic_reroll_threshold=0.3,
         )
 
     def test_early_finish_still_triggers(self) -> None:

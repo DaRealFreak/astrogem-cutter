@@ -329,25 +329,6 @@ class TestRandomAstroGem(unittest.TestCase):
         self.assertGreater(len(types_seen), 1)
 
 
-class TestRiskTable(unittest.TestCase):
-    """GemSimulator builds a risk table when the confirm gate is active."""
-
-    def test_risk_table_built_when_active(self):
-        sim = GemSimulator(
-            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(min_will=4, min_chaos=3),
-            confirm_risk=0.25,
-        )
-        self.assertIsNotNone(sim._risk_prob_table)
-
-    def test_risk_table_absent_when_inactive(self):
-        sim = GemSimulator(
-            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(min_will=4, min_chaos=3),
-        )
-        self.assertIsNone(sim._risk_prob_table)
-
-
 class TestSimulatorConfirmObservability(unittest.TestCase):
     """A gated turn leaves a `confirm` marker in the turn log; the
     simulator still executes the recommended action."""
@@ -363,7 +344,7 @@ class TestSimulatorConfirmObservability(unittest.TestCase):
                 goal=LastTurnGoal(min_will=4, min_chaos=3),
                 astro_gem=AstroGem("chaos_distortion", "boss_damage",
                                    "attack_power", "dps"),
-                confirm_risk=0.01, confirm_min_coeff=1,
+                confirm_min_coeff=1,
             )
             r = sim.simulate_one(seed=seed, log=True)
             if r.turn_log and any("confirm" in e for e in r.turn_log):
@@ -406,38 +387,24 @@ class TestRelicRerollTableSizing(unittest.TestCase):
             rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=3, min_chaos=3),
             relic_reroll_threshold=0.15,
-            relic_no_early_finish=0.3,
         )
         # sim.base_rerolls = RARITY_REROLLS["rare"](1) + extra_ticket(1) = 2
         # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
         self.assertIsNotNone(sim._relic_prob_table)
         self.assertEqual(sim._relic_prob_table._max_rerolls, sim.base_rerolls + 1)
 
-    def test_risk_table_also_sized_to_base_plus_one(self):
-        # Risk table (confirm gate + relic override) must also be sized up
-        sim = GemSimulator(
-            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(min_will=4, min_chaos=3),
-            relic_reroll_threshold=0.2,
-            confirm_risk=0.25,
-        )
-        self.assertIsNotNone(sim._risk_prob_table)
-        self.assertEqual(sim._risk_prob_table._max_rerolls, sim.base_rerolls + 1)
-
-    def test_ea_tables_reroll_and_risk_sized_to_base_plus_one(self):
+    def test_ea_tables_reroll_sized_to_base_plus_one(self):
         # Effect-aware tables built by _get_ea_tables must also respect the
         # dp_max_rerolls = base_rerolls + 1 sizing when relic_reroll_threshold > 0.
         # sim.base_rerolls = RARITY_REROLLS["epic"](2) + extra_ticket(0) = 2
         # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
-        # confirm_risk activates the risk table path inside _get_ea_tables.
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=3),
             relic_reroll_threshold=0.2,
-            confirm_risk=0.25,
             effect_aware=True,
         )
-        reroll_tbl, reset_tbl, risk_tbl = sim._get_ea_tables("chaos_collapse")
+        reroll_tbl, reset_tbl = sim._get_ea_tables("chaos_collapse")
         expected = sim.base_rerolls + 1
         # Reroll-aware EA table must be sized to base_rerolls + 1
         self.assertEqual(reroll_tbl._max_rerolls, expected,
@@ -445,10 +412,6 @@ class TestRelicRerollTableSizing(unittest.TestCase):
         # Reset table is not reroll-aware: it should NOT be sized up
         self.assertNotEqual(reset_tbl._max_rerolls, expected,
                             "EA reset table should not be sized up (non-reroll-aware)")
-        # EA risk table must also be sized to base_rerolls + 1
-        self.assertIsNotNone(risk_tbl)
-        self.assertEqual(risk_tbl._max_rerolls, expected,
-                         "EA risk table must be sized for the post-override reroll count")
 
 
 class TestEndgameRiskPlumbing(unittest.TestCase):
@@ -461,19 +424,19 @@ class TestEndgameRiskPlumbing(unittest.TestCase):
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
-            endgame_risk=True,
+            endgame_risk=1500.0,
         )
-        self.assertTrue(sim.endgame_risk)
-        self.assertTrue(sim._decision_context().endgame_risk)
+        self.assertEqual(sim.endgame_risk, 1500.0)
+        self.assertEqual(sim._decision_context().endgame_risk, 1500.0)
 
-    def test_default_is_false(self):
+    def test_default_is_zero(self):
         from arkgrid.models import LastTurnGoal
         from arkgrid.simulator import GemSimulator
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
         )
-        self.assertFalse(sim.endgame_risk)
+        self.assertEqual(sim.endgame_risk, 0.0)
 
 
 class TestSideValueTableWiring(unittest.TestCase):
