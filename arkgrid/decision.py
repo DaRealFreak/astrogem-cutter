@@ -394,12 +394,7 @@ def _side_value_finish_decision(
         "margin": margin,
     }
 
-    # A free reroll never costs gem value, so when it ties the best
-    # finish it weakly dominates — prefer it over burning the gem.
-    free_reroll_ties = (can_reroll and reroll_val >= finish_val
-                        and reroll_val > process_ev)
-
-    if finish_val < continue_val + margin or free_reroll_ties:
+    if finish_val < continue_val + margin:
         # Continuing wins. Reroll if it is the best continuation;
         # otherwise defer to PROCESS.
         if can_reroll and reroll_val > process_ev:

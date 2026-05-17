@@ -641,8 +641,10 @@ class TestSideValueFinish(unittest.TestCase):
         d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNone(d)
 
-    def test_free_reroll_preferred_over_finish(self):
-        # Played-out last turn but a reroll is free -> REROLL, not FINISH.
+    def test_played_out_gem_finishes_with_free_rerolls(self):
+        # A maxed gem finishes even mid-run with free rerolls available:
+        # the turns-aware DP knows rerolling cannot beat finishing
+        # (reroll_val ties finish_val), so it does not burn a reroll.
         ctx = self._ctx()
         st = GemState(will=5, chaos=5, first=5, second=5,
                       first_effect="boss_damage", second_effect="attack_power")
@@ -650,6 +652,22 @@ class TestSideValueFinish(unittest.TestCase):
                       offers=make_offers("will-1", "chaos-1",
                                          "first-1", "second-1"),
                       turn=8, turns_left=2, rerolls=2, reset_available=False)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertFalse(d.needs_confirmation)
+
+    def test_rerolls_when_reroll_beats_bad_offers(self):
+        # Goal met, gem still improvable, but all 4 offers are degrades
+        # (will-1/chaos-1 even break the goal). Rerolling beats both
+        # finishing and processing this set -> REROLL.
+        ctx = self._ctx()
+        st = GemState(will=4, chaos=4, first=3, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("will-1", "chaos-1",
+                                         "first-1", "second-1"),
+                      turn=5, turns_left=5, rerolls=2, reset_available=False)
         d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.REROLL)
