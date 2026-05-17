@@ -14,6 +14,7 @@ import argparse
 import glob
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
@@ -249,11 +250,144 @@ def aggregate(records: List[GemRecord]) -> Dict[str, float]:
 @dataclass
 class OptionStat:
     key: str
-    appearances: int   # appearances on process turns (decision moments)
+    appearances: int   # process turns where offered (0 = picks-only diag row)
     picks: int
     pick_rate: float                  # picks / appearances
     goal_success_rate_if_picked: float  # P(gem succeeded | this option was picked), per-pick weighted
     relic_rate_if_picked: float        # P(gem >=16 pts | this option was picked), per-pick weighted
+
+
+# --- picked-string normalisation -------------------------------------------
+#
+# Two separate vocabularies meet in a turn record:
+#   * ``offers``  — option labels from ``automation._fmt_option``
+#                   ("will +1", "order +1", "boss_damage +2", "boss_damage EC",
+#                    "reroll+1", "cost-100", "maintain").
+#   * ``picked``  — a *state-delta description* from ``automation._infer_picked``
+#                   ("will +1", "chaos +1", "first +2", "first_effect -> X",
+#                    "rerolls +1", "maintain / cost").
+# They coincide only for willpower, so a raw ``picked == offer`` comparison
+# counts every chaos / effect / reroll pick as zero. ``_normalize_picked``
+# translates a ``picked`` string back into the offer label it refers to.
+
+_PICKED_STAT_RE = re.compile(r"^(will|chaos|first|second|rerolls) ([+-]\d+)$")
+_OFFER_STAT_RE = re.compile(r"^(\S+) ([+-]?\d+)$")
+
+# Bucket for picks that cannot be tied to a single offer (a no-op maintain/cost
+# outcome, or a level-up that hit the +5 cap — indistinguishable post-process).
+_UNATTRIBUTED = "(no state change)"
+
+
+def _canon(label: str) -> str:
+    """Fold OCR label variants to one form so they aggregate into one row.
+
+    The chaos stat's option is read as both "order" and "chaos" depending on
+    which template matched; ``_infer_picked`` always says "chaos". Normalise
+    every label to "order".
+    """
+    if label.startswith("chaos "):
+        return "order " + label[len("chaos "):]
+    return label
+
+
+def _picked_kind(picked: str) -> Optional[Tuple[str, int]]:
+    """Classify an ``_infer_picked`` string as ``(kind, observed_delta)``.
+
+    ``kind`` is one of will, chaos, first, second, first_ec, second_ec,
+    reroll, noop. Returns ``None`` for compound / unrecognised strings.
+    """
+    if picked == "maintain / cost":
+        return ("noop", 0)
+    # A process option changes exactly one thing, but _infer_picked compares
+    # state across the turn boundary and sometimes tacks a spurious
+    # "rerolls +N" (reroll-budget refresh) onto the real pick. Drop it; if a
+    # single real component remains, classify that.
+    if ", " in picked:
+        parts = [p for p in picked.split(", ") if not p.startswith("rerolls ")]
+        if len(parts) == 1:
+            picked = parts[0]
+    if picked.startswith("first_effect -> "):
+        return ("first_ec", 0)
+    if picked.startswith("second_effect -> "):
+        return ("second_ec", 0)
+    m = _PICKED_STAT_RE.match(picked)
+    if not m:
+        return None
+    token, delta = m.group(1), int(m.group(2))
+    return ("reroll" if token == "rerolls" else token), delta
+
+
+def _offer_kind(offer: str, first_effect: str, second_effect: str
+                ) -> Optional[Tuple[str, int]]:
+    """Classify an ``_fmt_option`` offer label as ``(kind, nominal_delta)``,
+    using the same ``kind`` vocabulary as :func:`_picked_kind`."""
+    if offer == "maintain" or offer.startswith("cost"):
+        return ("noop", 0)
+    if offer.startswith("reroll"):
+        m = re.search(r"[+-]?\d+", offer)
+        return ("reroll", int(m.group(0)) if m else 0)
+    if offer.endswith(" EC"):
+        eff = offer[:-3]
+        if eff == first_effect:
+            return ("first_ec", 0)
+        if eff == second_effect:
+            return ("second_ec", 0)
+        return None
+    m = _OFFER_STAT_RE.match(offer)
+    if not m:
+        return None
+    token, delta = m.group(1), int(m.group(2))
+    if token == "will":
+        return ("will", delta)
+    if token in ("order", "chaos"):
+        return ("chaos", delta)
+    if token == first_effect:
+        return ("first", delta)
+    if token == second_effect:
+        return ("second", delta)
+    return None
+
+
+def _normalize_picked(picked: str, offers: List[str],
+                      state_before: Dict[str, Any]) -> str:
+    """Translate a ``picked`` state-delta string into the offer label it names.
+
+    The picked option is always one of the four ``offers``; matching is by
+    *kind* (a willpower change implies a willpower option was applied), so cap
+    clamping — e.g. "will +3" observed as "will +1" near the +5 cap — does not
+    misclassify the kind. When several offers share the kind, the observed
+    (clamped) delta disambiguates. Picks that cannot be tied to one offer fall
+    back to :data:`_UNATTRIBUTED` (no-op outcomes) or the raw string (anomalies).
+    """
+    pk = _picked_kind(picked)
+    if pk is None:
+        return picked  # compound / unrecognised — surfaces as its own row
+    kind, delta = pk
+    fe = str(state_before.get("first_effect") or "")
+    se = str(state_before.get("second_effect") or "")
+
+    candidates = sorted({
+        off for off in offers
+        if (_offer_kind(off, fe, se) or (None, None))[0] == kind
+    })
+
+    if kind == "noop":
+        # maintain / cost-100 / cost+100 are indistinguishable post-process.
+        return candidates[0] if len(candidates) == 1 else _UNATTRIBUTED
+    if not candidates:
+        return picked  # observed a change with no matching offer — anomaly
+    if len(candidates) == 1:
+        return candidates[0]
+    # Several offers of this kind — disambiguate by the observed clamped delta.
+    if kind in ("will", "chaos", "first", "second"):
+        cur = int(state_before.get(kind, 1) or 1)
+        exact = sorted({
+            off for off in candidates
+            if min(5, max(1, cur + _offer_kind(off, fe, se)[1])) - cur == delta
+        })
+        if len(exact) == 1:
+            return exact[0]
+    return candidates[0]
 
 
 def option_stats(records: Iterable[GemRecord]) -> Tuple[int, List[OptionStat]]:
@@ -266,6 +400,9 @@ def option_stats(records: Iterable[GemRecord]) -> Tuple[int, List[OptionStat]]:
     pick_rate = picks / appearances.
     goal_success_rate_if_picked = picks-in-successful-gems / picks (per-pick).
     relic_rate_if_picked = picks-in-relic-plus-gems / picks (per-pick).
+
+    ``picked`` is a state-delta description, not an offer label, so it is run
+    through :func:`_normalize_picked` before counting (see notes above).
     """
     process_turns = 0
     appearances: Dict[str, int] = {}
@@ -282,13 +419,13 @@ def option_stats(records: Iterable[GemRecord]) -> Tuple[int, List[OptionStat]]:
             if not is_process:
                 continue
             process_turns += 1
-            seen: set = set()
-            for opt in (turn.get("offers") or []):
-                seen.add(str(opt))
-            for opt in seen:
+            offers = [_canon(str(o)) for o in (turn.get("offers") or [])]
+            for opt in set(offers):
                 appearances[opt] = appearances.get(opt, 0) + 1
-            picked = turn.get("picked")
-            if picked:
+            picked_raw = turn.get("picked")
+            if picked_raw:
+                picked = _canon(_normalize_picked(
+                    str(picked_raw), offers, turn.get("state_before") or {}))
                 picks[picked] = picks.get(picked, 0) + 1
                 if rec_success:
                     picks_in_success[picked] = picks_in_success.get(picked, 0) + 1
@@ -296,7 +433,8 @@ def option_stats(records: Iterable[GemRecord]) -> Tuple[int, List[OptionStat]]:
                     picks_in_relic[picked] = picks_in_relic.get(picked, 0) + 1
 
     stats: List[OptionStat] = []
-    for key, app in appearances.items():
+    for key in sorted(set(appearances) | set(picks)):
+        app = appearances.get(key, 0)
         pk = picks.get(key, 0)
         pk_rate = (pk / app) if app else 0.0
         gs = (picks_in_success.get(key, 0) / pk) if pk else 0.0
@@ -331,7 +469,7 @@ def print_summary(args: argparse.Namespace, records: List[GemRecord]) -> None:
     process_turns, stats = option_stats(records)
     if process_turns == 0:
         return
-    top_n = getattr(args, "top_options", 20)
+    top_n = getattr(args, "top_options", 0)
     if top_n <= 0:
         top_n = len(stats)
     print(f"Options (across {process_turns} process turns):")
@@ -344,5 +482,6 @@ def print_summary(args: argparse.Namespace, records: List[GemRecord]) -> None:
         else:
             goal_str = "-"
             relic_str = "-"
+        pick_str = f"{s.pick_rate * 100:.2f}%" if s.appearances else "-"
         print(f"  {s.key:<24}  {s.appearances:>6}  {s.picks:>6}  "
-              f"{s.pick_rate * 100:6.2f}%  {goal_str:>16}  {relic_str:>18}")
+              f"{pick_str:>7}  {goal_str:>16}  {relic_str:>18}")

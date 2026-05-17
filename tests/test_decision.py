@@ -1020,6 +1020,134 @@ class TestRelicChaseActive(unittest.TestCase):
                                              compute_post_roll_metrics(ctx, ti)))
 
 
+class TestEvMetrics(unittest.TestCase):
+    """Task 1: compute_post_roll_metrics produces accurate two-axis EV
+    and improving/degrading offer counts."""
+
+    def test_turn9_offer_set(self):
+        # order_fortitude, boss_damage(first)/attack_power(second).
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps",
+                        min_side_coeff=2000,
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        state = GemState(will=5, chaos=5, first=5, second=4,
+                         first_effect="boss_damage",
+                         second_effect="attack_power")
+        offers = make_offers("second+1", "chaos-1", "second-1",
+                             "change_second_effect")
+        m = compute_post_roll_metrics(ctx, build_ti(
+            state=state, offers=offers, turn=9, turns_left=1,
+            rerolls=0, reset_available=False))
+        # second+1: +400, chaos-1: 0, second-1: -400,
+        # change_second_effect: 4*(0-400) = -1600  ->  -1600/4
+        self.assertAlmostEqual(m.avg_coeff_change, -400.0, places=3)
+        # points: +1, -1, -1, 0  ->  -1/4
+        self.assertAlmostEqual(m.ev_points, -0.25, places=3)
+        # improving: second+1 only. degrading: chaos-1, second-1, EC.
+        self.assertEqual(m.improving_count, 1)
+        self.assertEqual(m.degrading_count, 3)
+
+    def test_f10_offer_set(self):
+        # change_first dest pool {additional_damage(700), ally_attack(0)}
+        # -> mean 350; boss_damage current 1000; level 4 -> 4*(350-1000).
+        ctx = build_ctx(gem_type="order_immutability", optimize="dps",
+                        goal=LastTurnGoal(min_will=4, min_chaos=4))
+        state = GemState(will=4, chaos=4, first=4, second=2,
+                         first_effect="boss_damage",
+                         second_effect="brand_power")
+        offers = make_offers("change_first_effect", "first+1",
+                             "second+2", "will+1")
+        m = compute_post_roll_metrics(ctx, build_ti(
+            state=state, offers=offers, turn=5, turns_left=5,
+            rerolls=0, reset_available=False))
+        self.assertAlmostEqual(m.avg_coeff_change, -400.0, places=3)
+        self.assertAlmostEqual(m.ev_points, 1.0, places=3)
+        # improving: first+1, second+2, will+1. degrading: change_first.
+        self.assertEqual(m.improving_count, 3)
+        self.assertEqual(m.degrading_count, 1)
+
+    def test_capped_level_offer_is_neutral(self):
+        # first/second already at 5: first+1 / second+1 are no-ops.
+        ctx = build_ctx(gem_type="order_fortitude", optimize="dps")
+        state = GemState(will=5, chaos=5, first=5, second=5,
+                         first_effect="boss_damage",
+                         second_effect="attack_power")
+        offers = make_offers("first+1", "second+1", "will-1", "chaos-1")
+        m = compute_post_roll_metrics(ctx, build_ti(
+            state=state, offers=offers, turn=9, turns_left=1,
+            rerolls=0, reset_available=False))
+        self.assertAlmostEqual(m.avg_coeff_change, 0.0, places=3)
+        self.assertAlmostEqual(m.ev_points, -0.5, places=3)
+        # first+1 / second+1 clamped -> neutral; will-1 / chaos-1 degrade.
+        self.assertEqual(m.improving_count, 0)
+        self.assertEqual(m.degrading_count, 2)
+
+
+def _m(coeff, pts, improving, degrading):
+    """Synthetic TurnMetrics carrying just the fields _ev_cell reads."""
+    return TurnMetrics(0.0, 0.0, 0.0, 0.0, 0, 0,
+                       coeff, pts, improving, degrading)
+
+
+class TestEvCell(unittest.TestCase):
+    """Task 2: the 3x3 (odds x EV) classifier."""
+
+    def test_full_grid(self):
+        # (improving, degrading): good>bad=(3,1), even=(2,2), good<bad=(1,3)
+        cases = [
+            # EV improves an axis -> always continue
+            (_m(400.0, 1.0, 3, 1), "continue"),
+            (_m(400.0, 0.0, 2, 2), "continue"),
+            (_m(400.0, 0.0, 1, 3), "continue"),
+            # EV ~= 0
+            (_m(0.0, 0.0, 3, 1), "continue"),
+            (_m(0.0, 0.0, 2, 2), "optin"),
+            (_m(0.0, 0.0, 1, 3), "finish"),
+            # EV net loss
+            (_m(-400.0, -0.25, 3, 1), "optin"),
+            (_m(-400.0, -0.25, 2, 2), "finish"),
+            (_m(-400.0, -0.25, 1, 3), "finish"),
+        ]
+        for m, expected in cases:
+            with self.subTest(coeff=m.avg_coeff_change, pts=m.ev_points,
+                              imp=m.improving_count, deg=m.degrading_count):
+                self.assertEqual(_ev_cell(m), expected)
+
+
+class TestRelicChaseActive(unittest.TestCase):
+    """Task 2: relic suppressor only fires below 16 points."""
+
+    def _ti(self, total_state):
+        return build_ti(state=total_state,
+                        offers=make_offers("first+1", "chaos+1", "will+1",
+                                           "second+1"),
+                        turn=8, turns_left=2, rerolls=0,
+                        reset_available=False)
+
+    def test_inactive_when_relic_already_locked(self):
+        ctx = build_ctx(relic_no_early_finish=0.25, gem_type="order_fortitude")
+        ti = self._ti(GemState(will=5, chaos=5, first=5, second=4,
+                               first_effect="boss_damage",
+                               second_effect="attack_power"))
+        self.assertFalse(_relic_chase_active(ctx, ti,
+                                             compute_post_roll_metrics(ctx, ti)))
+
+    def test_active_when_relic_still_chaseable(self):
+        ctx = build_ctx(relic_no_early_finish=0.25, gem_type="order_fortitude")
+        ti = self._ti(GemState(will=4, chaos=4, first=4, second=3,
+                               first_effect="boss_damage",
+                               second_effect="attack_power"))
+        self.assertTrue(_relic_chase_active(ctx, ti,
+                                            compute_post_roll_metrics(ctx, ti)))
+
+    def test_inactive_when_feature_disabled(self):
+        ctx = build_ctx(relic_no_early_finish=0.0, gem_type="order_fortitude")
+        ti = self._ti(GemState(will=4, chaos=4, first=4, second=3,
+                               first_effect="boss_damage",
+                               second_effect="attack_power"))
+        self.assertFalse(_relic_chase_active(ctx, ti,
+                                             compute_post_roll_metrics(ctx, ti)))
+
+
 class TestLegacyEvCell(unittest.TestCase):
     """Task 3: gate-off wiring of _ev_cell in _legacy_early_finish_decision."""
 

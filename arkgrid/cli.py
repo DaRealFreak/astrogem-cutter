@@ -219,9 +219,9 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
     """
     p.add_argument("--log-dir", default="logs",
                    help="Directory containing *.jsonl logs (default: logs)")
-    p.add_argument("--top-options", type=int, default=20,
-                   help="Show top N options by appearance rate (default: 20). "
-                        "Pass 0 for all.")
+    p.add_argument("--top-options", type=int, default=0,
+                   help="Show top N options by appearance count "
+                        "(default: 0 = all rows).")
     p.add_argument("--rarity", choices=["common", "rare", "epic"],
                    default=None, nargs="+",
                    help="Filter by detected gem rarity")
