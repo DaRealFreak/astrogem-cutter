@@ -35,6 +35,8 @@ python -m unittest tests.test_probability -v     # single file
 
 ## Task 1: `SideValueTable` — the side-value DP
 
+> **Post-review revision (2026-05-17):** Task 1's code review found the reroll dimension mathematically redundant under the single-draw model (V is provably identical for every reroll count). The shipped `SideValueTable` therefore drops the `r` dimension and the `max_rerolls` / `rerolls` parameters — state key `(w, c, f, s, fi, si, tl)`. The code block below is the pre-revision draft; Tasks 2–5 already reflect the revised (no-`max_rerolls`) interface.
+
 **Files:**
 - Modify: `arkgrid/probability.py` (new class at end of file)
 - Test: `tests/test_probability.py` (new test class)
@@ -583,7 +585,6 @@ In `arkgrid/simulator.py`, add this method immediately after `_get_ea_tables` (a
             self.goal, self.turns_total, self.pool,
             gem_type=gem_type, optimize=self.optimize,
             min_side_coeff=self.min_side_coeff,
-            max_rerolls=self._dp_max_rerolls,
             relic_coeff=self.relic_coeff,
             ancient_coeff=self.ancient_coeff,
         )
@@ -690,7 +691,6 @@ In `run_auto`, after the risk-table build block (lines 829–837, which ends wit
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
-                        max_rerolls=dp_max_rerolls,
                         relic_coeff=relic_coeff,
                         ancient_coeff=ancient_coeff,
                     )
@@ -743,7 +743,7 @@ Update `build_ctx` to build and pass a `side_value_table`. After the `risk_table
 ```python
     side_value_table = SideValueTable(
         g, turns_total, _POOL, gem_type=gem_type, optimize=optimize,
-        min_side_coeff=min_side_coeff, max_rerolls=base_rerolls,
+        min_side_coeff=min_side_coeff,
         relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
     )
 ```
@@ -915,17 +915,19 @@ def _side_value_finish_decision(
 ) -> Optional[Decision]:
     """Turns-aware finish-vs-continue using the side-value DP.
 
-    `finish_val` is the value of stopping now; `continue_val` is the best
-    non-finish action (process EV over the *actual* offers, or a reroll).
-    The DP is turns-aware, so this finishes mid-run only when the gem is
-    genuinely played out — a recoverable gem has `continue_val` high
-    enough to defer.
+    `finish_val` is the value of stopping now; `process_ev` is the value
+    of taking the 4 offers in hand; `reroll_val` is the value of redrawing
+    (the side-value table's optimal-play value, always >= `finish_val`).
 
-    Gate off: finish iff `finish_val >= continue_val + endgame_risk`
-    (the margin, default 0, is the unattended risk-tolerance knob).
-    Gate on: the margin is 0, and a finish on a gem above the
-    `--confirm-min-coeff` floor is surfaced as an F1-F4 prompt instead of
-    finishing silently.
+    Rerolls are free and gem supply — not gold — is the bottleneck, so the
+    decision **never finishes while a reroll remains**: it spends every
+    leftover reroll fishing for better offers, and processes the hand only
+    when those offers already beat a redraw. Finishing happens only once
+    rerolls are exhausted (or on turn 1, where rerolling is disallowed),
+    when `finish_val` beats `process_ev` by the `--endgame-risk` margin.
+
+    Gate on (`--confirm-min-coeff` set): a finish on a gem above the
+    side-coefficient floor is surfaced as an F1-F4 prompt.
     """
     svt = ctx.side_value_table
     if svt is None or not svt.enabled:
@@ -933,36 +935,35 @@ def _side_value_finish_decision(
 
     finish_val = svt.gem_value(ti.state)
     process_ev = svt.expected_value_after_click(
-        ti.state, ti.offers, ti.turns_left - 1, rerolls=ti.rerolls)
+        ti.state, ti.offers, ti.turns_left - 1)
     can_reroll = ti.rerolls > 0 and ti.turn != 1
-    reroll_val = (svt.lookup(ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
-                  if can_reroll else 0.0)
-    continue_val = process_ev if process_ev > reroll_val else reroll_val
 
-    margin = 0.0 if ctx.confirm_active else ctx.endgame_risk
-    metrics = {
-        "finish_val": finish_val,
-        "process_ev": process_ev,
-        "reroll_val": reroll_val,
-        "continue_val": continue_val,
-        "margin": margin,
-    }
-
-    if finish_val < continue_val + margin:
-        # Continuing wins. Reroll if it is the best continuation;
-        # otherwise defer to PROCESS.
-        if can_reroll and reroll_val > process_ev:
+    if can_reroll:
+        # Never finish with a free reroll in hand: `lookup()` (optimal-play
+        # value) is always >= `finish_val`, so a redraw is never worse than
+        # stopping. Reroll unless the offers in hand already beat a redraw.
+        reroll_val = svt.lookup(ti.state, ti.turns_left)
+        metrics = {"finish_val": finish_val, "process_ev": process_ev,
+                   "reroll_val": reroll_val}
+        if reroll_val >= process_ev:
             return Decision(
                 action=ActionKind.REROLL, branch="side_value_finish",
-                reason=(f"goal met, reroll_val={reroll_val:.0f} > "
+                reason=(f"goal met, spending a free reroll: "
+                        f"reroll_val={reroll_val:.0f} >= "
                         f"process_ev={process_ev:.0f}"),
                 metrics=metrics,
             )
-        return None
+        return None  # PROCESS — the offers in hand beat a redraw
 
-    # Finishing wins.
-    reason = (f"goal met, finish_val={finish_val:.0f} >= "
-              f"continue_val={continue_val:.0f}+margin={margin:.0f}")
+    # No reroll available (exhausted, or turn 1): finish vs process.
+    margin = 0.0 if ctx.confirm_active else ctx.endgame_risk
+    metrics = {"finish_val": finish_val, "process_ev": process_ev,
+               "margin": margin}
+    if finish_val < process_ev + margin:
+        return None  # PROCESS — continuing beats finishing
+
+    reason = (f"goal met, no rerolls left, finish_val={finish_val:.0f} "
+              f">= process_ev={process_ev:.0f}+margin={margin:.0f}")
     if (ctx.confirm_active
             and _side_coeff(ctx, ti.state) >= ctx.confirm_min_coeff):
         return Decision(
@@ -1214,15 +1215,14 @@ In `arkgrid/cli.py` `cmd_live`, the inline hint block (lines 1014–1051) comput
             gem_type=gem_type_domain,
             optimize=getattr(args, "optimize", "dps"),
             min_side_coeff=getattr(args, "min_side_coeff", 0),
-            max_rerolls=reroll_count,
             relic_coeff=getattr(args, "relic_coeff", 0),
             ancient_coeff=getattr(args, "ancient_coeff", 0),
         )
         finish_val = svt.gem_value(state)
         offer_objs = [opt for opt, _kind, _dv, _p in option_probs]
         process_ev = svt.expected_value_after_click(
-            state, offer_objs, turns_left - 1, rerolls=reroll_count)
-        reroll_v = (svt.lookup(state, turns_left, rerolls=reroll_count - 1)
+            state, offer_objs, turns_left - 1)
+        reroll_v = (svt.lookup(state, turns_left)
                     if (reroll_count > 0 and current_turn != 1) else 0.0)
         continue_val = max(process_ev, reroll_v)
         should_early_finish = finish_val >= continue_val
