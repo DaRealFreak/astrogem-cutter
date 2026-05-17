@@ -39,7 +39,7 @@ from arkgrid.decision import (
 )
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable
+from arkgrid.probability import GoalProbabilityTable, SideValueTable
 from arkgrid.run_logger import RunLogger
 from arkgrid.simulator import GemSimulator
 from arkgrid.vision.capture import grab_screen
@@ -555,6 +555,8 @@ def run_auto(
     confirm_risk: Optional[float] = None,
     confirm_min_coeff: Optional[int] = None,
     endgame_risk: bool = False,
+    relic_coeff: int = 0,
+    ancient_coeff: int = 0,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -615,6 +617,9 @@ def run_auto(
         # Risk (goal, early_finish=False) probability table — built on first
         # detection when confirm gate is active.
         risk_table: Optional[GoalProbabilityTable] = None
+
+        # Side-value DP table — built on first detection.
+        side_value_table: Optional[SideValueTable] = None
 
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
@@ -835,6 +840,15 @@ def run_auto(
                         effect_aware=effect_aware_dp,
                     )
                     risk_table = risk_tbl_result
+                # Side-value DP table: built once per gem type detected.
+                if side_value_table is None:
+                    side_value_table = SideValueTable(
+                        goal, det.total_steps, pool,
+                        gem_type=gem_type_domain, optimize=optimize,
+                        min_side_coeff=min_side_coeff,
+                        relic_coeff=relic_coeff,
+                        ancient_coeff=ancient_coeff,
+                    )
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just
                 # changed, and force_reroll_active is resolved below.
@@ -938,6 +952,7 @@ def run_auto(
                     confirm_min_coeff=confirm_min_coeff,
                     risk_prob_table=risk_table,
                     endgame_risk=endgame_risk,
+                    side_value_table=side_value_table,
                 )
 
             # --- Relic+ reroll ticket override (per-turn check, F3-A) ---
