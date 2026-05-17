@@ -341,6 +341,12 @@ class GemSimulator:
         """
         optimize = self.astro_gem.optimize if self.astro_gem else self.optimize
         gem_type = self.astro_gem.gem_type if self.astro_gem else ""
+        # `simulate_one` sets `_side_value_table` per run; the
+        # `should_early_finish` shim builds a context without that, so
+        # resolve it here from the gem type (the per-type table is cached).
+        side_value_table = self._side_value_table
+        if side_value_table is None and gem_type:
+            side_value_table = self._get_side_value_table(gem_type)
         return DecisionContext(
             goal=self.goal,
             pool=self.pool,
@@ -365,7 +371,7 @@ class GemSimulator:
             confirm_min_coeff=self.confirm_min_coeff,
             risk_prob_table=self._risk_prob_table,
             endgame_risk=self.endgame_risk,
-            side_value_table=self._side_value_table,
+            side_value_table=side_value_table,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],

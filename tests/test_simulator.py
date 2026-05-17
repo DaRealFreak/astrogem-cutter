@@ -158,8 +158,16 @@ class TestSimulator(unittest.TestCase):
             goal=LastTurnGoal(),
         )
         r = sim.simulate_one(seed=1, log=True)
+        # Re-baselined for the side-value finish: this seed's gem has two
+        # support effects (ally_damage/ally_attack), so under the default
+        # dps optimize its side value is always 0.  The side-value DP
+        # finishes turn 9 (the last turn) instead of clicking a worthless
+        # final offer — turns 1-8 click, turn 9 is EARLY_FINISH.  The epic
+        # 9-turn budget is still verified: the run reaches turn 9.
+        turns_reached = max(t["turn"] for t in (r.turn_log or []))
+        self.assertEqual(turns_reached, 9)
         click_turns = [t for t in (r.turn_log or []) if t["action"] == "click"]
-        self.assertEqual(len(click_turns), 9)
+        self.assertEqual(len(click_turns), 8)
 
     def test_rerolls_not_used_on_turn_1(self) -> None:
         sim = GemSimulator(

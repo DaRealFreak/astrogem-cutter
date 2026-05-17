@@ -393,8 +393,14 @@ class TestScenarioDesperateMode(unittest.TestCase):
 
 class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
     """Turn 7/9, will=4 chaos=5 first=3 second=3 (total=15).
-    Goal met, risky offers → early finish would trigger in safe mode.
-    But P(relic+) is high (only need +1 in 3 turns) → override suppresses it.
+    Goal met, risky offers → early finish triggers via the side-value DP.
+
+    Re-baselined for the side-value finish: the `_relic_chase_active`
+    override (`--relic-no-early-finish`) was removed — relic+ value is now
+    expressed through `--relic-coeff` in the side-value DP itself, not a
+    finish suppressor. With the default `relic_coeff=0` the DP places no
+    value on reaching 16 points, so the obsolete
+    `test_relic_overrides_early_finish` assertion is dropped.
     """
 
     def setUp(self) -> None:
@@ -429,12 +435,8 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
         )
 
     def test_early_finish_without_override(self) -> None:
-        """Safe mode + risky offers → early finish triggers normally."""
+        """Goal met + risky offers → side-value DP finishes (gem played out)."""
         self.assertTrue(self.result_no_override.should_early_finish)
-
-    def test_relic_overrides_early_finish(self) -> None:
-        """P(relic+) from state (4,5,3,3) with 3 turns exceeds 0.3 → no early finish."""
-        self.assertFalse(self.result_with_override.should_early_finish)
 
     def test_relic_prob_above_threshold(self) -> None:
         """P(relic+ >=16) from (4,5,3,3) with 3 turns left should be well above 0.3."""
