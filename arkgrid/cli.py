@@ -174,17 +174,6 @@ def _build_parser() -> argparse.ArgumentParser:
     p_live.add_argument("--seed", type=int, default=42,
                         help="RNG seed for Monte Carlo (default: 42)")
 
-    # ---- read (vision) ----
-    p_read = sub.add_parser("read", help="Read current game screen state via vision")
-    p_read.add_argument("--screenshot", type=str, default=None, metavar="FILE",
-                        help="Read from image file instead of live screen capture")
-    p_read.add_argument("--debug", action="store_true", default=False,
-                        help="Show debug visualization window")
-    p_read.add_argument("--save-debug", type=str, default=None, metavar="FILE",
-                        help="Save debug visualization to file")
-    p_read.add_argument("--monitor", type=int, default=1,
-                        help="Monitor index for live capture (default: 1 = primary)")
-
     # ---- auto (automation) ----
     p_auto = sub.add_parser("auto",
                             help="Automate gem cutting: detect, decide, click")
@@ -1078,43 +1067,6 @@ def cmd_live(args: argparse.Namespace) -> None:
               f"[reset_rate={summary['reset_rate']:.1%}]")
 
 
-def cmd_read(args: argparse.Namespace) -> None:
-    """Read the game screen and print recognized state."""
-    from arkgrid.vision import (
-        ScreenRecognizer, draw_debug, describe_result,
-        load_screenshot, grab_screen,
-    )
-    import cv2
-
-    # Capture or load frame
-    if args.screenshot:
-        frame = load_screenshot(args.screenshot)
-        print(f"Loaded screenshot: {args.screenshot} ({frame.shape[1]}x{frame.shape[0]})")
-    else:
-        frame = grab_screen(monitor_index=args.monitor)
-        print(f"Captured screen ({frame.shape[1]}x{frame.shape[0]})")
-
-    # Recognize
-    recognizer = ScreenRecognizer()
-    result = recognizer.recognize(frame)
-
-    # Print results
-    print()
-    print(describe_result(result))
-
-    # Debug output
-    if args.debug or args.save_debug:
-        debug_img = draw_debug(frame, result)
-        if args.save_debug:
-            cv2.imwrite(args.save_debug, debug_img)
-            print(f"\nDebug image saved to {args.save_debug}")
-        if args.debug:
-            cv2.imshow("AstrogemCutter Vision Debug", debug_img)
-            print("\nPress any key to close debug window...")
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-
 def cmd_auto(args: argparse.Namespace) -> None:
     """Automate gem cutting: detect, decide, click."""
     from arkgrid.automation import run_auto
@@ -1179,8 +1131,6 @@ def main() -> None:
         cmd_sim(args)
     elif args.command == "effects":
         cmd_effects(args)
-    elif args.command == "read":
-        cmd_read(args)
     elif args.command == "live":
         cmd_live(args)
     elif args.command == "auto":
