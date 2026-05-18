@@ -83,12 +83,10 @@ class ScenarioHelper:
         goal: LastTurnGoal,
         # Policy / simulator params
         min_side_coeff: int = 0,
-        early_finish_coeff: int = -1,
         use_extra_ticket: bool = False,
         use_reset_ticket: bool = False,
         side_node_threshold: float = 0.5,
         bis_only: bool = False,
-        relic_no_early_finish: float = 0.0,
         relic_reroll_threshold: float = 0.0,
     ) -> ScenarioResult:
         astro_gem = AstroGem(gem_type, first_effect, second_effect, optimize)
@@ -103,8 +101,6 @@ class ScenarioHelper:
             bis_only=bis_only,
             pool=cls.POOL,
             min_side_coeff=min_side_coeff,
-            early_finish_coeff=early_finish_coeff,
-            relic_no_early_finish=relic_no_early_finish,
             relic_reroll_threshold=relic_reroll_threshold,
         )
 
@@ -234,7 +230,6 @@ class TestScenarioEpicTurn7SideCoeff(unittest.TestCase):
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_goal_satisfied_but_not_fully(self) -> None:
@@ -287,7 +282,6 @@ class TestScenarioEpicTurn7SideCoeffWithRerolls(unittest.TestCase):
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_still_no_reroll(self) -> None:
@@ -316,7 +310,6 @@ class TestScenarioEarlyFinishWhenFullGoalMet(unittest.TestCase):
             offer_keys=("will-1", "chaos-1", "first+3", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=800,
         )
 
     def test_goal_fully_satisfied(self) -> None:
@@ -350,7 +343,6 @@ class TestScenarioEarlyFinishSafeOffers(unittest.TestCase):
             offer_keys=("first+1", "second+1", "maintain", "cost-100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_no_early_finish(self) -> None:
@@ -379,7 +371,6 @@ class TestScenarioDesperateMode(unittest.TestCase):
             offer_keys=("first+3", "second+2", "cost-100", "maintain"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
             min_side_coeff=3000,
-            early_finish_coeff=700,
         )
 
     def test_rerolls_due_to_no_goal_upgrade(self) -> None:
@@ -393,8 +384,14 @@ class TestScenarioDesperateMode(unittest.TestCase):
 
 class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
     """Turn 7/9, will=4 chaos=5 first=3 second=3 (total=15).
-    Goal met, risky offers → early finish would trigger in safe mode.
-    But P(relic+) is high (only need +1 in 3 turns) → override suppresses it.
+    Goal met, risky offers → early finish triggers via the side-value DP.
+
+    Re-baselined for the side-value finish: the `_relic_chase_active`
+    override (`--relic-no-early-finish`) was removed — relic+ value is now
+    expressed through `--relic-coeff` in the side-value DP itself, not a
+    finish suppressor. With the default `relic_coeff=0` the DP places no
+    value on reaching 16 points, so the obsolete
+    `test_relic_overrides_early_finish` assertion is dropped.
     """
 
     def setUp(self) -> None:
@@ -410,9 +407,9 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
             turn=7,
             offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
-            early_finish_coeff=0,
         )
-        # With relic+ override: early finish suppressed
+        # relic_reroll_threshold>0 builds the relic+ DP table so relic_prob
+        # is populated; P(relic+) itself is a pure DP figure.
         self.result_with_override = ScenarioHelper.evaluate(
             gem_type="order_immutability",
             first_effect="boss_damage",
@@ -424,17 +421,12 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
             turn=7,
             offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
-            early_finish_coeff=0,
-            relic_no_early_finish=0.3,
+            relic_reroll_threshold=0.3,
         )
 
     def test_early_finish_without_override(self) -> None:
-        """Safe mode + risky offers → early finish triggers normally."""
+        """Goal met + risky offers → side-value DP finishes (gem played out)."""
         self.assertTrue(self.result_no_override.should_early_finish)
-
-    def test_relic_overrides_early_finish(self) -> None:
-        """P(relic+) from state (4,5,3,3) with 3 turns exceeds 0.3 → no early finish."""
-        self.assertFalse(self.result_with_override.should_early_finish)
 
     def test_relic_prob_above_threshold(self) -> None:
         """P(relic+ >=16) from (4,5,3,3) with 3 turns left should be well above 0.3."""
@@ -465,8 +457,7 @@ class TestScenarioRelicNoEarlyFinishBelowThreshold(unittest.TestCase):
             turn=8,
             offer_keys=("will-1", "chaos-1", "first+1", "cost+100"),
             goal=LastTurnGoal(min_will=4, min_chaos=5),
-            early_finish_coeff=0,
-            relic_no_early_finish=0.3,
+            relic_reroll_threshold=0.3,
         )
 
     def test_early_finish_still_triggers(self) -> None:

@@ -30,12 +30,12 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from arkgrid.constants import (
-    DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS,
+    DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS,
     change_dest_max_coeff,
 )
 from arkgrid.models import GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable
+from arkgrid.probability import GoalProbabilityTable, SideValueTable
 
 
 # ---------------------------------------------------------------------------
@@ -77,9 +77,7 @@ class DecisionContext:
     optimize: str                                  # "dps" | "support"
     bis_only: bool
     min_side_coeff: int
-    early_finish_coeff: int                        # -1 = disabled
     prob_reset_threshold: float
-    relic_no_early_finish: float
     relic_reroll_threshold: float
     force_reroll_no_progress: int
     turns_total: int
@@ -91,10 +89,9 @@ class DecisionContext:
     gem_type: str
     force_reroll_active: bool                      # gated by starting coeff
     confirm_active: bool = False
-    confirm_risk: float = 0.0
     confirm_min_coeff: int = 0
-    risk_prob_table: Optional[GoalProbabilityTable] = None
-    endgame_risk: bool = False
+    endgame_risk: float = 0.0
+    side_value_table: Optional[SideValueTable] = None
 
 
 @dataclass
@@ -180,11 +177,6 @@ class TurnMetrics:
     p_keep_relic: float           # relic_table.expected_prob_after_click (0 if None)
     p_reroll_relic: float         # relic_table.lookup(state, tl, rerolls-1) (0 if None/no reroll)
     feasible_count: int           # # offers where prob_table DP > 0 after pick
-    miss_count: int               # # offers that break goal_fully_satisfied
-    avg_coeff_change: float       # avg side-coeff EV (clamped, change_effect-aware)
-    ev_points: float              # avg total-points EV
-    improving_count: int          # # offers that strictly improve the gem
-    degrading_count: int          # # offers that strictly degrade the gem
 
 
 def _apply_option_for_metrics(state: GemState, opt: Option) -> GemState:
@@ -264,70 +256,6 @@ def _side_coeff(ctx: DecisionContext, state: GemState) -> int:
     return total
 
 
-def _continue_has_upside(ctx: DecisionContext, state: GemState,
-                         turns_left: int) -> bool:
-    """True when continuing to cut can still improve the gem.
-
-    Upside exists when turns remain and either a target-set side node
-    is below level 5 (side coefficient can still grow) or total points
-    are below 19 (a higher relic+/ancient tier is still reachable).
-    """
-    if turns_left <= 0:
-        return False
-    target = DPS_EFFECTS if ctx.optimize == "dps" else SUPPORT_EFFECTS
-    if state.first_effect in target and state.first < 5:
-        return True
-    if state.second_effect in target and state.second < 5:
-        return True
-    if state.total_points() < 19:
-        return True
-    return False
-
-
-def _ev_cell(m: TurnMetrics) -> str:
-    """Classify a goal-met turn into 'continue' / 'optin' / 'finish'.
-
-    Signals: EV (does processing improve the gem in expectation?) and
-    odds (do improving offers outnumber degrading ones?).
-
-        odds \\ EV    improves    ~= 0       net loss
-        good>bad      continue    continue   optin
-        good==bad     continue    optin      finish
-        good<bad      continue    finish     finish
-
-    'optin' is the borderline band — the caller resolves it against
-    --endgame-risk (gate off) or surfaces it to the player (gate on).
-    """
-    eps = 1e-9
-    coeff, pts = m.avg_coeff_change, m.ev_points
-    if coeff > eps or pts > eps:
-        return "continue"                       # EV improves an axis
-    ev_zero = abs(coeff) <= eps and abs(pts) <= eps
-    odds = m.improving_count - m.degrading_count
-    odds_score = 1 if odds > 0 else (0 if odds == 0 else -1)
-    total = odds_score + (0 if ev_zero else -1)
-    if total >= 1:
-        return "continue"
-    if total == 0:
-        return "optin"
-    return "finish"
-
-
-def _relic_chase_active(ctx: DecisionContext, ti: TurnInput,
-                        m: TurnMetrics) -> bool:
-    """True when continuing genuinely chases relic+ (>=16 points).
-
-    `relic_no_early_finish` suppresses early finish to keep cutting for
-    16+ points. That only makes sense while relic+ is *not yet locked*:
-    a gem already at 16+ keeps relic+ by finishing, so the suppressor
-    must not block an EV-based finish there.
-    """
-    return (ctx.relic_no_early_finish > 0.0
-            and ctx.relic_prob_table is not None
-            and ti.state.total_points() < 16
-            and m.p_keep_relic > ctx.relic_no_early_finish)
-
-
 def _legal_actions(ti: TurnInput) -> tuple:
     """Actions the player may legally take this turn — the confirmation
     menu. Fixed order: finish, process, reroll, reset.
@@ -354,32 +282,6 @@ def _maybe_confirm(ctx: DecisionContext, ti: TurnInput,
                    confirm_choices=_legal_actions(ti))
 
 
-def _change_effect_ev(ctx: DecisionContext, state: GemState,
-                      slot: str) -> float:
-    """Expected side-coefficient delta from a change_{slot}_effect option.
-
-    The new effect is drawn uniformly from the gem-pool effects not
-    currently equipped, so the expected delta is
-    `level * (mean destination coeff - current coeff)`.
-
-    Replaces the old `-= full contribution` model, which over-counted
-    the loss whenever a destination was itself a target effect (the
-    inaccuracy F10 flagged). Returns 0.0 when the gem type is unknown.
-    """
-    coeff_map = DPS_COEFF if ctx.optimize == "dps" else SUPPORT_COEFF
-    target = DPS_EFFECTS if ctx.optimize == "dps" else SUPPORT_EFFECTS
-    cur_eff = getattr(state, f"{slot}_effect")
-    cur = coeff_map.get(cur_eff, 0) if cur_eff in target else 0
-    lvl = getattr(state, slot)
-    dests = [e for e in GEM_TYPES.get(ctx.gem_type, ())
-             if e not in (state.first_effect, state.second_effect)]
-    if not dests:
-        return 0.0
-    mean_dest = sum((coeff_map.get(e, 0) if e in target else 0)
-                    for e in dests) / len(dests)
-    return lvl * (mean_dest - cur)
-
-
 def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetrics:
     """Compute every probability and aggregate a branch helper might need.
 
@@ -388,7 +290,7 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
     the work.
     """
     if not ti.offers:
-        return TurnMetrics(0.0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0.0, 0, 0)
+        return TurnMetrics(0.0, 0.0, 0.0, 0.0, 0)
 
     tla = ti.turns_left - 1   # turns_left after this click
 
@@ -408,18 +310,10 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
         p_keep_relic = 0.0
         p_reroll_relic = 0.0
 
-    # Per-offer post-click feasibility under the goal DP, plus
-    # early-finish miss/coeff aggregates.
-    coeff_map = DPS_COEFF if ctx.optimize == "dps" else SUPPORT_COEFF
-    target_set = DPS_EFFECTS if ctx.optimize == "dps" else SUPPORT_EFFECTS
+    # Per-offer post-click feasibility under the goal DP.
     max_r = ctx.prob_table._max_rerolls
 
     feasible_count = 0
-    miss_count = 0
-    coeff_total = 0.0
-    point_total = 0
-    improving_count = 0
-    degrading_count = 0
 
     for o in ti.offers:
         ns = _apply_option_for_metrics(ti.state, o)
@@ -428,31 +322,6 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
               if max_r > 0 else ti.rerolls)
         if ctx.prob_table.lookup(ns, tla, rerolls=nr) > 0:
             feasible_count += 1
-        if not _goal_fully_satisfied(ctx, ns):
-            miss_count += 1
-        # Per-offer EV on two axes. Total-points: clamped delta straight
-        # off the applied state. Side-coeff: clamped level delta, or the
-        # expected destination coefficient for change_effect offers.
-        dp = ns.total_points() - ti.state.total_points()
-        dc = 0.0
-        if o.kind in ("first", "second"):
-            eff = getattr(ti.state, f"{o.kind}_effect")
-            if eff in target_set:
-                actual = getattr(ns, o.kind) - getattr(ti.state, o.kind)
-                dc = actual * coeff_map.get(eff, 0)
-        elif o.key in ("change_first_effect", "change_second_effect"):
-            slot = "first" if o.key == "change_first_effect" else "second"
-            dc = _change_effect_ev(ctx, ti.state, slot)
-        coeff_total += dc
-        point_total += dp
-        if dp > 0 or dc > 1e-9:
-            improving_count += 1
-        elif dp < 0 or dc < -1e-9:
-            degrading_count += 1
-        # else: neutral (maintain / capped / cost / view)
-
-    avg_coeff_change = coeff_total / len(ti.offers)
-    ev_points = point_total / len(ti.offers)
 
     return TurnMetrics(
         p_keep_goal=p_keep_goal,
@@ -460,11 +329,6 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
         p_keep_relic=p_keep_relic,
         p_reroll_relic=p_reroll_relic,
         feasible_count=feasible_count,
-        miss_count=miss_count,
-        avg_coeff_change=avg_coeff_change,
-        ev_points=ev_points,
-        improving_count=improving_count,
-        degrading_count=degrading_count,
     )
 
 
@@ -476,201 +340,84 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
 def early_finish_decision(
     ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
 ) -> Optional[Decision]:
-    """Goal already met — stop, continue, or hand the call to the player.
-
-    With `--confirm-risk` active, uses the goal-loss-probability gate
-    (`_confirm_finish_decision`); otherwise the legacy
-    `--early-finish-coeff` heuristic (`_legacy_early_finish_decision`).
-    The legacy path may also return REROLL when the goal is satisfied
-    but all visible offers are risky and rerolls remain.
+    """Goal already met — decide finish / continue / reroll via the
+    side-value DP. Returns None to defer to the rest of the tree
+    (PROCESS) when continuing is best, or when no side-value table is
+    available (gem type unknown).
     """
     if not _goal_fully_satisfied(ctx, ti.state):
         return None
     if not ti.offers:
         return None
-    if ctx.confirm_active:
-        return _confirm_finish_decision(ctx, ti, m)
-    return _legacy_early_finish_decision(ctx, ti, m)
+    return _side_value_finish_decision(ctx, ti, m)
 
 
-def _confirm_finish_decision(
+def _side_value_finish_decision(
     ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
 ) -> Optional[Decision]:
-    """Gate #1 — finish-vs-continue under `--confirm-risk`.
+    """Turns-aware finish-vs-continue using the side-value DP.
 
-    Returns FINISH (silent) when there is no upside or the gem is too
-    cheap to bother the player with, None to continue silently when the
-    risk is acceptable, or FINISH+needs_confirmation when continuing is
-    a real gamble on a valuable gem.
+    `finish_val` is the value of stopping now; `process_ev` is the value
+    of taking the 4 offers in hand; `reroll_val` is the value of redrawing
+    (the side-value table's optimal-play value, always >= `finish_val`).
+
+    Rerolls are free and gem supply — not gold — is the bottleneck, so the
+    decision **never finishes while a reroll remains**: it spends every
+    leftover reroll fishing for better offers, and processes the hand only
+    when those offers already beat a redraw. Finishing happens only once
+    rerolls are exhausted (or on turn 1, where rerolling is disallowed),
+    when `finish_val` beats `process_ev` by the `--endgame-risk` margin.
+
+    Gate on (`--confirm-min-coeff` set): a finish on a gem above the
+    side-coefficient floor is surfaced as an F1-F4 prompt.
     """
-    if not _continue_has_upside(ctx, ti.state, ti.turns_left):
-        return Decision(
-            action=ActionKind.FINISH, branch="confirm_finish",
-            reason="goal met, no side upside — finishing",
-            metrics={"side_coeff": _side_coeff(ctx, ti.state)},
-        )
-
-    # Relic+ override: keep cutting silently while relic+ is still
-    # being chased (not yet locked in — see _relic_chase_active).
-    if _relic_chase_active(ctx, ti, m):
+    svt = ctx.side_value_table
+    if svt is None or not svt.enabled:
         return None
 
-    coeff = _side_coeff(ctx, ti.state)
+    finish_val = svt.gem_value(ti.state)
+    process_ev = svt.expected_value_after_click(
+        ti.state, ti.offers, ti.turns_left - 1)
+    can_reroll = ti.rerolls > 0 and ti.turn != 1
 
-    # EV cell: the goal is safe; classify the offers. A free reroll is
-    # preferred; mid-run with no rerolls we defer (a single bad set must
-    # not end a goal-met multi-turn gem); on the last turn a 'finish'
-    # cell finishes silently and an 'optin' cell asks the player.
-    cell = _ev_cell(m)
-    if cell != "continue":
-        ev_metrics = {"avg_coeff": m.avg_coeff_change,
-                      "ev_points": m.ev_points,
-                      "improving": m.improving_count,
-                      "degrading": m.degrading_count,
-                      "ev_cell": cell, "side_coeff": coeff}
-        if ti.rerolls > 0 and ti.turn != 1:
+    if can_reroll:
+        # Never finish with a free reroll in hand: `lookup()` (optimal-play
+        # value) is always >= `finish_val`, so a redraw is never worse than
+        # stopping. Reroll unless the offers in hand already beat a redraw.
+        reroll_val = svt.lookup(ti.state, ti.turns_left)
+        metrics = {"finish_val": finish_val, "process_ev": process_ev,
+                   "reroll_val": reroll_val}
+        if reroll_val >= process_ev:
             return Decision(
-                action=ActionKind.REROLL, branch="confirm_finish",
-                reason=(f"goal met, EV cell '{cell}' "
-                        f"(odds {m.improving_count}:{m.degrading_count}) "
-                        f"— rerolling"),
-                metrics=ev_metrics,
+                action=ActionKind.REROLL, branch="side_value_finish",
+                reason=(f"goal met, spending a free reroll: "
+                        f"reroll_val={reroll_val:.0f} >= "
+                        f"process_ev={process_ev:.0f}"),
+                metrics=metrics,
             )
-        if ti.turns_left > 1:
-            return None
-        if cell == "optin" and coeff >= ctx.confirm_min_coeff:
-            return Decision(
-                action=ActionKind.FINISH, branch="confirm_finish",
-                reason=(f"last turn, goal met, borderline EV "
-                        f"(coeff={m.avg_coeff_change:.0f}, "
-                        f"pts={m.ev_points:+.2f}, "
-                        f"odds {m.improving_count}:{m.degrading_count}) "
-                        f"— player confirmation required"),
-                metrics=ev_metrics,
-                needs_confirmation=True,
-                confirm_choices=_legal_actions(ti),
-            )
-        return Decision(
-            action=ActionKind.FINISH, branch="confirm_finish",
-            reason=(f"last turn, goal met, EV cell '{cell}' "
-                    f"(coeff={m.avg_coeff_change:.0f}, "
-                    f"pts={m.ev_points:+.2f}) — finishing"),
-            metrics=ev_metrics,
-        )
+        return None  # PROCESS — the offers in hand beat a redraw
 
-    risk = 1.0
-    if ctx.risk_prob_table is not None:
-        risk = 1.0 - ctx.risk_prob_table.lookup(
-            ti.state, ti.turns_left, rerolls=ti.rerolls)
-    # risk <= 0.0 is a defensive zero-guard: not normally reachable once
-    # upside exists (the risk_prob_table lookup should be < 1.0), but
-    # protects against FP underflow or a tightly-bounded table rounding to 1.
-    if risk <= 0.0 or risk < ctx.confirm_risk:
-        # Free or acceptable-risk upgrade — continue silently.
-        return None
+    # No reroll available (exhausted, or turn 1): finish vs process.
+    margin = 0.0 if ctx.confirm_active else ctx.endgame_risk
+    metrics = {"finish_val": finish_val, "process_ev": process_ev,
+               "margin": margin}
+    if finish_val < process_ev + margin:
+        return None  # PROCESS — continuing beats finishing
 
-    metrics = {"risk": risk, "side_coeff": coeff,
-               "p_keep_relic": m.p_keep_relic}
-    if coeff < ctx.confirm_min_coeff:
+    reason = (f"goal met, no rerolls left, finish_val={finish_val:.0f} "
+              f">= process_ev={process_ev:.0f}+margin={margin:.0f}")
+    if (ctx.confirm_active
+            and _side_coeff(ctx, ti.state) >= ctx.confirm_min_coeff):
         return Decision(
-            action=ActionKind.FINISH, branch="confirm_finish",
-            reason=(f"goal met, risk={risk:.0%} but side_coeff {coeff} "
-                    f"< floor {ctx.confirm_min_coeff} — finishing"),
+            action=ActionKind.FINISH, branch="side_value_finish",
+            reason=reason + " — player confirmation required",
             metrics=metrics,
+            needs_confirmation=True,
+            confirm_choices=_legal_actions(ti),
         )
     return Decision(
-        action=ActionKind.FINISH, branch="confirm_finish",
-        reason=(f"goal met, risk={risk:.0%}, side_coeff={coeff} — "
-                f"player confirmation required"),
-        metrics=metrics,
-        needs_confirmation=True,
-        confirm_choices=_legal_actions(ti),
-    )
-
-
-def _legacy_early_finish_decision(
-    ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
-) -> Optional[Decision]:
-    """Gate-off early-finish (used when `--confirm-risk` is not set).
-
-    Two independent stop reasons:
-
-    * risk-stop (`p_miss > 0`) — a visible offer can break the goal;
-      `--early-finish-coeff` tunes the tolerance. Unchanged.
-    * EV-stop (`p_miss == 0`) — the goal is safe; `_ev_cell` classifies
-      the turn. 'finish' always stops; 'optin' stops unless
-      `--endgame-risk` is set; 'continue' never stops.
-
-    On a stop: a free reroll is preferred; otherwise FINISH on the last
-    turn only — mid-run a single bad offer set must not end a goal-met
-    multi-turn gem (the risk path still finishes mid-run to lock a goal
-    that is genuinely in danger).
-    """
-    if ctx.early_finish_coeff < 0:
-        return None
-
-    p_miss = m.miss_count / len(ti.offers)
-    expected_total = m.avg_coeff_change * ti.turns_left
-
-    risk_stop = False
-    if p_miss > 0:
-        risk_stop = (ctx.early_finish_coeff == 0
-                     or expected_total <= ctx.early_finish_coeff)
-
-    ev_stop = False
-    cell = "continue"
-    if p_miss == 0:
-        cell = _ev_cell(m)
-        if cell == "finish":
-            ev_stop = True
-        elif cell == "optin":
-            ev_stop = not ctx.endgame_risk
-
-    if not (risk_stop or ev_stop):
-        return None
-
-    if _relic_chase_active(ctx, ti, m):
-        return None
-
-    metrics = {
-        "p_miss": p_miss,
-        "avg_coeff": m.avg_coeff_change,
-        "ev_points": m.ev_points,
-        "improving": m.improving_count,
-        "degrading": m.degrading_count,
-        "ev_cell": cell,
-        "expected_total": expected_total,
-        "p_keep_relic": m.p_keep_relic,
-        "early_finish_coeff": ctx.early_finish_coeff,
-    }
-    tag = "risk" if risk_stop else f"EV cell '{cell}'"
-
-    # A free reroll is always preferred to ending the gem.
-    if ti.rerolls > 0 and ti.turn != 1:
-        return Decision(
-            action=ActionKind.REROLL,
-            branch="early_finish",
-            reason=(f"goal satisfied, {tag}: risk={p_miss:.0%}, "
-                    f"avg_coeff={m.avg_coeff_change:.0f}, "
-                    f"ev_points={m.ev_points:+.2f}, "
-                    f"odds {m.improving_count}:{m.degrading_count}"),
-            metrics=metrics,
-        )
-
-    # No reroll. The risk path finishes on any turn (goal in danger);
-    # the EV path finishes only on the last turn.
-    if ev_stop and not risk_stop and ti.turns_left > 1:
-        return None
-
-    return Decision(
-        action=ActionKind.FINISH,
-        branch="early_finish",
-        reason=(f"goal satisfied, {tag}: risk={p_miss:.0%}, "
-                f"avg_coeff={m.avg_coeff_change:.0f}, "
-                f"ev_points={m.ev_points:+.2f}, "
-                f"odds {m.improving_count}:{m.degrading_count}, "
-                f"threshold={ctx.early_finish_coeff}"),
-        metrics=metrics,
+        action=ActionKind.FINISH, branch="side_value_finish",
+        reason=reason, metrics=metrics,
     )
 
 

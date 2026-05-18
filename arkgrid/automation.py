@@ -39,7 +39,7 @@ from arkgrid.decision import (
 )
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable
+from arkgrid.probability import GoalProbabilityTable, SideValueTable
 from arkgrid.run_logger import RunLogger
 from arkgrid.simulator import GemSimulator
 from arkgrid.vision.capture import grab_screen
@@ -546,15 +546,14 @@ def run_auto(
     astro_gem: Optional[AstroGem],
     reset_min_coeff: int,
     reroll_min_coeff: int,
-    early_finish_coeff: int = 0,
-    relic_no_early_finish: float = 0.0,
     relic_reroll_threshold: float = 0.0,
     force_reroll_no_progress: int = 0,
     all_gems: bool = False,
     effect_aware_dp: bool = True,
-    confirm_risk: Optional[float] = None,
     confirm_min_coeff: Optional[int] = None,
-    endgame_risk: bool = False,
+    endgame_risk: float = 0.0,
+    relic_coeff: int = 0,
+    ancient_coeff: int = 0,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -562,8 +561,7 @@ def run_auto(
     logger = RunLogger()
     logger.log_run_start(args, goal, astro_gem)
 
-    confirm_active = (confirm_risk is not None or confirm_min_coeff is not None)
-    confirm_risk = confirm_risk if confirm_risk is not None else 0.0
+    confirm_active = confirm_min_coeff is not None
     confirm_min_coeff = confirm_min_coeff if confirm_min_coeff is not None else 0
 
     pool = OptionPool()
@@ -612,9 +610,8 @@ def run_auto(
         # Relic+ (>=16 total points) probability table — built on first detection
         relic_table: Optional[GoalProbabilityTable] = None
 
-        # Risk (goal, early_finish=False) probability table — built on first
-        # detection when confirm gate is active.
-        risk_table: Optional[GoalProbabilityTable] = None
+        # Side-value DP table — built on first detection.
+        side_value_table: Optional[SideValueTable] = None
 
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
@@ -800,7 +797,7 @@ def run_auto(
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
                         bis_only, optimize, min_side_coeff,
-                        gem_type_domain, early_finish=early_finish_coeff >= 0,
+                        gem_type_domain, early_finish=True,
                         max_rerolls=dp_max_rerolls,
                         effect_aware=effect_aware_dp,
                     ))
@@ -808,7 +805,9 @@ def run_auto(
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
                 if relic_table is None and (
-                        relic_no_early_finish > 0.0 or relic_reroll_threshold > 0.0):
+                        relic_reroll_threshold > 0.0
+                        or relic_coeff > 0
+                        or ancient_coeff > 0):
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,
@@ -818,23 +817,21 @@ def run_auto(
                 # DP overestimates fresh start probability.
                 reset_prob_table = GoalProbabilityTable(
                     goal, det.total_steps, pool,
-                    early_finish=early_finish_coeff >= 0,
+                    early_finish=True,
                 )
                 p_fresh = reset_prob_table.lookup(
                     GemState(will=1, chaos=1, first=1, second=1),
                     det.total_steps,
                 )
-                # Risk table: goal DP with early_finish=False, built once
-                # when the confirm gate is active.
-                if risk_table is None and confirm_active:
-                    risk_tbl_result, _, _, _ = _build_prob_table(
-                        goal, det.total_steps, pool, temp_state,
-                        bis_only, optimize, min_side_coeff,
-                        gem_type_domain, early_finish=False,
-                        max_rerolls=dp_max_rerolls,
-                        effect_aware=effect_aware_dp,
+                # Side-value DP table: built once per gem type detected.
+                if side_value_table is None:
+                    side_value_table = SideValueTable(
+                        goal, det.total_steps, pool,
+                        gem_type=gem_type_domain, optimize=optimize,
+                        min_side_coeff=min_side_coeff,
+                        relic_coeff=relic_coeff,
+                        ancient_coeff=ancient_coeff,
                     )
-                    risk_table = risk_tbl_result
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just
                 # changed, and force_reroll_active is resolved below.
@@ -920,9 +917,7 @@ def run_auto(
                     optimize=optimize,
                     bis_only=bis_only,
                     min_side_coeff=min_side_coeff,
-                    early_finish_coeff=early_finish_coeff,
                     prob_reset_threshold=prob_reset_threshold,
-                    relic_no_early_finish=relic_no_early_finish,
                     relic_reroll_threshold=relic_reroll_threshold,
                     force_reroll_no_progress=force_reroll_no_progress,
                     turns_total=det.total_steps,
@@ -934,10 +929,9 @@ def run_auto(
                     gem_type=gem_type_domain,
                     force_reroll_active=force_reroll_active,
                     confirm_active=confirm_active,
-                    confirm_risk=confirm_risk,
                     confirm_min_coeff=confirm_min_coeff,
-                    risk_prob_table=risk_table,
                     endgame_risk=endgame_risk,
+                    side_value_table=side_value_table,
                 )
 
             # --- Relic+ reroll ticket override (per-turn check, F3-A) ---

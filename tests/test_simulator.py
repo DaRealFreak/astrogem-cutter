@@ -158,8 +158,16 @@ class TestSimulator(unittest.TestCase):
             goal=LastTurnGoal(),
         )
         r = sim.simulate_one(seed=1, log=True)
+        # Re-baselined for the side-value finish: this seed's gem has two
+        # support effects (ally_damage/ally_attack), so under the default
+        # dps optimize its side value is always 0.  The side-value DP
+        # finishes turn 9 (the last turn) instead of clicking a worthless
+        # final offer — turns 1-8 click, turn 9 is EARLY_FINISH.  The epic
+        # 9-turn budget is still verified: the run reaches turn 9.
+        turns_reached = max(t["turn"] for t in (r.turn_log or []))
+        self.assertEqual(turns_reached, 9)
         click_turns = [t for t in (r.turn_log or []) if t["action"] == "click"]
-        self.assertEqual(len(click_turns), 9)
+        self.assertEqual(len(click_turns), 8)
 
     def test_rerolls_not_used_on_turn_1(self) -> None:
         sim = GemSimulator(
@@ -321,25 +329,6 @@ class TestRandomAstroGem(unittest.TestCase):
         self.assertGreater(len(types_seen), 1)
 
 
-class TestRiskTable(unittest.TestCase):
-    """GemSimulator builds a risk table when the confirm gate is active."""
-
-    def test_risk_table_built_when_active(self):
-        sim = GemSimulator(
-            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(min_will=4, min_chaos=3),
-            confirm_risk=0.25,
-        )
-        self.assertIsNotNone(sim._risk_prob_table)
-
-    def test_risk_table_absent_when_inactive(self):
-        sim = GemSimulator(
-            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(min_will=4, min_chaos=3),
-        )
-        self.assertIsNone(sim._risk_prob_table)
-
-
 class TestSimulatorConfirmObservability(unittest.TestCase):
     """A gated turn leaves a `confirm` marker in the turn log; the
     simulator still executes the recommended action."""
@@ -355,7 +344,7 @@ class TestSimulatorConfirmObservability(unittest.TestCase):
                 goal=LastTurnGoal(min_will=4, min_chaos=3),
                 astro_gem=AstroGem("chaos_distortion", "boss_damage",
                                    "attack_power", "dps"),
-                confirm_risk=0.01, confirm_min_coeff=1,
+                confirm_min_coeff=1,
             )
             r = sim.simulate_one(seed=seed, log=True)
             if r.turn_log and any("confirm" in e for e in r.turn_log):
@@ -398,38 +387,24 @@ class TestRelicRerollTableSizing(unittest.TestCase):
             rarity="rare", use_extra_ticket=True, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=3, min_chaos=3),
             relic_reroll_threshold=0.15,
-            relic_no_early_finish=0.3,
         )
         # sim.base_rerolls = RARITY_REROLLS["rare"](1) + extra_ticket(1) = 2
         # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
         self.assertIsNotNone(sim._relic_prob_table)
         self.assertEqual(sim._relic_prob_table._max_rerolls, sim.base_rerolls + 1)
 
-    def test_risk_table_also_sized_to_base_plus_one(self):
-        # Risk table (confirm gate + relic override) must also be sized up
-        sim = GemSimulator(
-            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
-            goal=LastTurnGoal(min_will=4, min_chaos=3),
-            relic_reroll_threshold=0.2,
-            confirm_risk=0.25,
-        )
-        self.assertIsNotNone(sim._risk_prob_table)
-        self.assertEqual(sim._risk_prob_table._max_rerolls, sim.base_rerolls + 1)
-
-    def test_ea_tables_reroll_and_risk_sized_to_base_plus_one(self):
+    def test_ea_tables_reroll_sized_to_base_plus_one(self):
         # Effect-aware tables built by _get_ea_tables must also respect the
         # dp_max_rerolls = base_rerolls + 1 sizing when relic_reroll_threshold > 0.
         # sim.base_rerolls = RARITY_REROLLS["epic"](2) + extra_ticket(0) = 2
         # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
-        # confirm_risk activates the risk table path inside _get_ea_tables.
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=3),
             relic_reroll_threshold=0.2,
-            confirm_risk=0.25,
             effect_aware=True,
         )
-        reroll_tbl, reset_tbl, risk_tbl = sim._get_ea_tables("chaos_collapse")
+        reroll_tbl, reset_tbl = sim._get_ea_tables("chaos_collapse")
         expected = sim.base_rerolls + 1
         # Reroll-aware EA table must be sized to base_rerolls + 1
         self.assertEqual(reroll_tbl._max_rerolls, expected,
@@ -437,10 +412,6 @@ class TestRelicRerollTableSizing(unittest.TestCase):
         # Reset table is not reroll-aware: it should NOT be sized up
         self.assertNotEqual(reset_tbl._max_rerolls, expected,
                             "EA reset table should not be sized up (non-reroll-aware)")
-        # EA risk table must also be sized to base_rerolls + 1
-        self.assertIsNotNone(risk_tbl)
-        self.assertEqual(risk_tbl._max_rerolls, expected,
-                         "EA risk table must be sized for the post-override reroll count")
 
 
 class TestEndgameRiskPlumbing(unittest.TestCase):
@@ -453,19 +424,61 @@ class TestEndgameRiskPlumbing(unittest.TestCase):
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
-            endgame_risk=True,
+            endgame_risk=1500.0,
         )
-        self.assertTrue(sim.endgame_risk)
-        self.assertTrue(sim._decision_context().endgame_risk)
+        self.assertEqual(sim.endgame_risk, 1500.0)
+        self.assertEqual(sim._decision_context().endgame_risk, 1500.0)
 
-    def test_default_is_false(self):
+    def test_default_is_zero(self):
         from arkgrid.models import LastTurnGoal
         from arkgrid.simulator import GemSimulator
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
         )
-        self.assertFalse(sim.endgame_risk)
+        self.assertEqual(sim.endgame_risk, 0.0)
+
+
+class TestSideValueTableWiring(unittest.TestCase):
+    """Task 2: GemSimulator builds a per-gem-type side-value table and
+    threads it into the DecisionContext."""
+
+    def test_side_value_table_built_for_configured_gem(self):
+        from arkgrid.models import AstroGem
+        from arkgrid.probability import SideValueTable
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+            astro_gem=AstroGem("order_fortitude", "boss_damage",
+                               "attack_power", "dps"),
+            relic_coeff=3000, ancient_coeff=8000,
+        )
+        sim.simulate_one(seed=1)
+        tbl = sim._get_side_value_table("order_fortitude")
+        self.assertIsInstance(tbl, SideValueTable)
+        self.assertTrue(tbl.enabled)
+        # Cached: a second call returns the same object.
+        self.assertIs(tbl, sim._get_side_value_table("order_fortitude"))
+
+    def test_decision_context_carries_side_value_table(self):
+        from arkgrid.models import AstroGem
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+            astro_gem=AstroGem("order_fortitude", "boss_damage",
+                               "attack_power", "dps"),
+        )
+        sim.simulate_one(seed=1)
+        ctx = sim._decision_context()
+        self.assertIsNotNone(ctx.side_value_table)
+
+    def test_relic_ancient_coeff_default_zero(self):
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_will=4, min_chaos=4),
+        )
+        self.assertEqual(sim.relic_coeff, 0)
+        self.assertEqual(sim.ancient_coeff, 0)
 
 
 if __name__ == "__main__":

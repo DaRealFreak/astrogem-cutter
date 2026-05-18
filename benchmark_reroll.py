@@ -37,7 +37,6 @@ def run_benchmark(
     seed: int,
     goal: LastTurnGoal,
     optimize: str = "dps",
-    early_finish_coeff: int = 500,
     reset_min_coeff: int = 1000,
     reroll_min_coeff: int = 700,
 ) -> Dict[str, float]:
@@ -50,7 +49,6 @@ def run_benchmark(
         goal=goal,
         side_node_threshold=0.5,
         optimize=optimize,
-        early_finish_coeff=early_finish_coeff,
         reset_min_coeff=reset_min_coeff,
         reroll_min_coeff=reroll_min_coeff,
         pool=pool,
@@ -182,7 +180,6 @@ def main():
     parser.add_argument("--optimize", choices=["dps", "support"], default="dps")
     parser.add_argument("--min-will", type=int, default=4)
     parser.add_argument("--min-chaos", type=int, default=5)
-    parser.add_argument("--early-finish-coeff", type=int, default=500)
     parser.add_argument("--reset-min-coeff", type=int, default=1000)
     parser.add_argument("--reroll-min-coeff", type=int, default=700)
     args = parser.parse_args()
@@ -192,8 +189,7 @@ def main():
     print(f"Benchmark: {args.trials} trials, seed={args.seed}")
     print(f"Goal: min_will={args.min_will}, min_chaos={args.min_chaos}")
     print(f"Optimize: {args.optimize}")
-    print(f"Early finish: {args.early_finish_coeff}, "
-          f"reset_min_coeff: {args.reset_min_coeff}, "
+    print(f"reset_min_coeff: {args.reset_min_coeff}, "
           f"reroll_min_coeff: {args.reroll_min_coeff}")
     print(f"Strategies: {', '.join(args.strategies)}")
     print(f"Rarities: {', '.join(args.rarity)}")
@@ -209,7 +205,6 @@ def main():
                 seed=args.seed,
                 goal=goal,
                 optimize=args.optimize,
-                early_finish_coeff=args.early_finish_coeff,
                 reset_min_coeff=args.reset_min_coeff,
                 reroll_min_coeff=args.reroll_min_coeff,
             )

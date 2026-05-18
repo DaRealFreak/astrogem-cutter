@@ -102,6 +102,8 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
         print(f"  DP probability (no-reroll, conservative):  {result['dp_prob_no_reroll'] * 100:.2f}%")
     if "relic_dp_prob" in result:
         print(f"  DP relic+ (>=16): {result['relic_dp_prob'] * 100:.2f}%")
+    if "ancient_dp_prob" in result:
+        print(f"  DP ancient (>=19): {result['ancient_dp_prob'] * 100:.2f}%")
     if "p_success" in result:
         print(
             f"  Success rate: {result['p_success'] * 100:.2f}% "

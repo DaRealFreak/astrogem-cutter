@@ -92,19 +92,38 @@ class TestResetTicketVariants(unittest.TestCase):
                          "so cmd_stats iterates both variants")
 
 
-class TestEndgameRiskFlag(unittest.TestCase):
-    """Task 5: --endgame-risk parses and defaults to off."""
+class TestTierFlags(unittest.TestCase):
+    """Task 5: --relic-coeff / --ancient-coeff parse; retired flags gone."""
 
-    def test_default_is_false(self):
+    def test_relic_ancient_coeff_default_zero(self):
         from arkgrid.cli import _build_parser
         args = _build_parser().parse_args(["sim", "--min-will", "4"])
-        self.assertFalse(args.endgame_risk)
+        self.assertEqual(args.relic_coeff, 0)
+        self.assertEqual(args.ancient_coeff, 0)
 
-    def test_flag_sets_true(self):
+    def test_relic_ancient_coeff_parse(self):
         from arkgrid.cli import _build_parser
         args = _build_parser().parse_args(
-            ["auto", "--min-will", "4", "--endgame-risk"])
-        self.assertTrue(args.endgame_risk)
+            ["sim", "--min-will", "4", "--relic-coeff", "3000",
+             "--ancient-coeff", "8000"])
+        self.assertEqual(args.relic_coeff, 3000)
+        self.assertEqual(args.ancient_coeff, 8000)
+
+    def test_endgame_risk_is_float(self):
+        from arkgrid.cli import _build_parser
+        args = _build_parser().parse_args(
+            ["sim", "--min-will", "4", "--endgame-risk", "2000"])
+        self.assertEqual(args.endgame_risk, 2000.0)
+        args0 = _build_parser().parse_args(["sim", "--min-will", "4"])
+        self.assertEqual(args0.endgame_risk, 0.0)
+
+    def test_retired_flags_rejected(self):
+        from arkgrid.cli import _build_parser
+        for flag in ("--early-finish-coeff", "--relic-no-early-finish",
+                     "--confirm-risk"):
+            with self.assertRaises(SystemExit):
+                _build_parser().parse_args(
+                    ["sim", "--min-will", "4", flag, "1"])
 
 
 if __name__ == "__main__":
