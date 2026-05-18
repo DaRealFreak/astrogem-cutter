@@ -90,7 +90,7 @@ class DecisionContext:
     force_reroll_active: bool                      # gated by starting coeff
     confirm_active: bool = False
     confirm_min_coeff: int = 0
-    endgame_risk: float = 0.0
+    endgame_risk: Optional[float] = None
     side_value_table: Optional[SideValueTable] = None
 
 
@@ -368,6 +368,10 @@ def _side_value_finish_decision(
     rerolls are exhausted (or on turn 1, where rerolling is disallowed),
     when `finish_val` beats `process_ev` by the `--endgame-risk` margin.
 
+    Exception: when `--endgame-risk` is omitted (auto-gate), a relic or
+    ancient gem whose side coefficient is below the grade benchmark is
+    always finished regardless of EV, to protect the grade.
+
     Gate on (`--confirm-min-coeff` set): a finish on a gem above the
     side-coefficient floor is surfaced as an F1-F4 prompt.
     """
@@ -398,14 +402,36 @@ def _side_value_finish_decision(
         return None  # PROCESS — the offers in hand beat a redraw
 
     # No reroll available (exhausted, or turn 1): finish vs process.
-    margin = 0.0 if ctx.confirm_active else ctx.endgame_risk
+    # Auto-gate fires only when the player did not pass --endgame-risk
+    # (endgame_risk is None) and the confirmation gate is off.
+    auto_gate = ctx.endgame_risk is None and not ctx.confirm_active
+    grade_protect = False
+    benchmark = 0
+    if auto_gate:
+        total = ti.state.total_points()
+        if total >= 19:
+            benchmark = svt.ancient_coeff
+        elif total >= 16:
+            benchmark = svt.relic_coeff
+        # benchmark stays 0 for legendary grade -> no grade to protect.
+        if benchmark > 0 and _side_coeff(ctx, ti.state) < benchmark:
+            grade_protect = True
+
+    margin = (0.0 if (ctx.confirm_active or ctx.endgame_risk is None)
+              else ctx.endgame_risk)
     metrics = {"finish_val": finish_val, "process_ev": process_ev,
-               "margin": margin}
-    if finish_val < process_ev + margin:
+               "margin": margin, "grade_protect": grade_protect}
+
+    if not grade_protect and finish_val < process_ev + margin:
         return None  # PROCESS — continuing beats finishing
 
-    reason = (f"goal met, no rerolls left, finish_val={finish_val:.0f} "
-              f">= process_ev={process_ev:.0f}+margin={margin:.0f}")
+    if grade_protect:
+        reason = (f"goal met, no rerolls left, side coeff "
+                  f"{_side_coeff(ctx, ti.state)} below grade benchmark "
+                  f"{benchmark} — finishing to protect the grade")
+    else:
+        reason = (f"goal met, no rerolls left, finish_val={finish_val:.0f} "
+                  f">= process_ev={process_ev:.0f}+margin={margin:.0f}")
     if (ctx.confirm_active
             and _side_coeff(ctx, ti.state) >= ctx.confirm_min_coeff):
         return Decision(

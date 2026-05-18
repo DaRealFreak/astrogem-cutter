@@ -57,9 +57,9 @@ def build_ctx(
     p_fresh: Optional[float] = None,
     with_relic: bool = True,
     confirm_min_coeff: Optional[int] = None,
-    endgame_risk: float = 0.0,
-    relic_coeff: int = 0,
-    ancient_coeff: int = 0,
+    endgame_risk: Optional[float] = 0.0,
+    relic_coeff: Optional[int] = 0,
+    ancient_coeff: Optional[int] = 0,
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
@@ -680,6 +680,77 @@ class TestSideValueFinish(unittest.TestCase):
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.FINISH)
         self.assertFalse(d.needs_confirmation)
+
+
+class TestEndgameGate(unittest.TestCase):
+    """Endgame-risk grade gate: below-benchmark gems protect the grade
+    when --endgame-risk is omitted (endgame_risk=None)."""
+
+    def _ctx(self, **kw):
+        kw.setdefault("gem_type", "order_fortitude")
+        kw.setdefault("optimize", "dps")
+        kw.setdefault("goal", LastTurnGoal(min_will=4, min_chaos=4))
+        return build_ctx(**kw)
+
+    def test_below_benchmark_relic_gem_finishes_to_protect_grade(self):
+        # order_fortitude relic benchmark (DPS) = 2844.
+        # Gem: will5 chaos5 first3 second3 -> total 16 (relic).
+        # first=attack_power L3 -> 1200 ; second=ally_damage (non-target) -> 0.
+        # side_coeff 1200 < 2844 -> grade-protect FINISH despite a +EV offer.
+        ctx = self._ctx(endgame_risk=None, relic_coeff=None, ancient_coeff=None)
+        st = GemState(will=5, chaos=5, first=3, second=3,
+                      first_effect="attack_power", second_effect="ally_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("first+2", "second+2",
+                                         "will+1", "chaos+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+        self.assertEqual(d.branch, "side_value_finish")
+        self.assertTrue(d.metrics["grade_protect"])
+
+    def test_above_benchmark_relic_gem_continues(self):
+        # Same shape but first=boss_damage L3 + second=attack_power L3:
+        # side_coeff = 3000 + 1200 = 4200 > 2844 -> no grade-protect;
+        # margin 0 EV-optimal, improvable offers -> defer (None -> PROCESS).
+        ctx = self._ctx(endgame_risk=None, relic_coeff=None, ancient_coeff=None)
+        st = GemState(will=5, chaos=5, first=3, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("first+2", "second+2",
+                                         "will+1", "chaos+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        self.assertIsNone(d)
+
+    def test_explicit_endgame_risk_disables_the_gate(self):
+        # Same below-benchmark gem as test 1, but endgame_risk is an explicit
+        # float (user took manual control) -> no grade-protect, margin 0,
+        # improvable offer -> defer (None -> PROCESS).
+        ctx = self._ctx(endgame_risk=0.0, relic_coeff=None, ancient_coeff=None)
+        st = GemState(will=5, chaos=5, first=3, second=3,
+                      first_effect="attack_power", second_effect="ally_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("first+2", "second+2",
+                                         "will+1", "chaos+1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        self.assertIsNone(d)
+
+    def test_legacy_float_margin_path_unchanged(self):
+        # endgame_risk as a float still drives the finish_val >= process_ev +
+        # margin comparison: a played-out maxed gem still finishes.
+        ctx = self._ctx(endgame_risk=0.0)
+        st = GemState(will=5, chaos=5, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("will-1", "chaos-1",
+                                         "first-1", "second-1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
 
 
 if __name__ == "__main__":
