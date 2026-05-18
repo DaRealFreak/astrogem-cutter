@@ -551,9 +551,9 @@ def run_auto(
     all_gems: bool = False,
     effect_aware_dp: bool = True,
     confirm_min_coeff: Optional[int] = None,
-    endgame_risk: float = 0.0,
-    relic_coeff: int = 0,
-    ancient_coeff: int = 0,
+    endgame_risk: Optional[float] = None,
+    relic_coeff: Optional[int] = None,
+    ancient_coeff: Optional[int] = None,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -801,13 +801,11 @@ def run_auto(
                         max_rerolls=dp_max_rerolls,
                         effect_aware=effect_aware_dp,
                     ))
-                # Build relic+ table once (doesn't depend on effects).
+                # Relic+ table: built once. Always built — grade is part of
+                # the side-value gem_value, so P(relic+)/P(ancient) always show.
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
-                if relic_table is None and (
-                        relic_reroll_threshold > 0.0
-                        or relic_coeff > 0
-                        or ancient_coeff > 0):
+                if relic_table is None:
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,
