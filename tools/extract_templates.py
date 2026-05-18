@@ -45,6 +45,31 @@ _SINGLE_REGIONS: List[Tuple[str, Tuple[int, int, int, int]]] = [
     ("steps", C.ROI_PROCESS_STEPS),
 ]
 
+# ---------------------------------------------------------------------------
+# Extraction-specific sub-region offsets. Kept here (not in
+# arkgrid/vision/constants.py) because the runtime recogniser crops whole
+# cards and matches by sub-image search, so it never needs them.
+#
+# An effect name is 1 or 2 text lines; the delta/Lv. indicator sits on the
+# line below it, so its vertical position shifts when the name wraps. The
+# tool does not detect the line count -- it emits the delta crop at BOTH
+# offsets and the user keeps the correct one.
+#
+# Each tuple is (dx, dy, w, h) relative to the parent crop's top-left corner.
+# ---------------------------------------------------------------------------
+
+# Within an option card (C.OPTION_CARD_POSITIONS width x C.OPTION_CARD_HEIGHT,
+# i.e. 117 x 70). Name band covers a 1- or 2-line name; delta bands are the
+# 1-line and 2-line offsets.
+OPT_NAME_SUBREGION = (0, 6, 117, 42)
+OPT_DELTA_1LINE = (0, 34, 117, 25)
+OPT_DELTA_2LINE = (0, 44, 117, 25)
+
+# Within a side node (C.ROI_STAT_FIRST width x height, i.e. 102 x 57).
+SN_NAME_SUBREGION = (0, 5, 102, 40)
+SN_LV_1LINE = (0, 30, 102, 22)
+SN_LV_2LINE = (0, 39, 102, 18)
+
 
 def _crop(gray: np.ndarray, x: int, y: int, w: int, h: int) -> Optional[np.ndarray]:
     """Crop a region, clamped to the frame bounds. None if it would be empty."""
@@ -104,6 +129,33 @@ def extract_regions(gray: np.ndarray, anchor: Tuple[int, int]
     # Fixed single-crop anchor-relative regions.
     for category, (dx, dy, w, h) in _SINGLE_REGIONS:
         add(category, category, _crop(gray, ax + dx, ay + dy, w, h))
+
+    # Option cards (x4): name crop + delta crop at both line offsets.
+    for i, (dx, card_w) in enumerate(C.OPTION_CARD_POSITIONS):
+        card = _crop(gray, ax + dx, ay + C.OPTION_CARD_Y_OFFSET,
+                     card_w, C.OPTION_CARD_HEIGHT)
+        if card is None:
+            continue
+        n = i + 1
+        nx, ny, nw, nh = OPT_NAME_SUBREGION
+        add("option_names", f"card{n}_name", _crop(card, nx, ny, nw, nh))
+        for variant, (sx, sy, sw, sh) in (("1line", OPT_DELTA_1LINE),
+                                          ("2line", OPT_DELTA_2LINE)):
+            add("option_deltas", f"card{n}_delta_{variant}",
+                _crop(card, sx, sy, sw, sh))
+
+    # Diamond side nodes (x2): name crop + Lv. crop at both line offsets.
+    for label, (dx, dy, w, h) in (("side1", C.ROI_STAT_FIRST),
+                                  ("side2", C.ROI_STAT_SECOND)):
+        node = _crop(gray, ax + dx, ay + dy, w, h)
+        if node is None:
+            continue
+        nx, ny, nw, nh = SN_NAME_SUBREGION
+        add("side_node_names", f"{label}_name", _crop(node, nx, ny, nw, nh))
+        for variant, (sx, sy, sw, sh) in (("1line", SN_LV_1LINE),
+                                          ("2line", SN_LV_2LINE)):
+            add("side_node_deltas", f"{label}_lv_{variant}",
+                _crop(node, sx, sy, sw, sh))
 
     return out
 

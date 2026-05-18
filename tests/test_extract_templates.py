@@ -48,3 +48,15 @@ class TestExtractRegions(unittest.TestCase):
         frame = np.zeros((100, 100), dtype=np.uint8)
         crop = self.ex._crop(frame, -10, 5, 20, 30)
         self.assertEqual(crop.shape, (30, 10))
+
+    def test_option_card_crop_counts(self):
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        # 4 cards: one name crop each, two delta variants each.
+        self.assertEqual(len(regions["option_names"]), 4)
+        self.assertEqual(len(regions["option_deltas"]), 8)
+
+    def test_side_node_crop_counts(self):
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        # 2 side nodes: one name crop each, two Lv. variants each.
+        self.assertEqual(len(regions["side_node_names"]), 2)
+        self.assertEqual(len(regions["side_node_deltas"]), 4)
