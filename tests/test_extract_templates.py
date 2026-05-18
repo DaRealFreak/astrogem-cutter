@@ -51,15 +51,29 @@ class TestExtractRegions(unittest.TestCase):
 
     def test_option_card_crop_counts(self):
         regions = self.ex.extract_regions(self.gray, self.anchor)
-        # 4 cards: one name crop each, two delta variants each.
-        self.assertEqual(len(regions["option_names"]), 4)
+        # 4 cards: two name variants each, two delta variants each.
+        self.assertEqual(len(regions["option_names"]), 8)
         self.assertEqual(len(regions["option_deltas"]), 8)
 
     def test_side_node_crop_counts(self):
         regions = self.ex.extract_regions(self.gray, self.anchor)
-        # 2 side nodes: one name crop each, two Lv. variants each.
-        self.assertEqual(len(regions["side_node_names"]), 2)
+        # 2 side nodes: two name variants each, two Lv. variants each.
+        self.assertEqual(len(regions["side_node_names"]), 4)
         self.assertEqual(len(regions["side_node_deltas"]), 4)
+
+    def test_name_crops_emitted_at_two_heights(self):
+        # The name is cropped at both line offsets so a 1-line name does not
+        # capture the delta text below it: the 1-line crop must be shorter
+        # than the 2-line crop, and both variants must be present.
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        names = dict(regions["option_names"])
+        sides = dict(regions["side_node_names"])
+        for one, two in (("card1_name_1line", "card1_name_2line"),
+                         ("side1_name_1line", "side1_name_2line")):
+            src = names if one.startswith("card") else sides
+            self.assertIn(one, src)
+            self.assertIn(two, src)
+            self.assertLess(src[one].shape[0], src[two].shape[0])
 
     def test_finish_regions_returns_four_crops(self):
         # extract_finish_regions crops 4 fixed positions; on any FHD frame

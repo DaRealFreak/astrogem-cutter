@@ -52,21 +52,24 @@ _SINGLE_REGIONS: List[Tuple[str, Tuple[int, int, int, int]]] = [
 #
 # An effect name is 1 or 2 text lines; the delta/Lv. indicator sits on the
 # line below it, so its vertical position shifts when the name wraps. The
-# tool does not detect the line count -- it emits the delta crop at BOTH
-# offsets and the user keeps the correct one.
+# tool does not detect the line count -- it emits the name crop AND the
+# delta crop at BOTH offsets and the user keeps the matching pair.
 #
 # Each tuple is (dx, dy, w, h) relative to the parent crop's top-left corner.
 # ---------------------------------------------------------------------------
 
 # Within an option card (C.OPTION_CARD_POSITIONS width x C.OPTION_CARD_HEIGHT,
-# i.e. 117 x 70). Name band covers a 1- or 2-line name; delta bands are the
-# 1-line and 2-line offsets.
-OPT_NAME_SUBREGION = (0, 6, 117, 42)
+# i.e. 117 x 70). The name itself is 1 or 2 text lines, so -- like the delta
+# -- it is cropped at two sizes: the 1-line crop stops above the delta line,
+# the 2-line crop extends one line lower to cover the wrapped name.
+OPT_NAME_1LINE = (0, 6, 117, 28)
+OPT_NAME_2LINE = (0, 6, 117, 38)
 OPT_DELTA_1LINE = (0, 34, 117, 25)
 OPT_DELTA_2LINE = (0, 44, 117, 25)
 
 # Within a side node (C.ROI_STAT_FIRST width x height, i.e. 102 x 57).
-SN_NAME_SUBREGION = (0, 5, 102, 40)
+SN_NAME_1LINE = (0, 5, 102, 25)
+SN_NAME_2LINE = (0, 5, 102, 34)
 SN_LV_1LINE = (0, 30, 102, 22)
 SN_LV_2LINE = (0, 39, 102, 18)
 
@@ -130,28 +133,32 @@ def extract_regions(gray: np.ndarray, anchor: Tuple[int, int]
     for category, (dx, dy, w, h) in _SINGLE_REGIONS:
         add(category, category, _crop(gray, ax + dx, ay + dy, w, h))
 
-    # Option cards (x4): name crop + delta crop at both line offsets.
+    # Option cards (x4): name crop + delta crop, each at both line offsets.
     for i, (dx, card_w) in enumerate(C.OPTION_CARD_POSITIONS):
         card = _crop(gray, ax + dx, ay + C.OPTION_CARD_Y_OFFSET,
                      card_w, C.OPTION_CARD_HEIGHT)
         if card is None:
             continue
         n = i + 1
-        nx, ny, nw, nh = OPT_NAME_SUBREGION
-        add("option_names", f"card{n}_name", _crop(card, nx, ny, nw, nh))
+        for variant, (nx, ny, nw, nh) in (("1line", OPT_NAME_1LINE),
+                                          ("2line", OPT_NAME_2LINE)):
+            add("option_names", f"card{n}_name_{variant}",
+                _crop(card, nx, ny, nw, nh))
         for variant, (sx, sy, sw, sh) in (("1line", OPT_DELTA_1LINE),
                                           ("2line", OPT_DELTA_2LINE)):
             add("option_deltas", f"card{n}_delta_{variant}",
                 _crop(card, sx, sy, sw, sh))
 
-    # Diamond side nodes (x2): name crop + Lv. crop at both line offsets.
+    # Diamond side nodes (x2): name crop + Lv. crop, each at both line offsets.
     for label, (dx, dy, w, h) in (("side1", C.ROI_STAT_FIRST),
                                   ("side2", C.ROI_STAT_SECOND)):
         node = _crop(gray, ax + dx, ay + dy, w, h)
         if node is None:
             continue
-        nx, ny, nw, nh = SN_NAME_SUBREGION
-        add("side_node_names", f"{label}_name", _crop(node, nx, ny, nw, nh))
+        for variant, (nx, ny, nw, nh) in (("1line", SN_NAME_1LINE),
+                                          ("2line", SN_NAME_2LINE)):
+            add("side_node_names", f"{label}_name_{variant}",
+                _crop(node, nx, ny, nw, nh))
         for variant, (sx, sy, sw, sh) in (("1line", SN_LV_1LINE),
                                           ("2line", SN_LV_2LINE)):
             add("side_node_deltas", f"{label}_lv_{variant}",
@@ -203,16 +210,16 @@ def draw_overlay(frame_bgr: np.ndarray, anchor: Optional[Tuple[int, int]]
     for i, (dx, card_w) in enumerate(C.OPTION_CARD_POSITIONS):
         cx, cy = ax + dx, ay + C.OPTION_CARD_Y_OFFSET
         box(cx, cy, card_w, C.OPTION_CARD_HEIGHT, f"CARD{i + 1}", (0, 200, 255))
-        nx, ny, nw, nh = OPT_NAME_SUBREGION
-        box(cx + nx, cy + ny, nw, nh, "", (0, 255, 0))
+        for nx, ny, nw, nh in (OPT_NAME_1LINE, OPT_NAME_2LINE):
+            box(cx + nx, cy + ny, nw, nh, "", (0, 255, 0))
         for sx, sy, sw, sh in (OPT_DELTA_1LINE, OPT_DELTA_2LINE):
             box(cx + sx, cy + sy, sw, sh, "", (255, 0, 200))
 
     for label, (dx, dy, bw, bh) in (("SIDE1", C.ROI_STAT_FIRST),
                                     ("SIDE2", C.ROI_STAT_SECOND)):
         box(ax + dx, ay + dy, bw, bh, label, (0, 200, 255))
-        nx, ny, nw, nh = SN_NAME_SUBREGION
-        box(ax + dx + nx, ay + dy + ny, nw, nh, "", (0, 255, 0))
+        for nx, ny, nw, nh in (SN_NAME_1LINE, SN_NAME_2LINE):
+            box(ax + dx + nx, ay + dy + ny, nw, nh, "", (0, 255, 0))
         for sx, sy, sw, sh in (SN_LV_1LINE, SN_LV_2LINE):
             box(ax + dx + sx, ay + dy + sy, sw, sh, "", (255, 0, 200))
 

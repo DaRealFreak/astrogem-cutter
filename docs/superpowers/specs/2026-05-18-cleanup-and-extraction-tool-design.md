@@ -149,10 +149,12 @@ to the user — the tool only crops, it does not sort.
 ```
 turn_1_02_gem_type.png
 turn_1_02_willpower.png
-turn_1_02_card1_name.png
+turn_1_02_card1_name_1line.png
+turn_1_02_card1_name_2line.png
 turn_1_02_card1_delta_1line.png
 turn_1_02_card1_delta_2line.png
-turn_1_02_side1_name.png
+turn_1_02_side1_name_1line.png
+turn_1_02_side1_name_2line.png
 turn_1_02_side1_lv_1line.png
 turn_1_02_side1_lv_2line.png
 ```
@@ -169,9 +171,10 @@ line below the name, so its vertical position shifts by one line depending on
 whether the name wrapped.
 
 The tool does **not** try to detect the line count. For every option card (×4)
-and side node (×2) it always emits three crops:
+and side node (×2) it always emits four crops:
 
-- the name crop (tall enough to cover both a 1- and 2-line name),
+- the name crop at the **1-line** offset (stops above the delta line),
+- the name crop at the **2-line** offset (extends one line lower),
 - the delta/Lv. crop at the **1-line** offset,
 - the delta/Lv. crop at the **2-line** offset.
 
