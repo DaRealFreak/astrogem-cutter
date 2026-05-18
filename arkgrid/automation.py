@@ -804,7 +804,10 @@ def run_auto(
                 # Build relic+ table once (doesn't depend on effects).
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
-                if relic_table is None and relic_reroll_threshold > 0.0:
+                if relic_table is None and (
+                        relic_reroll_threshold > 0.0
+                        or relic_coeff > 0
+                        or ancient_coeff > 0):
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,

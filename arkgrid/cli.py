@@ -1019,14 +1019,20 @@ def cmd_live(args: argparse.Namespace) -> None:
         finish_val = svt.gem_value(state)
         process_ev = svt.expected_value_after_click(
             state, pool_options, turns_left - 1)
-        reroll_v = (svt.lookup(state, turns_left)
-                    if (reroll_count > 0 and current_turn != 1) else 0.0)
-        continue_val = max(process_ev, reroll_v)
-        should_early_finish = finish_val >= continue_val
+        can_reroll_sv = reroll_count > 0 and current_turn != 1
+        if can_reroll_sv:
+            # Engine never finishes while a free reroll is available —
+            # it rerolls or processes.  The Reroll / Process hint below
+            # covers this case; mark finish as suppressed here.
+            should_early_finish = False
+        else:
+            should_early_finish = finish_val >= process_ev + getattr(
+                args, "endgame_risk", 0.0)
 
     if should_early_finish:
-        print(f"  >>> Finish (side-value DP: stopping is at least as "
-              f"good as continuing)")
+        print(f"  >>> Finish (side-value DP: finish_val={finish_val:.0f} "
+              f">= process_ev={process_ev:.0f}+margin="
+              f"{getattr(args, 'endgame_risk', 0.0):.0f})")
     elif should_reroll:
         print(f"  >>> Reroll (offers {p_current - p_avg_offers:+.1%} below baseline, "
               f"{reroll_count} rerolls available)")

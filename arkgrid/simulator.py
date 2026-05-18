@@ -137,7 +137,7 @@ class GemSimulator:
         self.force_reroll_no_progress = force_reroll_no_progress
         self._force_reroll_active = False  # set per-run in simulate_one
         self._relic_prob_table: Optional[GoalProbabilityTable] = None
-        if relic_reroll_threshold > 0.0:
+        if relic_reroll_threshold > 0.0 or relic_coeff > 0 or ancient_coeff > 0:
             # Reroll-aware so lookups account for the value of available
             # rerolls when chasing relic+.  Without max_rerolls the table
             # is the no-reroll DP and systematically underestimates P(r+),
