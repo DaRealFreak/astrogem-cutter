@@ -29,3 +29,6 @@ Desktop.ini
 *.tar.gz
 
 logs
+
+# Template extraction tool output
+tools/extracted/

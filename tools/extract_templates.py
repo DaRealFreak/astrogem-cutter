@@ -160,6 +160,101 @@ def extract_regions(gray: np.ndarray, anchor: Tuple[int, int]
     return out
 
 
+def extract_finish_regions(gray: np.ndarray
+                            ) -> Dict[str, List[Tuple[str, np.ndarray]]]:
+    """Crop the 4 finish-screen stat digits (no anchor). FHD grayscale in."""
+    out: Dict[str, List[Tuple[str, np.ndarray]]] = {}
+    labels = ["willpower", "chaos", "first_level", "second_level"]
+    for label, (x, y, w, h) in zip(labels, C.FINISH_STAT_POSITIONS):
+        crop = _crop(gray, x, y, w, h)
+        if crop is not None and crop.size > 0:
+            out.setdefault("finish", []).append((f"finish_{label}", crop))
+    return out
+
+
+def draw_overlay(frame_bgr: np.ndarray, anchor: Optional[Tuple[int, int]]
+                 ) -> np.ndarray:
+    """Return an FHD copy of the frame with every ROI drawn as a labelled box."""
+    h, w = frame_bgr.shape[:2]
+    if h != C.REF_HEIGHT or w != C.REF_WIDTH:
+        frame_bgr = cv2.resize(frame_bgr, (C.REF_WIDTH, C.REF_HEIGHT),
+                               interpolation=cv2.INTER_AREA)
+    debug = frame_bgr.copy()
+
+    def box(x: int, y: int, bw: int, bh: int, label: str,
+            color: Tuple[int, int, int]) -> None:
+        cv2.rectangle(debug, (x, y), (x + bw, y + bh), color, 1)
+        if label:
+            cv2.putText(debug, label, (x, y - 3),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, color, 1)
+
+    if anchor is None:
+        cv2.putText(debug, "NO ANCHOR - finish screen?", (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+        for x, y, bw, bh in C.FINISH_STAT_POSITIONS:
+            box(x, y, bw, bh, "FINISH", (0, 255, 255))
+        return debug
+
+    ax, ay = anchor
+    box(ax, ay, C.ANCHOR_SIZE[0], C.ANCHOR_SIZE[1], "ANCHOR", (0, 255, 0))
+    for category, (dx, dy, bw, bh) in _SINGLE_REGIONS:
+        box(ax + dx, ay + dy, bw, bh, category.upper(), (255, 255, 0))
+
+    for i, (dx, card_w) in enumerate(C.OPTION_CARD_POSITIONS):
+        cx, cy = ax + dx, ay + C.OPTION_CARD_Y_OFFSET
+        box(cx, cy, card_w, C.OPTION_CARD_HEIGHT, f"CARD{i + 1}", (0, 200, 255))
+        nx, ny, nw, nh = OPT_NAME_SUBREGION
+        box(cx + nx, cy + ny, nw, nh, "", (0, 255, 0))
+        for sx, sy, sw, sh in (OPT_DELTA_1LINE, OPT_DELTA_2LINE):
+            box(cx + sx, cy + sy, sw, sh, "", (255, 0, 200))
+
+    for label, (dx, dy, bw, bh) in (("SIDE1", C.ROI_STAT_FIRST),
+                                    ("SIDE2", C.ROI_STAT_SECOND)):
+        box(ax + dx, ay + dy, bw, bh, label, (0, 200, 255))
+        nx, ny, nw, nh = SN_NAME_SUBREGION
+        box(ax + dx + nx, ay + dy + ny, nw, nh, "", (0, 255, 0))
+        for sx, sy, sw, sh in (SN_LV_1LINE, SN_LV_2LINE):
+            box(ax + dx + sx, ay + dy + sy, sw, sh, "", (255, 0, 200))
+
+    return debug
+
+
+def _write_crops(regions: Dict[str, List[Tuple[str, np.ndarray]]],
+                 basename: str, out_dir: str) -> int:
+    """Write every crop to <out_dir>/<category>/<basename>_<label>.png."""
+    count = 0
+    for category, items in regions.items():
+        cat_dir = os.path.join(out_dir, category)
+        os.makedirs(cat_dir, exist_ok=True)
+        for label, crop in items:
+            cv2.imwrite(os.path.join(cat_dir, f"{basename}_{label}.png"), crop)
+            count += 1
+    return count
+
+
+def process_image(path: str, store: TemplateStore, out_dir: str) -> None:
+    """Extract crops + overlay for one screenshot."""
+    frame = cv2.imread(path)
+    if frame is None:
+        print(f"  SKIP (cannot read): {path}")
+        return
+    basename = os.path.splitext(os.path.basename(path))[0]
+    gray = _to_fhd_gray(frame)
+    anchor = find_anchor(gray, store)
+    if anchor is not None:
+        regions = extract_regions(gray, anchor)
+        state = f"anchor={anchor}"
+    else:
+        regions = extract_finish_regions(gray)
+        state = "no anchor (finish screen)"
+    count = _write_crops(regions, basename, out_dir)
+    overlay_dir = os.path.join(out_dir, "_overlays")
+    os.makedirs(overlay_dir, exist_ok=True)
+    cv2.imwrite(os.path.join(overlay_dir, f"{basename}.png"),
+                draw_overlay(frame, anchor))
+    print(f"  {basename}: {count} crops, {state}")
+
+
 def main(argv: Optional[List[str]] = None) -> None:
     parser = argparse.ArgumentParser(
         description="Extract template-candidate crops from screenshots.")
@@ -167,8 +262,18 @@ def main(argv: Optional[List[str]] = None) -> None:
                         help="Screenshot paths (default: examples/*.jpg)")
     parser.add_argument("--out", default=DEFAULT_OUT,
                         help=f"Output directory (default: {DEFAULT_OUT})")
-    parser.parse_args(argv)
-    print("extract_templates: not yet implemented")
+    args = parser.parse_args(argv)
+
+    images = args.images or sorted(glob.glob(os.path.join(EXAMPLES_DIR, "*.jpg")))
+    if not images:
+        print("No input images found.")
+        return
+    os.makedirs(args.out, exist_ok=True)
+    store = TemplateStore()
+    print(f"Extracting from {len(images)} image(s) -> {args.out}")
+    for path in images:
+        process_image(path, store, args.out)
+    print("Done.")
 
 
 if __name__ == "__main__":

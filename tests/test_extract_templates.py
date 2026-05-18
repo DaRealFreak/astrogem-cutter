@@ -60,3 +60,18 @@ class TestExtractRegions(unittest.TestCase):
         # 2 side nodes: one name crop each, two Lv. variants each.
         self.assertEqual(len(regions["side_node_names"]), 2)
         self.assertEqual(len(regions["side_node_deltas"]), 4)
+
+    def test_finish_regions_returns_four_crops(self):
+        # extract_finish_regions crops 4 fixed positions; on any FHD frame
+        # all four are in-bounds.
+        regions = self.ex.extract_finish_regions(self.gray)
+        self.assertIn("finish", regions)
+        self.assertEqual(len(regions["finish"]), 4)
+
+    def test_overlay_is_fhd_sized(self):
+        import cv2
+        from arkgrid.vision import constants as C
+        frame = cv2.imread(_EXAMPLE)
+        overlay = self.ex.draw_overlay(frame, self.anchor)
+        self.assertEqual(overlay.shape[0], C.REF_HEIGHT)
+        self.assertEqual(overlay.shape[1], C.REF_WIDTH)
