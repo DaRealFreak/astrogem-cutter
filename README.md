@@ -10,7 +10,7 @@ source .venv/Scripts/activate   # Windows (Git Bash)
 source .venv/bin/activate       # Linux / macOS
 ```
 
-No external dependencies required for the simulator (stdlib only). Vision features (`live`, `read`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows.
+No external dependencies required for the simulator (stdlib only). Vision features (`live`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows.
 
 ## Commands
 
@@ -55,14 +55,6 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 [options]
 ```
 
 Requires Lost Ark to be running and the Processing dialog to be open. Press Escape to stop at any time. Use `--dry-run` to test detection and decisions without clicking.
-
-### `read` - Vision debug
-
-Read the game screen (from screenshot or live capture) and print the recognized state.
-
-```bash
-python -m arkgrid read [--screenshot FILE] [--debug] [--save-debug FILE]
-```
 
 ## Options
 
