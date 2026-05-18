@@ -257,3 +257,24 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 --min-side-coeff 2000 \
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## Template extraction
+
+`tools/extract_templates.py` rebuilds the vision template set. When the in-game cutting UI changes, the bundled templates in `arkgrid/vision/templates/` stop matching — this tool crops fresh template candidates from a handful of screenshots so you only have to sort them by hand.
+
+```bash
+# Crop from every screenshot in examples/
+python tools/extract_templates.py
+
+# Crop from specific screenshots
+python tools/extract_templates.py shot1.jpg shot2.jpg
+
+# Write crops to a custom directory
+python tools/extract_templates.py --out some/dir/
+```
+
+Run it from the project root; requires `opencv-python` and `numpy`.
+
+Output goes to `tools/extracted/` (gitignored), with crops grouped by region type — `gem_type/`, `willpower/`, `chaos/`, `rerolls/`, `steps/`, `option_names/`, `option_deltas/`, `side_node_names/`, `side_node_deltas/`, and more — plus `_overlays/`, one debug image per screenshot drawing every detected region as a labelled box. Check the overlays first to confirm the regions still line up after a UI change.
+
+An effect name can wrap to one or two lines, which shifts the delta/level text below it. The tool does not guess the line count: it emits each delta crop at **both** the 1-line and 2-line offsets (`..._delta_1line.png` / `..._delta_2line.png`). Keep the correct one and delete the other while sorting crops into `arkgrid/vision/templates/`.
