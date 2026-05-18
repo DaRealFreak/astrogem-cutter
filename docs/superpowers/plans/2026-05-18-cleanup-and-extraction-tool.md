@@ -306,10 +306,17 @@ Expected: the test suite passes; `60` screenshots still tracked under `examples/
 
 - [ ] **Step 3: Commit**
 
+`git rm` in Step 1 already staged every deletion. Do NOT run `git add -A` — it
+would sweep pre-existing untracked files (`.claude/`, `lostark-arkgrid-gem-locator-v2/`,
+older `docs/superpowers/` files) into the commit. Just commit the staged deletions:
+
 ```bash
-git add -A
+git status --short
 git commit -m "chore: delete superseded vision scripts and stale debug output"
 ```
+
+Confirm `git status --short` shows the deletions staged (`D`) and that the untracked
+items above remain untracked.
 
 ---
 
