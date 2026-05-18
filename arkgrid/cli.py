@@ -98,22 +98,27 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Minimum coefficient-weighted level total from target side nodes. "
                              "Value = sum(level * coefficient). E.g. boss_damage(1000)*5 = 5000. "
                              "Requires --first-effect and --second-effect. Default: 0")
-        p.add_argument("--endgame-risk", type=float, default=0.0, metavar="F",
-                        help="Unattended risk margin for the side-value finish. "
-                             "Once rerolls are exhausted, finish a goal-met gem "
-                             "only when stopping beats processing by >= F "
-                             "coefficient. 0 = EV-optimal (default); a large F "
-                             "keeps processing to the last turn. No effect when "
-                             "--confirm-min-coeff is set.")
-        p.add_argument("--relic-coeff", type=int, default=0, metavar="N",
-                        help="Coefficient-equivalent worth of holding the relic+ "
-                             "grade (>=16 total points), added to gem_value in "
-                             "the side-value DP. 0 = relic+ has no pull "
-                             "(default).")
-        p.add_argument("--ancient-coeff", type=int, default=0, metavar="N",
-                        help="Coefficient-equivalent worth of holding the ancient "
-                             "grade (>=19 total points). Expected >= --relic-coeff. "
-                             "0 = ancient has no pull (default).")
+        p.add_argument("--endgame-risk", type=float, default=None, metavar="F",
+                        help="Risk margin for the side-value finish, in "
+                             "coefficient units. Omitted (default): the engine "
+                             "auto-gates — a goal-met gem whose side coefficient "
+                             "is below its grade's fusion-derived average "
+                             "finishes to protect the grade; at or above it, "
+                             "EV-optimal play continues. Pass a float to take "
+                             "manual control of the margin for every gem. "
+                             "When --confirm-min-coeff is set, the side-value "
+                             "finish surfaces as a confirmation prompt instead "
+                             "and this margin is not applied.")
+        p.add_argument("--relic-coeff", type=int, default=None, metavar="N",
+                        help="Coefficient-equivalent worth of the relic+ grade "
+                             "(>=16 total points), added to gem_value in the "
+                             "side-value DP and used as the relic grade "
+                             "benchmark. Default: the fusion-derived average "
+                             "relic gem coefficient for the gem type.")
+        p.add_argument("--ancient-coeff", type=int, default=None, metavar="N",
+                        help="Coefficient-equivalent worth of the ancient grade "
+                             "(>=19 total points). Default: the fusion-derived "
+                             "average ancient gem coefficient for the gem type.")
         p.add_argument("--relic-reroll-threshold", type=float, default=0.0, metavar="F",
                         help="Use extra reroll ticket even when --reroll-min-coeff would "
                              "disable it, if P(relic+ >=16 total) from the current state "
@@ -232,9 +237,9 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--min-first", type=int, default=None, metavar="N")
     p.add_argument("--min-second", type=int, default=None, metavar="N")
     p.add_argument("--min-side-coeff", type=int, default=0, metavar="N")
-    p.add_argument("--endgame-risk", type=float, default=0.0, metavar="F")
-    p.add_argument("--relic-coeff", type=int, default=0, metavar="N")
-    p.add_argument("--ancient-coeff", type=int, default=0, metavar="N")
+    p.add_argument("--endgame-risk", type=float, default=None, metavar="F")
+    p.add_argument("--relic-coeff", type=int, default=None, metavar="N")
+    p.add_argument("--ancient-coeff", type=int, default=None, metavar="N")
     p.add_argument("--reset-min-coeff", type=int, default=0, metavar="N")
     p.add_argument("--reroll-min-coeff", type=int, default=0, metavar="N")
     p.add_argument("--force-reroll-no-progress", type=int, default=0,
@@ -354,8 +359,15 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
     print(f"Optimize: {args.optimize}")
     print(f"Extra ticket: {'yes' if args.extra_ticket else 'no'}")
     print(f"Side threshold: {args.side_threshold}")
-    print(f"Endgame risk:   {getattr(args, 'endgame_risk', 0.0):.0f} "
-          f"(side-value finish margin)")
+    er = getattr(args, "endgame_risk", None)
+    if er is None:
+        print("Endgame risk:   auto (grade-gated side-value finish)")
+    else:
+        print(f"Endgame risk:   {er:.0f} (side-value finish margin)")
+    rc = getattr(args, "relic_coeff", None)
+    ac = getattr(args, "ancient_coeff", None)
+    print(f"Tier value:     relic={'auto' if rc is None else rc}, "
+          f"ancient={'auto' if ac is None else ac}")
     print()
 
 
@@ -1008,31 +1020,51 @@ def cmd_live(args: argparse.Namespace) -> None:
                                state.first, state.second)
             and gem_type_domain in GEM_TYPES):
         from arkgrid.probability import SideValueTable
+        from arkgrid.analyzer import GemAnalyzer
         svt = SideValueTable(
             goal, current_turn + turns_left - 1, pool,
             gem_type=gem_type_domain,
             optimize=getattr(args, "optimize", "dps"),
             min_side_coeff=getattr(args, "min_side_coeff", 0),
-            relic_coeff=getattr(args, "relic_coeff", 0),
-            ancient_coeff=getattr(args, "ancient_coeff", 0),
+            relic_coeff=getattr(args, "relic_coeff", None),
+            ancient_coeff=getattr(args, "ancient_coeff", None),
         )
         finish_val = svt.gem_value(state)
         process_ev = svt.expected_value_after_click(
             state, pool_options, turns_left - 1)
         can_reroll_sv = reroll_count > 0 and current_turn != 1
+        endgame_risk = getattr(args, "endgame_risk", None)
+        confirm_active = bool(getattr(args, "confirm_min_coeff", None))
+        finish_reason = ""
         if can_reroll_sv:
-            # Engine never finishes while a free reroll is available —
-            # it rerolls or processes.  The Reroll / Process hint below
-            # covers this case; mark finish as suppressed here.
+            # Engine never finishes while a free reroll is available.
             should_early_finish = False
+        elif endgame_risk is None and not confirm_active:
+            # Auto-gate: below the grade benchmark -> protect the grade.
+            total = state.total_points()
+            benchmark = (svt.ancient_coeff if total >= 19
+                         else svt.relic_coeff if total >= 16 else 0)
+            side_c = GemAnalyzer._side_coeff(
+                state, getattr(args, "optimize", "dps"))
+            if benchmark > 0 and side_c < benchmark:
+                should_early_finish = True
+                finish_reason = (f"side coeff {side_c} below grade "
+                                 f"benchmark {benchmark}")
+            else:
+                should_early_finish = finish_val >= process_ev
+                finish_reason = (f"finish_val={finish_val:.0f} "
+                                 f">= process_ev={process_ev:.0f}")
         else:
-            should_early_finish = finish_val >= process_ev + getattr(
-                args, "endgame_risk", 0.0)
+            # Explicit --endgame-risk margin; the engine forces margin 0
+            # when --confirm-min-coeff is set.
+            margin = (0.0 if (confirm_active or endgame_risk is None)
+                      else endgame_risk)
+            should_early_finish = finish_val >= process_ev + margin
+            finish_reason = (f"finish_val={finish_val:.0f} >= "
+                             f"process_ev={process_ev:.0f}+{margin:.0f}")
 
     if should_early_finish:
-        print(f"  >>> Finish (side-value DP: finish_val={finish_val:.0f} "
-              f">= process_ev={process_ev:.0f}+margin="
-              f"{getattr(args, 'endgame_risk', 0.0):.0f})")
+        print(f"  >>> Finish (side-value DP: {finish_reason})")
     elif should_reroll:
         print(f"  >>> Reroll (offers {p_current - p_avg_offers:+.1%} below baseline, "
               f"{reroll_count} rerolls available)")
@@ -1066,9 +1098,9 @@ def cmd_live(args: argparse.Namespace) -> None:
             min_side_coeff=getattr(args, "min_side_coeff", 0),
             force_reroll_no_progress=getattr(args, "force_reroll_no_progress", False),
             effect_aware=True,
-            endgame_risk=getattr(args, "endgame_risk", 0.0),
-            relic_coeff=getattr(args, "relic_coeff", 0),
-            ancient_coeff=getattr(args, "ancient_coeff", 0),
+            endgame_risk=getattr(args, "endgame_risk", None),
+            relic_coeff=getattr(args, "relic_coeff", None),
+            ancient_coeff=getattr(args, "ancient_coeff", None),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,
