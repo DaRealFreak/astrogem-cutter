@@ -75,3 +75,24 @@ class TestExtractRegions(unittest.TestCase):
         overlay = self.ex.draw_overlay(frame, self.anchor)
         self.assertEqual(overlay.shape[0], C.REF_HEIGHT)
         self.assertEqual(overlay.shape[1], C.REF_WIDTH)
+
+    def test_write_crops_counts_only_successful_writes(self):
+        # cv2.imwrite returns False on failure without raising; a failed
+        # write must not be counted.
+        import tempfile
+        from unittest import mock
+        import numpy as np
+        regions = {"willpower": [("a", np.zeros((4, 4), dtype=np.uint8)),
+                                 ("b", np.zeros((4, 4), dtype=np.uint8))]}
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(self.ex.cv2, "imwrite", return_value=False):
+                count = self.ex._write_crops(regions, "shot", tmp)
+        self.assertEqual(count, 0)
+
+    def test_overlay_no_anchor_is_fhd_sized(self):
+        import cv2
+        from arkgrid.vision import constants as C
+        frame = cv2.imread(_EXAMPLE)
+        overlay = self.ex.draw_overlay(frame, None)
+        self.assertEqual(overlay.shape[0], C.REF_HEIGHT)
+        self.assertEqual(overlay.shape[1], C.REF_WIDTH)

@@ -227,8 +227,8 @@ def _write_crops(regions: Dict[str, List[Tuple[str, np.ndarray]]],
         cat_dir = os.path.join(out_dir, category)
         os.makedirs(cat_dir, exist_ok=True)
         for label, crop in items:
-            cv2.imwrite(os.path.join(cat_dir, f"{basename}_{label}.png"), crop)
-            count += 1
+            if cv2.imwrite(os.path.join(cat_dir, f"{basename}_{label}.png"), crop):
+                count += 1
     return count
 
 
