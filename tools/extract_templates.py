@@ -49,9 +49,12 @@ _SINGLE_REGIONS: List[Tuple[str, Tuple[int, int, int, int]]] = [
 def _crop(gray: np.ndarray, x: int, y: int, w: int, h: int) -> Optional[np.ndarray]:
     """Crop a region, clamped to the frame bounds. None if it would be empty."""
     fh, fw = gray.shape[:2]
+    # Clamp the origin into the frame, shrinking width/height by the same
+    # amount so a partially off-frame ROI does not over-extend.
+    x0, y0 = x, y
     x, y = max(0, x), max(0, y)
-    w = min(w, fw - x)
-    h = min(h, fh - y)
+    w = min(w - (x - x0), fw - x)
+    h = min(h - (y - y0), fh - y)
     if w <= 0 or h <= 0:
         return None
     return gray[y:y + h, x:x + w]
@@ -85,6 +88,7 @@ def extract_regions(gray: np.ndarray, anchor: Tuple[int, int]
 
     Returns {category: [(label, crop), ...]}. `label` is the region name
     used in the output filename (no screenshot prefix, no extension).
+    Categories with no successful crop are omitted.
     """
     ax, ay = anchor
     out: Dict[str, List[Tuple[str, np.ndarray]]] = {}

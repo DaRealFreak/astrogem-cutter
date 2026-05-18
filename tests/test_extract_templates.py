@@ -40,3 +40,11 @@ class TestExtractRegions(unittest.TestCase):
         for category, items in regions.items():
             for label, crop in items:
                 self.assertGreater(crop.size, 0, f"{category}/{label}")
+
+    def test_crop_shrinks_size_when_origin_clamped(self):
+        # ROI starts 10px left of the frame: the visible crop must be
+        # width 20-10 = 10, not the unclamped 20.
+        import numpy as np
+        frame = np.zeros((100, 100), dtype=np.uint8)
+        crop = self.ex._crop(frame, -10, 5, 20, 30)
+        self.assertEqual(crop.shape, (30, 10))
