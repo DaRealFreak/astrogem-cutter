@@ -41,9 +41,9 @@ class GemSimulator:
             force_reroll_no_progress: int = 0,
             effect_aware: bool = True,
             confirm_min_coeff: Optional[int] = None,
-            endgame_risk: float = 0.0,
-            relic_coeff: int = 0,
-            ancient_coeff: int = 0,
+            endgame_risk: Optional[float] = None,
+            relic_coeff: Optional[int] = None,
+            ancient_coeff: Optional[int] = None,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -131,22 +131,21 @@ class GemSimulator:
             early_finish=True,
         )
 
-        # Relic+ (>=16 total points) DP table for probability tracking
-        # and decision overrides.
+        # Relic+ (>=16 total points) DP table for probability tracking.
+        # Built unconditionally: grade is always part of the side-value
+        # gem_value now, so P(relic+) / P(ancient) are always shown.
         self.relic_reroll_threshold = relic_reroll_threshold
         self.force_reroll_no_progress = force_reroll_no_progress
         self._force_reroll_active = False  # set per-run in simulate_one
-        self._relic_prob_table: Optional[GoalProbabilityTable] = None
-        if relic_reroll_threshold > 0.0 or relic_coeff > 0 or ancient_coeff > 0:
-            # Reroll-aware so lookups account for the value of available
-            # rerolls when chasing relic+.  Without max_rerolls the table
-            # is the no-reroll DP and systematically underestimates P(r+),
-            # making the override fire too rarely.
-            self._relic_prob_table = GoalProbabilityTable(
-                LastTurnGoal(min_total=16), self.turns_total, self.pool,
-                early_finish=False,
-                max_rerolls=dp_max_rerolls,
-            )
+        # Reroll-aware so lookups account for the value of available
+        # rerolls when chasing relic+.  Without max_rerolls the table
+        # is the no-reroll DP and systematically underestimates P(r+),
+        # making the override fire too rarely.
+        self._relic_prob_table = GoalProbabilityTable(
+            LastTurnGoal(min_total=16), self.turns_total, self.pool,
+            early_finish=False,
+            max_rerolls=dp_max_rerolls,
+        )
 
     def _get_ea_tables(self, gem_type: str) -> tuple:
         """Build or fetch cached effect-aware (reroll, reset) DP tables
@@ -484,7 +483,6 @@ class GemSimulator:
         relic_reroll_pending = (
             not extra_ticket_active and self.use_extra_ticket
             and self.relic_reroll_threshold > 0.0
-            and self._relic_prob_table is not None
         )
 
         reset_used = False
@@ -538,7 +536,7 @@ class GemSimulator:
                         "turn": turn,
                         "turns_left": turns_left,
                         "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
-                        "relic_prob": self._relic_prob_table.lookup(state, turns_left, rerolls=state.rerolls) if self._relic_prob_table else None,
+                        "relic_prob": self._relic_prob_table.lookup(state, turns_left, rerolls=state.rerolls),
                         "rerolls_available": state.rerolls,
                         "eff_threshold": self.reroll_policy.effective_side_threshold(state),
                     }
@@ -675,7 +673,7 @@ class GemSimulator:
                         "first_effect": state.first_effect,
                         "second_effect": state.second_effect,
                         "goal_prob": _log_pt.lookup(state, turns_left - 1, rerolls=state.rerolls) if _log_pt else None,
-                        "relic_prob": self._relic_prob_table.lookup(state, turns_left - 1, rerolls=state.rerolls) if self._relic_prob_table else None,
+                        "relic_prob": self._relic_prob_table.lookup(state, turns_left - 1, rerolls=state.rerolls),
                     }
                     turn_log.append(entry)
 

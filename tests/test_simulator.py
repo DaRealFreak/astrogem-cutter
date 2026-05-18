@@ -429,14 +429,15 @@ class TestEndgameRiskPlumbing(unittest.TestCase):
         self.assertEqual(sim.endgame_risk, 1500.0)
         self.assertEqual(sim._decision_context().endgame_risk, 1500.0)
 
-    def test_default_is_zero(self):
+    def test_default_is_none(self):
+        # endgame_risk=None means auto-gate (fusion default), not 0.0
         from arkgrid.models import LastTurnGoal
         from arkgrid.simulator import GemSimulator
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
         )
-        self.assertEqual(sim.endgame_risk, 0.0)
+        self.assertIsNone(sim.endgame_risk)
 
 
 class TestSideValueTableWiring(unittest.TestCase):
@@ -472,13 +473,14 @@ class TestSideValueTableWiring(unittest.TestCase):
         ctx = sim._decision_context()
         self.assertIsNotNone(ctx.side_value_table)
 
-    def test_relic_ancient_coeff_default_zero(self):
+    def test_relic_ancient_coeff_default_none(self):
+        # relic_coeff / ancient_coeff = None means resolve fusion default
         sim = GemSimulator(
             rarity="epic", use_extra_ticket=False, use_reset_ticket=False,
             goal=LastTurnGoal(min_will=4, min_chaos=4),
         )
-        self.assertEqual(sim.relic_coeff, 0)
-        self.assertEqual(sim.ancient_coeff, 0)
+        self.assertIsNone(sim.relic_coeff)
+        self.assertIsNone(sim.ancient_coeff)
 
 
 if __name__ == "__main__":

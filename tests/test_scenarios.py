@@ -166,9 +166,7 @@ class ScenarioHelper:
                 "side_coeff": coeff_total,
             })
 
-        relic_prob = None
-        if sim._relic_prob_table is not None:
-            relic_prob = sim._relic_prob_table.lookup(state, turns_left)
+        relic_prob = sim._relic_prob_table.lookup(state, turns_left)
 
         return ScenarioResult(
             should_reroll=should_reroll,
@@ -384,18 +382,22 @@ class TestScenarioDesperateMode(unittest.TestCase):
 
 class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
     """Turn 7/9, will=4 chaos=5 first=3 second=3 (total=15).
-    Goal met, risky offers → early finish triggers via the side-value DP.
+    Goal met, risky offers.
 
-    Re-baselined for the side-value finish: the `_relic_chase_active`
-    override (`--relic-no-early-finish`) was removed — relic+ value is now
-    expressed through `--relic-coeff` in the side-value DP itself, not a
-    finish suppressor. With the default `relic_coeff=0` the DP places no
-    value on reaching 16 points, so the obsolete
-    `test_relic_overrides_early_finish` assertion is dropped.
+    Re-baselined (Task 4): relic_coeff / ancient_coeff / endgame_risk now
+    default to None (fusion-derived auto values), so the side-value DP
+    places positive value on reaching relic+ (16 pts) by default.
+    relic_coeff=None resolves to a positive fusion-derived value, so the
+    side-value DP's _tier_bonus is non-zero for states that reach relic+
+    (>=16 pts), raising process_ev above finish_val — continuing is worth
+    more than stopping — so the DP defers the finish.
+    relic_reroll_threshold>0 still builds the relic+ DP table so
+    relic_prob is populated for the P(relic+) assertion.
     """
 
     def setUp(self) -> None:
-        # Without relic+ override: early finish triggers
+        # Without any explicit relic+ override: auto-gate does NOT finish
+        # (fusion default relic_coeff raises process_ev above finish_val)
         self.result_no_override = ScenarioHelper.evaluate(
             gem_type="order_immutability",
             first_effect="boss_damage",
@@ -425,8 +427,15 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
         )
 
     def test_early_finish_without_override(self) -> None:
-        """Goal met + risky offers → side-value DP finishes (gem played out)."""
-        self.assertTrue(self.result_no_override.should_early_finish)
+        """Auto-gate with fusion defaults does NOT finish at total=15 (legendary).
+
+        relic_coeff=None resolves to a positive fusion-derived value, so the
+        side-value DP's _tier_bonus is non-zero for states that reach relic+
+        (>=16 pts).  That raises process_ev above finish_val — continuing is
+        worth more than stopping — so the DP defers the finish.  Note: the
+        grade-protect gate does NOT fire here; that gate only applies when the
+        gem is already at relic+ or ancient grade (total >= 16)."""
+        self.assertFalse(self.result_no_override.should_early_finish)
 
     def test_relic_prob_above_threshold(self) -> None:
         """P(relic+ >=16) from (4,5,3,3) with 3 turns left should be well above 0.3."""
