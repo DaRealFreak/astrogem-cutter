@@ -46,3 +46,41 @@ def change_dest_max_coeff(gem_type: str, first_effect: str,
          if e != first_effect and e != second_effect),
         default=0,
     )
+
+
+# -----------------------------
+# Fusion-derived average gem value
+# -----------------------------
+
+# Expected total gem points per grade, from the processed-fusion point
+# distribution in documentation/official_probability_info_en.md
+# (Gem Fusion: Processed Gems -> Gem Points). Recipe-independent: the
+# doc states points are determined by the result grade.
+#   legendary: 4-15 pts   relic: 16(80%)/17(15%)/18(5%)   ancient: 19(95%)/20(5%)
+FUSION_E_POINTS: Dict[str, float] = {
+    "legendary": 9.62,
+    "relic": 16.25,
+    "ancient": 19.05,
+}
+
+
+def fusion_avg_coeff(gem_type: str, optimize: str, grade: str) -> int:
+    """Average side coefficient of a fused gem of `grade` for `gem_type`.
+
+    Closed form derived from the processed-fusion mechanic: a gem of a
+    given grade has `FUSION_E_POINTS[grade]` total points spread uniformly
+    over the 4 options (each option averages E[points]/4 by exchange-
+    ability), and 2 effects drawn uniformly from the gem type's 4-effect
+    pool (each pool member is a given slot with probability 1/4). This
+    reduces to `pool_coeff_sum * E[points|grade] / 8`, where pool_coeff_sum
+    sums the optimize-side coefficients over the gem type's 4 effects
+    (non-target effects contribute 0).
+
+    Returns 0 when the gem type is unknown.
+    """
+    pool = GEM_TYPES.get(gem_type)
+    if not pool:
+        return 0
+    coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+    pool_sum = sum(coeff_map.get(e, 0) for e in pool)
+    return round(pool_sum * FUSION_E_POINTS[grade] / 8)
