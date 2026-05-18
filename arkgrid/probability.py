@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import FrozenSet, List, Optional, Dict, Tuple
 
-from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS
+from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS, fusion_avg_coeff
 from arkgrid.models import Option, LastTurnGoal, GemState
 from arkgrid.pool import OptionPool
 
@@ -887,8 +887,8 @@ class SideValueTable:
         gem_type: str,
         optimize: str = "dps",
         min_side_coeff: int = 0,
-        relic_coeff: int = 0,
-        ancient_coeff: int = 0,
+        relic_coeff: Optional[int] = None,
+        ancient_coeff: Optional[int] = None,
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
@@ -896,9 +896,19 @@ class SideValueTable:
         self._gem_type = gem_type
         self._optimize = optimize
         self._min_side_coeff = min_side_coeff
-        self._relic_coeff = relic_coeff
-        self._ancient_coeff = ancient_coeff
         self.enabled = gem_type in GEM_TYPES
+        if self.enabled:
+            self.relic_coeff = (
+                relic_coeff if relic_coeff is not None
+                else fusion_avg_coeff(gem_type, optimize, "relic"))
+            self.ancient_coeff = (
+                ancient_coeff if ancient_coeff is not None
+                else fusion_avg_coeff(gem_type, optimize, "ancient"))
+        else:
+            # Table self-disables when the gem type is unknown; the gate
+            # never reads these, but keep them well-defined ints.
+            self.relic_coeff = relic_coeff or 0
+            self.ancient_coeff = ancient_coeff or 0
         self._dp: Dict[tuple, float] = {}
 
         if not self.enabled:
@@ -926,9 +936,9 @@ class SideValueTable:
     def _tier_bonus(self, total_points: int) -> int:
         """Additive grade weight: ancient (>=19) or relic+ (>=16) or 0."""
         if total_points >= 19:
-            return self._ancient_coeff
+            return self.ancient_coeff
         if total_points >= 16:
-            return self._relic_coeff
+            return self.relic_coeff
         return 0
 
     def _gem_value_idx(self, w: int, c: int, f: int, s: int,
