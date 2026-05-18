@@ -122,10 +122,11 @@ _NULLABLE_INT_FILTERS = (
 _INT_FILTERS = (
     "min_side_coeff", "reset_min_coeff",
     "reroll_min_coeff", "force_reroll_no_progress",
+    "relic_coeff", "ancient_coeff",
 )
 _FLOAT_FILTERS = (
     "side_threshold", "prob_reset_threshold",
-    "relic_reroll_threshold",
+    "relic_reroll_threshold", "endgame_risk",
 )
 
 
