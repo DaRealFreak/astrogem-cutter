@@ -56,6 +56,14 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 [options]
 
 Requires Lost Ark to be running and the Processing dialog to be open. Press Escape to stop at any time. Use `--dry-run` to test detection and decisions without clicking.
 
+### `report` - Aggregate past auto runs
+
+Load the JSONL logs written by `auto` and print aggregate statistics (success rate, option frequencies, ticket usage). Accepts the same goal/effect filters as `auto`/`stats` to restrict the summary to matching runs.
+
+```bash
+python -m arkgrid report [--log-dir logs] [--rarity rare] [--top-options N] [filters]
+```
+
 ## Options
 
 ### Goal
