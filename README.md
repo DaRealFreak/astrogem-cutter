@@ -10,7 +10,7 @@ source .venv/Scripts/activate   # Windows (Git Bash)
 source .venv/bin/activate       # Linux / macOS
 ```
 
-No external dependencies required for the simulator (stdlib only). Vision features (`live`, `read`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows.
+No external dependencies required for the simulator (stdlib only). Vision features (`live`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows.
 
 ## Commands
 
@@ -56,12 +56,12 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 [options]
 
 Requires Lost Ark to be running and the Processing dialog to be open. Press Escape to stop at any time. Use `--dry-run` to test detection and decisions without clicking.
 
-### `read` - Vision debug
+### `report` - Aggregate past auto runs
 
-Read the game screen (from screenshot or live capture) and print the recognized state.
+Load the JSONL logs written by `auto` and print aggregate statistics (success rate, option frequencies, ticket usage). Accepts the same goal/effect filters as `auto`/`stats` to restrict the summary to matching runs.
 
 ```bash
-python -m arkgrid read [--screenshot FILE] [--debug] [--save-debug FILE]
+python -m arkgrid report [--log-dir logs] [--rarity rare] [--top-options N] [filters]
 ```
 
 ## Options
@@ -265,3 +265,24 @@ python -m arkgrid auto --min-will 4 --min-chaos 4 --min-side-coeff 2000 \
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## Template extraction
+
+`tools/extract_templates.py` rebuilds the vision template set. When the in-game cutting UI changes, the bundled templates in `arkgrid/vision/templates/` stop matching — this tool crops fresh template candidates from a handful of screenshots so you only have to sort them by hand.
+
+```bash
+# Crop from every screenshot in examples/
+python tools/extract_templates.py
+
+# Crop from specific screenshots
+python tools/extract_templates.py shot1.jpg shot2.jpg
+
+# Write crops to a custom directory
+python tools/extract_templates.py --out some/dir/
+```
+
+Run it from the project root; requires `opencv-python` and `numpy`.
+
+Output goes to `tools/extracted/` (gitignored), with crops grouped by region type — `gem_type/`, `willpower/`, `chaos/`, `rerolls/`, `steps/`, `option_names/`, `option_deltas/`, `side_node_names/`, `side_node_deltas/`, and more — plus `_overlays/`, one debug image per screenshot drawing every detected region as a labelled box. Check the overlays first to confirm the regions still line up after a UI change.
+
+An effect name can wrap to one or two lines, which shifts the delta/level text below it. The tool does not guess the line count: it emits **both** the name crop and the delta crop at the 1-line and 2-line offsets (`..._name_1line.png` / `..._name_2line.png`, `..._delta_1line.png` / `..._delta_2line.png`). The 1-line name crop stops above the delta line so a single-line name does not capture the delta below it; the 2-line crop extends one line lower. Keep the matching pair and delete the others while sorting crops into `arkgrid/vision/templates/`.

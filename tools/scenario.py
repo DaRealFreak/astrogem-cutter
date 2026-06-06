@@ -2,8 +2,15 @@
 
 Usage:
     source .venv/Scripts/activate
-    python scenario.py
+    python tools/scenario.py
 """
+import os
+import sys
+
+# Run as `python tools/scenario.py`: add the project root to sys.path so
+# `arkgrid` and `tests` imports resolve.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from arkgrid import GemState, GoalProbabilityTable, OptionPool
 from tests.test_scenarios import ScenarioHelper, LastTurnGoal
 

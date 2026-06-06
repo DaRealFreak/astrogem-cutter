@@ -15,7 +15,7 @@ source .venv/Scripts/activate
 python -m arkgrid
 ```
 
-No external dependencies for the simulator — stdlib only (`dataclasses`, `random`, `math`, `typing`). Vision features (`live`, `read`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows (`ctypes` user32.dll). No build step, no linter configured.
+No external dependencies for the simulator — stdlib only (`dataclasses`, `random`, `math`, `typing`). Vision features (`live`) require `opencv-python`, `numpy`, and `mss`. Automation (`auto`) additionally requires Windows (`ctypes` user32.dll). No build step, no linter configured.
 
 ## Testing
 
@@ -43,15 +43,16 @@ The `arkgrid/` package is split into modules:
 - **`simulator.py`** — `GemSimulator` — Turn-by-turn simulation engine. Manages rarity config (common=5 turns, rare=7, epic=9), reroll budgets (0/1/2 base + extra ticket), reset ticket (one full restart if goal becomes infeasible or probability drops below threshold), side-value finish (stop when goal is met per `SideValueTable` decision), and feasibility guards before each click. Per-turn decisions delegate to `decision.decide_post_roll`; the simulator handles offer generation, RNG state, and turn-log assembly around the call. Builds two DP tables: a reroll-aware table (for optimal reroll timing) and a standard table (for accurate reset decisions — the reroll-aware DP overestimates fresh-start probability due to the per-option max approximation). Optionally builds a relic+ DP table (`LastTurnGoal(min_total=16)`) for relic+ probability tracking and decision overrides (`--relic-reroll-threshold`). Also builds a `SideValueTable` for side-value finish decisions (lazily, cached per gem type). When the confirmation gate is active (`--confirm-min-coeff` set), on gated turns the simulator runs the recommended action but records a `confirm` marker in the turn log so gate behavior is auditable across `sim` batches. When `effect_aware=True`, builds per-gem-type effect-aware DP tables lazily (cached in `_ea_table_cache` / `_ea_reset_table_cache`) and swaps them in at `simulate_one` start — one table per gem type covers all effect configs, so `--all` and random-gem stats amortize the build across trials.
 - **`automation.py`** — `run_auto()` — Full automation loop for the `auto` command: capture screen → detect state → decide (reroll/process/reset/finish) → click button → wait for animation → repeat. Windows-only (`ctypes` user32.dll for mouse clicks, focus check, Escape stop key). Per-turn decisions delegate to `decision.decide_post_roll` (same code path as simulator). Auto-detects gem type/effects from screen. Handles ticket confirmation dialogs and coordinate scaling for non-1080p monitors. When a decision has `needs_confirmation=True`, the loop prints a `[CONFIRM]` panel and blocks on a global F1-F4 hotkey menu (F1-F4 select from `confirm_choices`; Escape aborts the run); the user-selected action replaces the automated recommendation. `_build_prob_table()` maintains a module-level `_DP_CACHE` keyed on (goal, turns, gem_type, optimize, min_side_coeff, max_rerolls, early_finish) — in effect-aware mode a single cached table per gem type covers all effect configs, so `--all` mode rebuilds are eliminated for repeated gem types.
 - **`analyzer.py`** — `GemAnalyzer` — Runs N trials (default 200k), aggregates success rate with Wilson confidence intervals, tracks relic+ (>=16 pts) and ancient (>=19 pts) thresholds, average side coefficient
-- **`cli.py`** — CLI argument parsing and command handlers (`stats`, `sim`, `effects`, `live`, `read`, `auto`). Gem type auto-resolution from effect pairs in `_resolve_args()`.
+- **`cli.py`** — CLI argument parsing and command handlers (`stats`, `sim`, `effects`, `live`, `auto`, `report`). Gem type auto-resolution from effect pairs in `_resolve_args()`.
 
 Tests live in `tests/`, split by module (e.g. `test_pool.py`, `test_simulator.py`).
+
+Developer scripts live in `tools/` (not part of the `arkgrid` package): `extract_templates.py` (crops template-candidate regions from screenshots into `tools/extracted/` for manual sorting, with a debug overlay per screenshot), plus `benchmark_reroll.py`, `calibration.py`, and `scenario.py` analysis scripts. Run them from the project root, e.g. `python tools/extract_templates.py`.
 
 ### Vision subpackage (`arkgrid/vision/`)
 
 Requires `opencv-python`, `numpy`. Template-matching pipeline for recognizing the in-game astrogem cutting screen:
 
-- **`recognizer.py`** — `ScreenRecognizer`: anchor-relative detection pipeline using template matching for gem type, stats, effects, options, turn/step info
 - **`templates.py`** — `TemplateStore`: lazy-loading template manager with resolution scaling
 - **`constants.py`** — ROI offsets relative to anchor, match thresholds, domain mappings
 - **`matcher.py`** — `find_template`, `find_best_match` wrappers around `cv2.matchTemplate`

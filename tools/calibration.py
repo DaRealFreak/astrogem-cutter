@@ -24,10 +24,16 @@ run — it is the baseline (no extra ticket) game play.  The no-reroll DP
 reroll-aware DP, but may still be above or below the MC rate.
 
 Run manually (not part of the unit suite):
-    python calibration.py
+    python tools/calibration.py
 """
 
+import os
 import random
+import sys
+
+# Run as `python tools/calibration.py`: add the project root to sys.path
+# so `arkgrid` imports resolve.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from arkgrid.models import LastTurnGoal
 from arkgrid.simulator import GemSimulator

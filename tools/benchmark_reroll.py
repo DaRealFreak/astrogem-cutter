@@ -2,15 +2,21 @@
 
 Usage:
     source .venv/Scripts/activate
-    python benchmark_reroll.py [--trials 200000] [--seed 12345]
+    python tools/benchmark_reroll.py [--trials 200000] [--seed 12345]
 """
 from __future__ import annotations
 
 import argparse
 import math
+import os
 import random
+import sys
 import time
 from typing import Dict, List, Tuple
+
+# Run as `python tools/benchmark_reroll.py`: add the project root to sys.path
+# so `arkgrid` imports resolve.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS
 from arkgrid.models import LastTurnGoal, AstroGem, GemState

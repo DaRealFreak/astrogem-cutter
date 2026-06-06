@@ -1,0 +1,112 @@
+"""Smoke tests for the template extraction tool (tools/extract_templates.py)."""
+
+import os
+import unittest
+
+try:
+    import cv2  # noqa: F401
+    _HAVE_CV2 = True
+except ImportError:
+    _HAVE_CV2 = False
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_EXAMPLE = os.path.join(PROJECT_ROOT, "examples", "turn_1_02.jpg")
+
+
+@unittest.skipUnless(_HAVE_CV2, "opencv-python not installed")
+@unittest.skipUnless(os.path.exists(_EXAMPLE), "example screenshot missing")
+class TestExtractRegions(unittest.TestCase):
+    def setUp(self):
+        import cv2
+        from arkgrid.vision.templates import TemplateStore
+        from tools import extract_templates as ex
+        self.ex = ex
+        frame = cv2.imread(_EXAMPLE)
+        self.gray = ex._to_fhd_gray(frame)
+        self.anchor = ex.find_anchor(self.gray, TemplateStore())
+
+    def test_anchor_found(self):
+        self.assertIsNotNone(self.anchor)
+
+    def test_single_region_categories_present(self):
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        for category in ("anchor", "gem_type", "points", "willpower",
+                         "chaos", "rerolls", "steps"):
+            self.assertIn(category, regions, category)
+            self.assertEqual(len(regions[category]), 1, category)
+
+    def test_crops_are_non_empty(self):
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        for category, items in regions.items():
+            for label, crop in items:
+                self.assertGreater(crop.size, 0, f"{category}/{label}")
+
+    def test_crop_shrinks_size_when_origin_clamped(self):
+        # ROI starts 10px left of the frame: the visible crop must be
+        # width 20-10 = 10, not the unclamped 20.
+        import numpy as np
+        frame = np.zeros((100, 100), dtype=np.uint8)
+        crop = self.ex._crop(frame, -10, 5, 20, 30)
+        self.assertEqual(crop.shape, (30, 10))
+
+    def test_option_card_crop_counts(self):
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        # 4 cards: two name variants each, two delta variants each.
+        self.assertEqual(len(regions["option_names"]), 8)
+        self.assertEqual(len(regions["option_deltas"]), 8)
+
+    def test_side_node_crop_counts(self):
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        # 2 side nodes: two name variants each, two Lv. variants each.
+        self.assertEqual(len(regions["side_node_names"]), 4)
+        self.assertEqual(len(regions["side_node_deltas"]), 4)
+
+    def test_name_crops_emitted_at_two_heights(self):
+        # The name is cropped at both line offsets so a 1-line name does not
+        # capture the delta text below it: the 1-line crop must be shorter
+        # than the 2-line crop, and both variants must be present.
+        regions = self.ex.extract_regions(self.gray, self.anchor)
+        names = dict(regions["option_names"])
+        sides = dict(regions["side_node_names"])
+        for one, two in (("card1_name_1line", "card1_name_2line"),
+                         ("side1_name_1line", "side1_name_2line")):
+            src = names if one.startswith("card") else sides
+            self.assertIn(one, src)
+            self.assertIn(two, src)
+            self.assertLess(src[one].shape[0], src[two].shape[0])
+
+    def test_finish_regions_returns_four_crops(self):
+        # extract_finish_regions crops 4 fixed positions; on any FHD frame
+        # all four are in-bounds.
+        regions = self.ex.extract_finish_regions(self.gray)
+        self.assertIn("finish", regions)
+        self.assertEqual(len(regions["finish"]), 4)
+
+    def test_overlay_is_fhd_sized(self):
+        import cv2
+        from arkgrid.vision import constants as C
+        frame = cv2.imread(_EXAMPLE)
+        overlay = self.ex.draw_overlay(frame, self.anchor)
+        self.assertEqual(overlay.shape[0], C.REF_HEIGHT)
+        self.assertEqual(overlay.shape[1], C.REF_WIDTH)
+
+    def test_write_crops_counts_only_successful_writes(self):
+        # cv2.imwrite returns False on failure without raising; a failed
+        # write must not be counted.
+        import tempfile
+        from unittest import mock
+        import numpy as np
+        regions = {"willpower": [("a", np.zeros((4, 4), dtype=np.uint8)),
+                                 ("b", np.zeros((4, 4), dtype=np.uint8))]}
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(self.ex.cv2, "imwrite", return_value=False):
+                count = self.ex._write_crops(regions, "shot", tmp)
+        self.assertEqual(count, 0)
+
+    def test_overlay_no_anchor_is_fhd_sized(self):
+        import cv2
+        from arkgrid.vision import constants as C
+        frame = cv2.imread(_EXAMPLE)
+        overlay = self.ex.draw_overlay(frame, None)
+        self.assertEqual(overlay.shape[0], C.REF_HEIGHT)
+        self.assertEqual(overlay.shape[1], C.REF_WIDTH)
