@@ -75,10 +75,14 @@ BTN_CONFIRM_TICKET_WITH_ITEM = (917, 668)
 TICKET_ITEM_CHECK_POS = (960, 493)
 TICKET_ITEM_CHECK_RGB = 0x0B92A9
 # F6: The teal pixel above is a POSITIVE signal that the item-ticket dialog is
-# present.  For the standard (no-item) dialog variant no equivalent positive
-# signal has been identified yet (no screenshot available).  We guard what we
-# can (see the needs_confirm block in run_auto) and log the observed pixel so
-# the owner can derive the correct value from a live session.
+# present.  The standard (no-item) confirm dialog renders an opaque dark panel
+# at the same coordinate instead of the teal pill; this value was captured from
+# a live reset (standard dialog, no item ticket).  Both reads are deterministic
+# per-pixel samples of a static modal, so an exact match of either is a reliable
+# positive signal.  Together they let run_auto verify *which* dialog is up — and
+# skip the confirm click when neither matches (the dialog never appeared and the
+# cutting screen is still showing).
+TICKET_STANDARD_CHECK_RGB = 0x111211
 BTN_CONFIRM_GEM_DONE = (957, 766)
 BTN_NEXT_GEM = (356, 113)
 TICKET_CONFIRM_DELAY = 0.5
@@ -1233,20 +1237,38 @@ def run_auto(
                 # read may come from either dialog variant or the live cutting
                 # screen.
                 pixel = _get_pixel_rgb(*TICKET_ITEM_CHECK_POS, monitor)
-                if pixel == -1:
-                    # Coordinate is off-screen — dialog state is unknown.
-                    # Skip the confirm click entirely to avoid a misclick.
-                    # The reset/reroll button was already clicked this iteration
-                    # but the confirm dialog was NOT confirmed, so the action has
-                    # not completed and we must not record it as complete.  Set
-                    # waiting_for_change so the loop pauses for the screen to
-                    # settle and re-detects (guarding against an immediate
-                    # re-decide that could double-click the action button), then
-                    # continue to skip all post-action bookkeeping.
+                # F6: Verify *which* confirm dialog is up before clicking.  Each
+                # variant renders a distinct, deterministic pixel at
+                # TICKET_ITEM_CHECK_POS: the item-ticket dialog shows the teal
+                # pill (TICKET_ITEM_CHECK_RGB); the standard (no-item) dialog
+                # shows a dark opaque panel (TICKET_STANDARD_CHECK_RGB).  A read
+                # matching neither (including -1 / off-screen) means the dialog
+                # never appeared — e.g. reroll-count tracking drifted — and the
+                # cutting screen is still up, so we must NOT click.
+                if pixel == TICKET_ITEM_CHECK_RGB:
+                    # Positive confirmation: item-ticket dialog is present.
+                    confirm_pos = BTN_CONFIRM_TICKET_WITH_ITEM
+                    variant = f"item ticket, pixel={pixel:#08x}"
+                elif pixel == TICKET_STANDARD_CHECK_RGB:
+                    # Positive confirmation: standard (no-item) dialog is present.
+                    confirm_pos = BTN_CONFIRM_TICKET
+                    variant = f"standard, pixel={pixel:#08x}"
+                else:
+                    # No dialog signature matched — skip the confirm click to
+                    # avoid a misclick.  The reset/reroll button was already
+                    # clicked this iteration but the confirm dialog was NOT
+                    # confirmed, so the action has not completed and we must not
+                    # record it as complete.  Set waiting_for_change so the loop
+                    # pauses for the screen to settle and re-detects (guarding
+                    # against an immediate re-decide that could double-click the
+                    # action button), then continue to skip all post-action
+                    # bookkeeping.
+                    reason = ("pixel read failed" if pixel == -1
+                              else f"unrecognized pixel {pixel:#08x}")
                     print(
                         f"  [warn] ticket-confirm dialog not verified "
-                        f"(pixel read failed at {TICKET_ITEM_CHECK_POS}) — "
-                        f"skipping confirm click to avoid misclick on cutting screen"
+                        f"({reason} at {TICKET_ITEM_CHECK_POS}) — skipping "
+                        f"confirm click to avoid misclick on cutting screen"
                     )
                     target = 1 if action == "reset" else None
                     waiting_for_change = (analysis.current_turn, det.rerolls, target)
@@ -1258,42 +1280,15 @@ def run_auto(
                     prev_action_reason = action_reason
                     time.sleep(animation_delay)
                     continue
-                elif pixel == TICKET_ITEM_CHECK_RGB:
-                    # Positive confirmation: item-ticket dialog is present.
-                    # The teal pill at TICKET_ITEM_CHECK_POS is only rendered
-                    # when the item-variant dialog is visible.
-                    confirm_pos = BTN_CONFIRM_TICKET_WITH_ITEM
-                    print(f"  >>> Confirming ticket (item ticket, pixel={pixel:#08x})...",
-                          end="", flush=True)
-                    _click(*confirm_pos, monitor)
-                    print(" done")
-                    # F3-B: mark ticket consumed so parse_rerolls no longer adds
-                    # the phantom +1 if the game still shows the icon after spending.
-                    if _reroll_ticket_confirm:
-                        extra_ticket_consumed = True
-                else:
-                    # F6: Teal pixel absent — either the standard (no-item)
-                    # confirm dialog is up, or the dialog never appeared.
-                    # No reliable positive pixel signal is known for the standard
-                    # dialog variant (no in-game screenshot captured).  Log the
-                    # observed pixel for future calibration and proceed with the
-                    # standard confirm click; this preserves the pre-F6 behaviour
-                    # for the standard variant while making the uncertainty visible.
-                    # TODO(F6-std): capture the pixel value here during a live reset
-                    # (standard dialog, no item ticket) to add a positive guard.
-                    print(
-                        f"  [info] teal item-ticket pixel absent at {TICKET_ITEM_CHECK_POS} "
-                        f"(pixel={pixel:#08x}); assuming standard confirm dialog"
-                    )
-                    confirm_pos = BTN_CONFIRM_TICKET
-                    print(f"  >>> Confirming ticket (standard)...",
-                          end="", flush=True)
-                    _click(*confirm_pos, monitor)
-                    print(" done")
-                    # F3-B: mark ticket consumed so parse_rerolls no longer adds
-                    # the phantom +1 if the game still shows the icon after spending.
-                    if _reroll_ticket_confirm:
-                        extra_ticket_consumed = True
+
+                print(f"  >>> Confirming ticket ({variant})...",
+                      end="", flush=True)
+                _click(*confirm_pos, monitor)
+                print(" done")
+                # F3-B: mark ticket consumed so parse_rerolls no longer adds the
+                # phantom +1 if the game still shows the icon after spending.
+                if _reroll_ticket_confirm:
+                    extra_ticket_consumed = True
 
             # Post-action tracking
             if action == "finish":
