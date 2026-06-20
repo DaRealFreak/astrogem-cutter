@@ -93,13 +93,13 @@ class TestResetTicketVariants(unittest.TestCase):
 
 
 class TestTierFlags(unittest.TestCase):
-    """Task 5: --relic-coeff / --ancient-coeff parse; retired flags gone."""
+    """--relic-coeff / --ancient-coeff / --endgame-risk default to None; retired flags gone."""
 
-    def test_relic_ancient_coeff_default_zero(self):
+    def test_relic_ancient_coeff_default_none(self):
         from arkgrid.cli import _build_parser
         args = _build_parser().parse_args(["sim", "--min-will", "4"])
-        self.assertEqual(args.relic_coeff, 0)
-        self.assertEqual(args.ancient_coeff, 0)
+        self.assertIsNone(args.relic_coeff)
+        self.assertIsNone(args.ancient_coeff)
 
     def test_relic_ancient_coeff_parse(self):
         from arkgrid.cli import _build_parser
@@ -115,7 +115,7 @@ class TestTierFlags(unittest.TestCase):
             ["sim", "--min-will", "4", "--endgame-risk", "2000"])
         self.assertEqual(args.endgame_risk, 2000.0)
         args0 = _build_parser().parse_args(["sim", "--min-will", "4"])
-        self.assertEqual(args0.endgame_risk, 0.0)
+        self.assertIsNone(args0.endgame_risk)
 
     def test_retired_flags_rejected(self):
         from arkgrid.cli import _build_parser
@@ -124,6 +124,32 @@ class TestTierFlags(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 _build_parser().parse_args(
                     ["sim", "--min-will", "4", flag, "1"])
+
+
+class TestFusionAutoDefaults(unittest.TestCase):
+    """The three fusion/endgame knobs default to None (auto)."""
+
+    def _parse_sim(self, extra=None):
+        from arkgrid.cli import _build_parser
+        parser = _build_parser()
+        argv = ["sim", "--min-will", "4", "--min-chaos", "3", "--rarity", "epic"]
+        if extra:
+            argv.extend(extra)
+        return parser.parse_args(argv)
+
+    def test_defaults_are_none(self):
+        args = self._parse_sim()
+        self.assertIsNone(args.endgame_risk)
+        self.assertIsNone(args.relic_coeff)
+        self.assertIsNone(args.ancient_coeff)
+
+    def test_explicit_values_parse(self):
+        args = self._parse_sim(["--endgame-risk", "500",
+                                "--relic-coeff", "3000",
+                                "--ancient-coeff", "8000"])
+        self.assertEqual(args.endgame_risk, 500.0)
+        self.assertEqual(args.relic_coeff, 3000)
+        self.assertEqual(args.ancient_coeff, 8000)
 
 
 if __name__ == "__main__":

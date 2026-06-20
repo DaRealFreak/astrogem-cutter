@@ -90,8 +90,15 @@ class DecisionContext:
     force_reroll_active: bool                      # gated by starting coeff
     confirm_active: bool = False
     confirm_min_coeff: int = 0
-    endgame_risk: float = 0.0
+    # None => auto-gate (grade-protect a below-benchmark relic/ancient gem);
+    # a float is an explicit player-set finish margin.
+    endgame_risk: Optional[float] = None
     side_value_table: Optional[SideValueTable] = None
+    # Goal-independent value table (`side_coeff + grade tier bonus`, built
+    # with a trivial always-satisfied goal). Consulted only on dead-goal
+    # turns, where the goal-conditioned `side_value_table` would zero every
+    # state. None unless relic/ancient grade is assigned a coefficient.
+    grade_value_table: Optional[SideValueTable] = None
 
 
 @dataclass
@@ -368,6 +375,12 @@ def _side_value_finish_decision(
     rerolls are exhausted (or on turn 1, where rerolling is disallowed),
     when `finish_val` beats `process_ev` by the `--endgame-risk` margin.
 
+    Exception: when `--endgame-risk` is omitted (auto-gate), a relic or
+    ancient gem whose side coefficient is below the grade benchmark
+    (`svt.relic_coeff` / `svt.ancient_coeff` — the fusion-derived average
+    coefficient for that grade) is always finished regardless of EV, to
+    protect the grade.
+
     Gate on (`--confirm-min-coeff` set): a finish on a gem above the
     side-coefficient floor is surfaced as an F1-F4 prompt.
     """
@@ -398,14 +411,35 @@ def _side_value_finish_decision(
         return None  # PROCESS — the offers in hand beat a redraw
 
     # No reroll available (exhausted, or turn 1): finish vs process.
-    margin = 0.0 if ctx.confirm_active else ctx.endgame_risk
+    # Auto-gate fires only when the player did not pass --endgame-risk
+    # (endgame_risk is None) and the confirmation gate is off.
+    auto_gate = ctx.endgame_risk is None and not ctx.confirm_active
+    grade_protect = False
+    benchmark = 0
+    if auto_gate:
+        total = ti.state.total_points()
+        if total >= 19:
+            benchmark = svt.ancient_coeff
+        elif total >= 16:
+            benchmark = svt.relic_coeff
+        # benchmark stays 0 for legendary grade -> no grade to protect.
+        if benchmark > 0 and _side_coeff(ctx, ti.state) < benchmark:
+            grade_protect = True
+
+    margin = (0.0 if (ctx.confirm_active or ctx.endgame_risk is None)
+              else ctx.endgame_risk)
     metrics = {"finish_val": finish_val, "process_ev": process_ev,
-               "margin": margin}
-    if finish_val < process_ev + margin:
+               "margin": margin, "grade_protect": grade_protect}
+    if not grade_protect and finish_val < process_ev + margin:
         return None  # PROCESS — continuing beats finishing
 
-    reason = (f"goal met, no rerolls left, finish_val={finish_val:.0f} "
-              f">= process_ev={process_ev:.0f}+margin={margin:.0f}")
+    if grade_protect:
+        reason = (f"goal met, no rerolls left, side coeff "
+                  f"{_side_coeff(ctx, ti.state)} below grade benchmark "
+                  f"{benchmark} — finishing to protect the grade")
+    else:
+        reason = (f"goal met, no rerolls left, finish_val={finish_val:.0f} "
+                  f">= process_ev={process_ev:.0f}+margin={margin:.0f}")
     if (ctx.confirm_active
             and _side_coeff(ctx, ti.state) >= ctx.confirm_min_coeff):
         return Decision(
@@ -441,6 +475,94 @@ def _feasibility_args(ctx: DecisionContext, state: GemState) -> Dict[str, Any]:
             ctx.gem_type, state.first_effect,
             state.second_effect, ctx.optimize),
     }
+
+
+# Float slack for "the optimal continuation can't beat finishing" — the DP
+# value floors at `finish_val`, so a near-equal value means no upside.
+_GRADE_VALUE_EPS = 1e-9
+
+
+def _grade_value_decision(
+    ctx: DecisionContext, ti: TurnInput, gvt: SideValueTable,
+    branch: str, reason: str,
+) -> Decision:
+    """Goal is permanently out of reach — maximise expected gem *value*
+    (`side_coeff + grade tier bonus`) via the goal-independent grade-value
+    table, instead of the binary `P(relic+ >= 16)` the relic table exposes.
+
+    The binary metric scores totals 16/17/18/19 identically; this prices
+    ancient (>=19) upside and point magnitude correctly.
+
+    Mirrors `_side_value_finish_decision`, with two differences:
+
+    * It uses `ctx.grade_value_table` (built with a trivial, always-satisfied
+      goal), so a broken main goal doesn't zero every state.
+    * It always returns a concrete Decision — the infeasibility branches are
+      terminal and never defer back to the tree.
+
+    Finish-early guard (the "no chance left" case): `gvt.lookup` is backward-
+    induced as `max(finish_now, process)`, so it is always >= `finish_val`.
+    When neither a redraw (`reroll_val`) nor the offers in hand (`process_ev`)
+    can beat stopping now, there is provably no value upside left and the
+    decision FINISHES — even with rerolls in hand. This is the one exception
+    to "never finish with a free reroll": fishing cannot help here.
+    """
+    finish_val = gvt.gem_value(ti.state)
+    process_ev = gvt.expected_value_after_click(
+        ti.state, ti.offers, ti.turns_left - 1)
+    can_reroll = ti.rerolls > 0 and ti.turn != 1
+    metrics = {"finish_val": finish_val, "process_ev": process_ev}
+
+    if can_reroll:
+        reroll_val = gvt.lookup(ti.state, ti.turns_left)
+        metrics["reroll_val"] = reroll_val
+        best_continue = max(reroll_val, process_ev)
+        if best_continue <= finish_val + _GRADE_VALUE_EPS:
+            return Decision(
+                action=ActionKind.FINISH, branch=branch,
+                reason=(f"{reason}, no grade upside left "
+                        f"(finish_val={finish_val:.0f} >= "
+                        f"continue={best_continue:.0f})"),
+                metrics=metrics,
+            )
+        if reroll_val >= process_ev:
+            return Decision(
+                action=ActionKind.REROLL, branch=branch,
+                reason=(f"{reason}, chasing gem value "
+                        f"(reroll_val={reroll_val:.0f} >= "
+                        f"process_ev={process_ev:.0f})"),
+                metrics=metrics,
+            )
+        return Decision(
+            action=ActionKind.PROCESS, branch=branch,
+            reason=(f"{reason}, processing for gem value "
+                    f"(process_ev={process_ev:.0f} > "
+                    f"reroll_val={reroll_val:.0f})"),
+            metrics=metrics,
+        )
+
+    # No reroll (exhausted, or turn 1): finish vs process by value. A
+    # below-grade-band offer already tanks process_ev via the lost
+    # tier_bonus, so the value comparison protects the grade implicitly —
+    # no separate benchmark gate is needed here.
+    margin = (0.0 if (ctx.confirm_active or ctx.endgame_risk is None)
+              else ctx.endgame_risk)
+    metrics["margin"] = margin
+    if finish_val >= process_ev + margin:
+        return Decision(
+            action=ActionKind.FINISH, branch=branch,
+            reason=(f"{reason}, finishing for gem value "
+                    f"(finish_val={finish_val:.0f} >= "
+                    f"process_ev={process_ev:.0f}+margin={margin:.0f})"),
+            metrics=metrics,
+        )
+    return Decision(
+        action=ActionKind.PROCESS, branch=branch,
+        reason=(f"{reason}, processing for gem value "
+                f"(process_ev={process_ev:.0f} > "
+                f"finish_val={finish_val:.0f})"),
+        metrics=metrics,
+    )
 
 
 def _reset_or_chase_relic(
@@ -479,6 +601,28 @@ def _reset_or_chase_relic(
         ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
         if can_reroll else 0.0)
 
+    # Preferred path: value-aware grade chase via the goal-independent
+    # grade-value table (present only when relic/ancient grade has a
+    # coefficient). Prices ancient upside + point magnitude correctly,
+    # which the binary relic+ probability below cannot.
+    gvt = ctx.grade_value_table
+    if gvt is not None and gvt.enabled:
+        # A reroll that can still reach the *goal* (Branch 3: this draw
+        # can't, a fresh one might) dominates grade chasing — the goal is
+        # the primary objective. Structural infeasibility => p == 0, so
+        # this never fires from Branch 1.
+        if p_reroll_goal > 0:
+            return Decision(
+                action=ActionKind.REROLL,
+                branch=branch,
+                reason=(f"{reason}, rerolling for goal "
+                        f"(P(goal|reroll)={p_reroll_goal:.1%})"),
+                metrics={**base_metrics, "p_reroll_goal": p_reroll_goal},
+            )
+        return _grade_value_decision(ctx, ti, gvt, branch, reason)
+
+    # Binary relic+ fallback — no grade coefficient set, or gem type unknown
+    # (grade table disabled). Preserves the prior behaviour exactly.
     if ctx.relic_prob_table is not None:
         has_chance = m.p_keep_relic > 0 or (can_reroll and m.p_reroll_relic > 0)
         if has_chance:

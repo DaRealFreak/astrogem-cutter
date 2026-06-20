@@ -41,9 +41,9 @@ class GemSimulator:
             force_reroll_no_progress: int = 0,
             effect_aware: bool = True,
             confirm_min_coeff: Optional[int] = None,
-            endgame_risk: float = 0.0,
-            relic_coeff: int = 0,
-            ancient_coeff: int = 0,
+            endgame_risk: Optional[float] = None,
+            relic_coeff: Optional[int] = None,
+            ancient_coeff: Optional[int] = None,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -60,6 +60,8 @@ class GemSimulator:
         self.ancient_coeff = ancient_coeff
         self._side_value_table_cache: Dict[str, SideValueTable] = {}
         self._side_value_table: Optional[SideValueTable] = None
+        self._grade_value_table_cache: Dict[str, SideValueTable] = {}
+        self._grade_value_table: Optional[SideValueTable] = None
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
@@ -131,22 +133,21 @@ class GemSimulator:
             early_finish=True,
         )
 
-        # Relic+ (>=16 total points) DP table for probability tracking
-        # and decision overrides.
+        # Relic+ (>=16 total points) DP table for probability tracking.
+        # Built unconditionally: grade is always part of the side-value
+        # gem_value now, so P(relic+) / P(ancient) are always available.
         self.relic_reroll_threshold = relic_reroll_threshold
         self.force_reroll_no_progress = force_reroll_no_progress
         self._force_reroll_active = False  # set per-run in simulate_one
-        self._relic_prob_table: Optional[GoalProbabilityTable] = None
-        if relic_reroll_threshold > 0.0 or relic_coeff > 0 or ancient_coeff > 0:
-            # Reroll-aware so lookups account for the value of available
-            # rerolls when chasing relic+.  Without max_rerolls the table
-            # is the no-reroll DP and systematically underestimates P(r+),
-            # making the override fire too rarely.
-            self._relic_prob_table = GoalProbabilityTable(
-                LastTurnGoal(min_total=16), self.turns_total, self.pool,
-                early_finish=False,
-                max_rerolls=dp_max_rerolls,
-            )
+        # Reroll-aware so lookups account for the value of available
+        # rerolls when chasing relic+.  Without max_rerolls the table
+        # is the no-reroll DP and systematically underestimates P(r+),
+        # making the override fire too rarely.
+        self._relic_prob_table: Optional[GoalProbabilityTable] = GoalProbabilityTable(
+            LastTurnGoal(min_total=16), self.turns_total, self.pool,
+            early_finish=False,
+            max_rerolls=dp_max_rerolls,
+        )
 
     def _get_ea_tables(self, gem_type: str) -> tuple:
         """Build or fetch cached effect-aware (reroll, reset) DP tables
@@ -194,6 +195,29 @@ class GemSimulator:
             ancient_coeff=self.ancient_coeff,
         )
         self._side_value_table_cache[gem_type] = table
+        return table
+
+    def _get_grade_value_table(self, gem_type: str) -> SideValueTable:
+        """Build/fetch the cached *goal-independent* grade-value table.
+
+        Same DP as `_get_side_value_table`, but built with a trivial,
+        always-satisfied goal and no `min_side_coeff` floor, so it scores
+        `side_coeff + tier_bonus` regardless of the main goal. Consulted by
+        the dead-goal decision path (`decision._reset_or_chase_relic`), where
+        the main goal is permanently broken and the goal-conditioned
+        side-value table would otherwise zero every state.
+        """
+        cached = self._grade_value_table_cache.get(gem_type)
+        if cached is not None:
+            return cached
+        table = SideValueTable(
+            LastTurnGoal(), self.turns_total, self.pool,
+            gem_type=gem_type, optimize=self.optimize,
+            min_side_coeff=0,
+            relic_coeff=self.relic_coeff,
+            ancient_coeff=self.ancient_coeff,
+        )
+        self._grade_value_table_cache[gem_type] = table
         return table
 
     @staticmethod
@@ -310,6 +334,9 @@ class GemSimulator:
         side_value_table = self._side_value_table
         if side_value_table is None and gem_type:
             side_value_table = self._get_side_value_table(gem_type)
+        grade_value_table = self._grade_value_table
+        if grade_value_table is None and gem_type:
+            grade_value_table = self._get_grade_value_table(gem_type)
         return DecisionContext(
             goal=self.goal,
             pool=self.pool,
@@ -331,6 +358,7 @@ class GemSimulator:
             confirm_min_coeff=self.confirm_min_coeff,
             endgame_risk=self.endgame_risk,
             side_value_table=side_value_table,
+            grade_value_table=grade_value_table,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],
@@ -459,6 +487,9 @@ class GemSimulator:
         self._side_value_table = (
             self._get_side_value_table(run_gem.gem_type)
             if run_gem.gem_type in GEM_TYPES else None)
+        self._grade_value_table = (
+            self._get_grade_value_table(run_gem.gem_type)
+            if run_gem.gem_type in GEM_TYPES else None)
 
         reset_available = bool(self.use_reset_ticket)
         extra_ticket_active = bool(self.use_extra_ticket)
@@ -484,7 +515,6 @@ class GemSimulator:
         relic_reroll_pending = (
             not extra_ticket_active and self.use_extra_ticket
             and self.relic_reroll_threshold > 0.0
-            and self._relic_prob_table is not None
         )
 
         reset_used = False

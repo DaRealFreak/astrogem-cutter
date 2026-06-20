@@ -416,5 +416,50 @@ class TestSideValueTable(unittest.TestCase):
         self.assertEqual(t.lookup(st, 3), 0.0)
 
 
+class TestSideValueTableFusionDefault(unittest.TestCase):
+    """SideValueTable resolves relic/ancient coeff from the fusion default."""
+
+    def test_resolves_fusion_default_when_omitted(self):
+        pool = OptionPool()
+        goal = LastTurnGoal(min_will=3, min_chaos=3)
+        svt = SideValueTable(goal, 9, pool,
+                             gem_type="order_immutability", optimize="dps")
+        # order_immutability dps pool sum = additional_damage 700 + boss_damage
+        # 1000 = 1700.  relic: round(1700*16.25/8)=3453; ancient:
+        # round(1700*19.05/8)=4048.
+        self.assertEqual(svt.relic_coeff, 3453)
+        self.assertEqual(svt.ancient_coeff, 4048)
+
+    def test_explicit_coeff_overrides_fusion_default(self):
+        pool = OptionPool()
+        goal = LastTurnGoal(min_will=3, min_chaos=3)
+        svt = SideValueTable(goal, 9, pool,
+                             gem_type="order_immutability", optimize="dps",
+                             relic_coeff=500, ancient_coeff=900)
+        self.assertEqual(svt.relic_coeff, 500)
+        self.assertEqual(svt.ancient_coeff, 900)
+
+    def test_explicit_zero_is_respected(self):
+        pool = OptionPool()
+        goal = LastTurnGoal(min_will=3, min_chaos=3)
+        svt = SideValueTable(goal, 9, pool,
+                             gem_type="order_immutability", optimize="dps",
+                             relic_coeff=0, ancient_coeff=0)
+        self.assertEqual(svt.relic_coeff, 0)
+        self.assertEqual(svt.ancient_coeff, 0)
+
+    def test_tier_bonus_uses_resolved_values(self):
+        pool = OptionPool()
+        goal = LastTurnGoal(min_will=3, min_chaos=3)
+        svt = SideValueTable(goal, 9, pool,
+                             gem_type="order_immutability", optimize="dps")
+        # relic band (16-18 total points)
+        self.assertEqual(svt._tier_bonus(17), 3453)
+        # ancient band (>=19)
+        self.assertEqual(svt._tier_bonus(20), 4048)
+        # below relic
+        self.assertEqual(svt._tier_bonus(12), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

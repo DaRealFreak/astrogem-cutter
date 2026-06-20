@@ -563,9 +563,9 @@ def run_auto(
     all_gems: bool = False,
     effect_aware_dp: bool = True,
     confirm_min_coeff: Optional[int] = None,
-    endgame_risk: float = 0.0,
-    relic_coeff: int = 0,
-    ancient_coeff: int = 0,
+    endgame_risk: Optional[float] = None,
+    relic_coeff: Optional[int] = None,
+    ancient_coeff: Optional[int] = None,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -624,6 +624,10 @@ def run_auto(
 
         # Side-value DP table — built on first detection.
         side_value_table: Optional[SideValueTable] = None
+
+        # Goal-independent grade-value table for dead-goal turns — built on
+        # first detection, only when relic/ancient grade has a coefficient.
+        grade_value_table: Optional[SideValueTable] = None
 
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
@@ -813,13 +817,11 @@ def run_auto(
                         max_rerolls=dp_max_rerolls,
                         effect_aware=effect_aware_dp,
                     ))
-                # Build relic+ table once (doesn't depend on effects).
+                # Relic+ table: built once. Always built — grade is part of
+                # the side-value gem_value, so P(relic+)/P(ancient) always show.
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
-                if relic_table is None and (
-                        relic_reroll_threshold > 0.0
-                        or relic_coeff > 0
-                        or ancient_coeff > 0):
+                if relic_table is None:
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,
@@ -841,6 +843,18 @@ def run_auto(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
+                        relic_coeff=relic_coeff,
+                        ancient_coeff=ancient_coeff,
+                    )
+                # Goal-independent grade-value table (trivial goal, no
+                # side-coeff floor) for dead-goal turns — built per gem type
+                # like the side-value table; coeffs resolve to the fusion
+                # default when unset.
+                if grade_value_table is None:
+                    grade_value_table = SideValueTable(
+                        LastTurnGoal(), det.total_steps, pool,
+                        gem_type=gem_type_domain, optimize=optimize,
+                        min_side_coeff=0,
                         relic_coeff=relic_coeff,
                         ancient_coeff=ancient_coeff,
                     )
@@ -944,6 +958,7 @@ def run_auto(
                     confirm_min_coeff=confirm_min_coeff,
                     endgame_risk=endgame_risk,
                     side_value_table=side_value_table,
+                    grade_value_table=grade_value_table,
                 )
 
             # --- Relic+ reroll ticket override (per-turn check, F3-A) ---
