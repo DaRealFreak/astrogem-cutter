@@ -76,16 +76,24 @@ TICKET_ITEM_CHECK_POS = (960, 493)
 TICKET_ITEM_CHECK_RGB = 0x0B92A9
 # F6: The teal pixel above is a POSITIVE signal that the item-ticket dialog is
 # present.  The standard (no-item) confirm dialog renders an opaque dark panel
-# at the same coordinate instead of the teal pill; this value was captured from
-# a live reset (standard dialog, no item ticket).  Both reads are deterministic
-# per-pixel samples of a static modal, so an exact match of either is a reliable
-# positive signal.  Together they let run_auto verify *which* dialog is up — and
-# skip the confirm click when neither matches (the dialog never appeared and the
-# cutting screen is still showing).
-TICKET_STANDARD_CHECK_RGB = 0x111211
+# at the same coordinate instead of the teal pill.  The panel is near-black and
+# its exact sample drifts by a channel step between captures (e.g. 0x111211 and
+# 0x121211 both observed on live resets), so we accept a small set of known
+# values rather than a single one.  These reads are still deterministic per-pixel
+# samples of a static modal, so matching any known value is a reliable positive
+# signal.  Together with the teal pill they let run_auto verify *which* dialog is
+# up — and skip the confirm click when neither matches (the dialog never appeared
+# and the cutting screen is still showing).
+TICKET_STANDARD_CHECK_RGBS = frozenset({0x111211, 0x121211})
 BTN_CONFIRM_GEM_DONE = (957, 766)
 BTN_NEXT_GEM = (356, 113)
 TICKET_CONFIRM_DELAY = 0.5
+# Extra settle time after TICKET_CONFIRM_DELAY before sampling the verification
+# pixel.  The confirm dialog fades in, so sampling too early can catch the panel
+# mid-animation, a step off its settled color, and trip the "unrecognized pixel"
+# guard that wrongly skips the confirm click.  Wait this much more before
+# sampling.  (Known settled values are enumerated in TICKET_STANDARD_CHECK_RGBS.)
+TICKET_VERIFY_SETTLE_DELAY = 0.5
 
 # All-mode: pixel at (573, 113) equals 0x5AA9E2 iff a gem is selected
 ALL_MODE_CHECK_POS = (573, 113)
@@ -1230,6 +1238,10 @@ def run_auto(
 
             if needs_confirm:
                 time.sleep(TICKET_CONFIRM_DELAY)
+                # Let the dialog's fade-in finish before sampling the verify
+                # pixel — a too-early read catches a mid-animation color and
+                # fails the signature check below (see TICKET_VERIFY_SETTLE_DELAY).
+                time.sleep(TICKET_VERIFY_SETTLE_DELAY)
                 # F6: Guard against blind-clicking when the confirmation dialog
                 # has not actually appeared (e.g. reroll-count tracking drifted).
                 # _get_pixel_rgb returns -1 (CLR_INVALID) when the coordinate is
@@ -1241,15 +1253,15 @@ def run_auto(
                 # variant renders a distinct, deterministic pixel at
                 # TICKET_ITEM_CHECK_POS: the item-ticket dialog shows the teal
                 # pill (TICKET_ITEM_CHECK_RGB); the standard (no-item) dialog
-                # shows a dark opaque panel (TICKET_STANDARD_CHECK_RGB).  A read
-                # matching neither (including -1 / off-screen) means the dialog
+                # shows a dark opaque panel (one of TICKET_STANDARD_CHECK_RGBS).
+                # A read matching neither (including -1 / off-screen) means the dialog
                 # never appeared — e.g. reroll-count tracking drifted — and the
                 # cutting screen is still up, so we must NOT click.
                 if pixel == TICKET_ITEM_CHECK_RGB:
                     # Positive confirmation: item-ticket dialog is present.
                     confirm_pos = BTN_CONFIRM_TICKET_WITH_ITEM
                     variant = f"item ticket, pixel={pixel:#08x}"
-                elif pixel == TICKET_STANDARD_CHECK_RGB:
+                elif pixel in TICKET_STANDARD_CHECK_RGBS:
                     # Positive confirmation: standard (no-item) dialog is present.
                     confirm_pos = BTN_CONFIRM_TICKET
                     variant = f"standard, pixel={pixel:#08x}"
