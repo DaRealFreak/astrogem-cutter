@@ -117,6 +117,7 @@ _NULLABLE_INT_FILTERS = (
     "min_will", "min_chaos", "exact_will", "exact_chaos",
     "min_total_will_chaos",
     "min_first", "min_second",
+    "reroll_goal",
 )
 # Filter args whose CLI default is 0 / False / empty: a "falsy" value means
 # "don't filter on this". Comparisons are exact.
@@ -128,6 +129,7 @@ _INT_FILTERS = (
 _FLOAT_FILTERS = (
     "side_threshold", "prob_reset_threshold",
     "relic_reroll_threshold", "endgame_risk",
+    "reroll_goal_threshold",
 )
 
 

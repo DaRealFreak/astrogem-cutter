@@ -177,6 +177,18 @@ class TestWillChaosTotalGoal(unittest.TestCase):
         args = _build_parser().parse_args(["sim", "--min-will", "4"])
         self.assertFalse(args.ignore_side_node_values)
 
+    def test_reroll_goal_flags_parse(self):
+        args = _build_parser().parse_args(
+            ["sim", "--min-total-will-chaos", "7", "--reroll-goal", "9",
+             "--reroll-goal-threshold", "0.15"])
+        self.assertEqual(args.reroll_goal, 9)
+        self.assertAlmostEqual(args.reroll_goal_threshold, 0.15)
+
+    def test_reroll_goal_defaults(self):
+        args = _build_parser().parse_args(["sim", "--min-will", "4"])
+        self.assertIsNone(args.reroll_goal)
+        self.assertEqual(args.reroll_goal_threshold, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

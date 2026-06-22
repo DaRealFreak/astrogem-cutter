@@ -508,5 +508,47 @@ class TestIgnoreSideNodeValuesTables(unittest.TestCase):
         self.assertEqual(svt.value_mode, "side")
 
 
+class TestRerollGoalThreshold(unittest.TestCase):
+    """--reroll-goal / --reroll-goal-threshold re-enables a coeff-gated extra
+    reroll ticket when P(will+chaos >= reroll_goal) crosses the threshold."""
+
+    def _sim(self, **kw):
+        defaults = dict(
+            rarity="epic", use_extra_ticket=True, use_reset_ticket=False,
+            goal=LastTurnGoal(min_total_will_chaos=7),
+            astro_gem=AstroGem("order_fortitude", "boss_damage",
+                               "attack_power", "dps"),
+            optimize="dps", effect_aware=True,
+            reroll_min_coeff=99999,  # gate the extra ticket OFF for any gem
+        )
+        defaults.update(kw)
+        return GemSimulator(**defaults)
+
+    def test_grants_ticket_when_prob_crosses(self):
+        # ticket gated off by reroll_min_coeff, but P(will+chaos>=8) easily
+        # exceeds 1% -> override re-enables the extra ticket.
+        sim = self._sim(reroll_goal=8, reroll_goal_threshold=0.01)
+        r = sim.simulate_one(seed=1)
+        self.assertTrue(r.extra_ticket_used)
+
+    def test_no_flag_keeps_ticket_gated(self):
+        sim = self._sim()  # no reroll_goal
+        r = sim.simulate_one(seed=1)
+        self.assertFalse(r.extra_ticket_used)
+
+    def test_unreachable_threshold_does_not_grant(self):
+        # threshold above 1.0 can never be crossed.
+        sim = self._sim(reroll_goal=8, reroll_goal_threshold=2.0)
+        r = sim.simulate_one(seed=1)
+        self.assertFalse(r.extra_ticket_used)
+
+    def test_no_extra_ticket_overrides_everything(self):
+        # --no-extra-ticket is absolute: override must not fire.
+        sim = self._sim(use_extra_ticket=False,
+                        reroll_goal=8, reroll_goal_threshold=0.01)
+        r = sim.simulate_one(seed=1)
+        self.assertFalse(r.extra_ticket_used)
+
+
 if __name__ == "__main__":
     unittest.main()

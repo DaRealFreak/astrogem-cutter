@@ -137,6 +137,18 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Use extra reroll ticket even when --reroll-min-coeff would "
                              "disable it, if P(relic+ >=16 total) from the current state "
                              "exceeds this threshold. 0.0 = disabled. Try 0.1-0.3. Default: 0.0")
+        p.add_argument("--reroll-goal", type=int, default=None, metavar="N",
+                        help="Combined willpower+chaos total used only for the "
+                             "extra-reroll-ticket decision (independent of "
+                             "--min-total-will-chaos). Requires "
+                             "--reroll-goal-threshold.")
+        p.add_argument("--reroll-goal-threshold", type=float, default=0.0,
+                        metavar="F",
+                        help="Re-enable the extra reroll ticket mid-run (even "
+                             "when --reroll-min-coeff disabled it) once "
+                             "P(will+chaos >= --reroll-goal) >= F. Both flags "
+                             "required. Always disabled by --no-extra-ticket. "
+                             "0.0 = disabled. Default: 0.0.")
         p.add_argument("--force-reroll-no-progress", type=int, default=0, metavar="N",
                         help="Heuristic override: when the gem's starting target-effect "
                              "coefficient is >= N, force a reroll (if rerolls available) "
@@ -253,6 +265,8 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
                    metavar="F")
     p.add_argument("--relic-reroll-threshold", type=float, default=0.0,
                    metavar="F")
+    p.add_argument("--reroll-goal", type=int, default=None, metavar="N")
+    p.add_argument("--reroll-goal-threshold", type=float, default=0.0, metavar="F")
     p.add_argument("--bis-only", action="store_true", default=False)
     p.add_argument("--ignore-side-node-values", action="store_true",
                    default=False)
@@ -609,6 +623,8 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     relic_coeff=args.relic_coeff,
                     ancient_coeff=args.ancient_coeff,
                     ignore_side_node_values=args.ignore_side_node_values,
+                    reroll_goal=args.reroll_goal,
+                    reroll_goal_threshold=args.reroll_goal_threshold,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -648,6 +664,8 @@ def cmd_sim(args: argparse.Namespace) -> None:
         relic_coeff=args.relic_coeff,
         ancient_coeff=args.ancient_coeff,
         ignore_side_node_values=args.ignore_side_node_values,
+        reroll_goal=args.reroll_goal,
+        reroll_goal_threshold=args.reroll_goal_threshold,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -1118,6 +1136,8 @@ def cmd_live(args: argparse.Namespace) -> None:
             relic_coeff=getattr(args, "relic_coeff", None),
             ancient_coeff=getattr(args, "ancient_coeff", None),
             ignore_side_node_values=getattr(args, "ignore_side_node_values", False),
+            reroll_goal=getattr(args, "reroll_goal", None),
+            reroll_goal_threshold=getattr(args, "reroll_goal_threshold", 0.0),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,

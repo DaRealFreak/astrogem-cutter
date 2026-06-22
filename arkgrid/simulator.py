@@ -45,6 +45,8 @@ class GemSimulator:
             relic_coeff: Optional[int] = None,
             ancient_coeff: Optional[int] = None,
             ignore_side_node_values: bool = False,
+            reroll_goal: Optional[int] = None,
+            reroll_goal_threshold: float = 0.0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -60,6 +62,8 @@ class GemSimulator:
         self.relic_coeff = relic_coeff
         self.ancient_coeff = ancient_coeff
         self.ignore_side_node_values = ignore_side_node_values
+        self.reroll_goal = reroll_goal
+        self.reroll_goal_threshold = reroll_goal_threshold
         self._side_value_table_cache: Dict[str, SideValueTable] = {}
         self._side_value_table: Optional[SideValueTable] = None
         self._grade_value_table_cache: Dict[str, SideValueTable] = {}
@@ -86,7 +90,10 @@ class GemSimulator:
         # tables were built with, GoalProbabilityTable.lookup clamps it and
         # under-prices the granted reroll for every subsequent decision.
         # Size all reroll-aware tables to cover the post-override maximum.
-        dp_max_rerolls = self.base_rerolls + (1 if relic_reroll_threshold > 0.0 else 0)
+        goal_reroll_active = (reroll_goal is not None
+                              and reroll_goal_threshold > 0.0)
+        dp_max_rerolls = self.base_rerolls + (
+            1 if (relic_reroll_threshold > 0.0 or goal_reroll_active) else 0)
         self._dp_max_rerolls = dp_max_rerolls
 
         # DP probability table (built once, reused across all trials)
@@ -150,6 +157,17 @@ class GemSimulator:
             early_finish=False,
             max_rerolls=dp_max_rerolls,
         )
+
+        # Will/chaos-total reroll-ticket override table (independent of the
+        # success goal). Non-effect-aware: effects don't affect will/chaos.
+        self._reroll_goal_prob_table: Optional[GoalProbabilityTable] = None
+        if goal_reroll_active:
+            self._reroll_goal_prob_table = GoalProbabilityTable(
+                LastTurnGoal(min_total_will_chaos=reroll_goal),
+                self.turns_total, self.pool,
+                early_finish=False,
+                max_rerolls=dp_max_rerolls,
+            )
 
     def _get_ea_tables(self, gem_type: str) -> tuple:
         """Build or fetch cached effect-aware (reroll, reset) DP tables
@@ -520,6 +538,10 @@ class GemSimulator:
             not extra_ticket_active and self.use_extra_ticket
             and self.relic_reroll_threshold > 0.0
         )
+        goal_reroll_pending = (
+            not extra_ticket_active and self.use_extra_ticket
+            and self._reroll_goal_prob_table is not None
+        )
 
         reset_used = False
 
@@ -557,15 +579,25 @@ class GemSimulator:
             for turn in range(1, self.turns_total + 1):
                 turns_left = self.turns_total - turn + 1
 
-                # Relic+ override: grant the extra reroll ticket mid-run
-                # when P(relic+ | current state) crosses the threshold.
-                if relic_reroll_pending:
-                    p_relic = self._relic_prob_table.lookup(
-                        state, turns_left, rerolls=state.rerolls)
-                    if p_relic >= self.relic_reroll_threshold:
+                # Relic+ / goal-total override: grant the extra reroll ticket
+                # mid-run when P crosses the respective threshold.
+                if relic_reroll_pending or goal_reroll_pending:
+                    granted = False
+                    if relic_reroll_pending:
+                        p_relic = self._relic_prob_table.lookup(
+                            state, turns_left, rerolls=state.rerolls)
+                        if p_relic >= self.relic_reroll_threshold:
+                            granted = True
+                    if not granted and goal_reroll_pending:
+                        p_goal = self._reroll_goal_prob_table.lookup(
+                            state, turns_left, rerolls=state.rerolls)
+                        if p_goal >= self.reroll_goal_threshold:
+                            granted = True
+                    if granted:
                         state.rerolls += 1
                         extra_ticket_active = True
                         relic_reroll_pending = False
+                        goal_reroll_pending = False
 
                 if log:
                     entry: Optional[Dict[str, Any]] = {
