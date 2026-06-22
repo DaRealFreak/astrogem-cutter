@@ -99,6 +99,11 @@ class DecisionContext:
     # turns, where the goal-conditioned `side_value_table` would zero every
     # state. None unless relic/ancient grade is assigned a coefficient.
     grade_value_table: Optional[SideValueTable] = None
+    # Side-mode value oracle (`side_coeff + tier_bonus`) consulted only at
+    # the will/chaos cap under --ignore-side-node-values, where the
+    # `will_chaos` `side_value_table` is degenerate (every state scores 10).
+    # Its presence is the flag signal — None unless the flag is set.
+    maxed_value_table: Optional[SideValueTable] = None
 
 
 @dataclass
@@ -261,6 +266,18 @@ def _side_coeff(ctx: DecisionContext, state: GemState) -> int:
     if state.second_effect in target:
         total += state.second * coeff_map.get(state.second_effect, 0)
     return total
+
+
+def _hand_is_wc_safe(offers: List[Option]) -> bool:
+    """True when no offer can reduce will or chaos.
+
+    `Process` applies a uniformly random one of the 4 offers, so a hand
+    that contains any `will-`/`chaos-` offer carries a real risk of
+    dropping off the will/chaos cap. `_maxed_hold_decision` never processes
+    such a hand.
+    """
+    return not any(o.kind in ("will", "chaos") and o.delta < 0
+                   for o in offers)
 
 
 def _legal_actions(ti: TurnInput) -> tuple:

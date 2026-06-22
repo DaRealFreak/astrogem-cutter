@@ -19,7 +19,7 @@ from arkgrid.decision import (
     early_finish_decision, has_progress_offer,
     infeasibility_decision, last_turn_reset_decision,
     no_feasible_offer_decision, prob_reset_decision,
-    _side_coeff, _legal_actions,
+    _side_coeff, _legal_actions, _hand_is_wc_safe,
 )
 from arkgrid.decision import TurnMetrics, _side_value_finish_decision
 from arkgrid.models import GemState, LastTurnGoal, Option
@@ -99,6 +99,17 @@ def build_ctx(
             relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
             value_mode=grade_value_mode,
         )
+    # Mirror production: under --ignore-side-node-values the side-value table
+    # is will_chaos, and a parallel side-mode "maxed oracle" is built for the
+    # will/chaos cap. Without the flag the maxed branch never fires.
+    maxed_value_table = None
+    if side_value_mode == "will_chaos":
+        maxed_value_table = SideValueTable(
+            g, turns_total, _POOL, gem_type=gem_type, optimize=optimize,
+            min_side_coeff=min_side_coeff,
+            relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
+            value_mode="side",
+        )
     return DecisionContext(
         goal=g, pool=_POOL, optimize=optimize, bis_only=bis_only,
         min_side_coeff=min_side_coeff,
@@ -116,6 +127,7 @@ def build_ctx(
         endgame_risk=endgame_risk,
         side_value_table=side_value_table,
         grade_value_table=grade_value_table,
+        maxed_value_table=maxed_value_table,
     )
 
 
@@ -994,6 +1006,20 @@ class TestIgnoreSideNodeValuesBehaviour(unittest.TestCase):
             d_wc.action, d_side.action,
             "will_chaos and side modes must produce DIFFERENT decisions on this input",
         )
+
+
+class TestHandIsWcSafe(unittest.TestCase):
+    def test_safe_without_wc_negative(self):
+        offers = make_offers("second+3", "first+1", "cost+100", "maintain")
+        self.assertTrue(_hand_is_wc_safe(offers))
+
+    def test_unsafe_with_will_negative(self):
+        offers = make_offers("will-1", "second+3", "first+1", "maintain")
+        self.assertFalse(_hand_is_wc_safe(offers))
+
+    def test_unsafe_with_chaos_negative(self):
+        offers = make_offers("chaos-1", "second+3", "first+1", "maintain")
+        self.assertFalse(_hand_is_wc_safe(offers))
 
 
 if __name__ == "__main__":
