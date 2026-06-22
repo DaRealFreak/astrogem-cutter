@@ -497,8 +497,16 @@ class TestIgnoreSideNodeValuesTables(unittest.TestCase):
         svt = sim._get_side_value_table("order_fortitude")
         self.assertEqual(svt.value_mode, "will_chaos")
 
-    def test_grade_value_table_stays_side_mode_when_set(self):
+    def test_grade_value_table_uses_grade_only_mode_when_set(self):
+        # Dead-goal fallback under --ignore-side-node-values must value grade
+        # ONLY (relic/ancient tier), not side-node coefficients the player
+        # opted out of — so it finishes when no higher grade is reachable.
         sim = self._sim(ignore_side_node_values=True)
+        gvt = sim._get_grade_value_table("order_fortitude")
+        self.assertEqual(gvt.value_mode, "grade_only")
+
+    def test_grade_value_table_stays_side_mode_by_default(self):
+        sim = self._sim()  # no ignore_side_node_values
         gvt = sim._get_grade_value_table("order_fortitude")
         self.assertEqual(gvt.value_mode, "side")
 

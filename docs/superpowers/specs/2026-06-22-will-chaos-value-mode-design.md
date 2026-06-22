@@ -103,7 +103,17 @@ When `--ignore-side-node-values` is set, only **one** of the two tables changes:
 | Table | Under the flag | Rationale |
 |---|---|---|
 | `side_value_table` (goal-conditioned) | `value_mode="will_chaos"` | After the goal is met, push will + chaos higher; the goal condition still protects the threshold so the engine won't gamble below it. |
-| `grade_value_table` (goal-independent) | **unchanged** (`value_mode="side"`) | Once the will/chaos goal is *fully infeasible*, there's nothing to lose — fall back to chasing grade so the gem isn't wasted. |
+| `grade_value_table` (goal-independent) | `value_mode="grade_only"` | Once the will/chaos goal is *fully infeasible*, fall back to chasing relic/ancient **grade** (tier bonus) only — so the gem isn't wasted on a reachable grade, but it does not fish for side-node coefficients the player opted out of. |
+
+> **Correction (2026-06-22, follow-up):** the original design left
+> `grade_value_table` in `value_mode="side"` here. In practice that made a
+> dead goal keep clicking to raise the side-node *coefficient*
+> (`side_coeff + tier_bonus`) even when relic/ancient grade was unreachable —
+> e.g. an `--optimize dps` run that processed the last turn for an
+> `attack_power +1` level-up, contradicting `--ignore-side-node-values`. The
+> fix adds a `value_mode="grade_only"` (`tier_bonus` alone) and builds the
+> dead-goal table with it under the flag, so the dead goal chases only grade
+> and finishes immediately when no higher grade is reachable.
 
 ### Resulting behaviour under `--ignore-side-node-values`
 

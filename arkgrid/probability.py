@@ -963,6 +963,13 @@ class SideValueTable:
             # New-character value: will + chaos only, no side/grade value
             # and no side-coeff floor.
             return float(w + c)
+        if self.value_mode == "grade_only":
+            # Dead-goal fallback under --ignore-side-node-values: value the
+            # gem's grade (relic/ancient tier bonus) ONLY, ignoring the
+            # side-node coefficients the player opted out of. When no higher
+            # grade is reachable the value is flat across every offer, so the
+            # decision finishes instead of fishing for side-node levels.
+            return float(self._tier_bonus(w + c + f + s))
         coeff = self._effect_coeffs[fi] * f + self._effect_coeffs[si] * s
         if self._min_side_coeff > 0 and coeff < self._min_side_coeff:
             return 0.0

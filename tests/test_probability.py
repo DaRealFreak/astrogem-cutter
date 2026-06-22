@@ -529,5 +529,65 @@ class TestSideValueTableWillChaosMode(unittest.TestCase):
         self.assertEqual(t.gem_value(st), 10000.0)
 
 
+class TestSideValueTableGradeOnlyMode(unittest.TestCase):
+    """value_mode='grade_only': gem_value = tier_bonus alone (relic/ancient
+    grade), ignoring side-node coefficients. Used by the dead-goal fallback
+    under --ignore-side-node-values, so a dead goal chases only grade and
+    finishes when no higher grade is reachable."""
+
+    POOL = OptionPool()
+
+    def _table(self, **kw):
+        defaults = dict(
+            goal=LastTurnGoal(),  # trivial, always-satisfied (grade table)
+            max_turns=9, pool=self.POOL,
+            gem_type="order_fortitude", optimize="dps",
+            relic_coeff=3000, ancient_coeff=8000,
+            value_mode="grade_only",
+        )
+        defaults.update(kw)
+        return SideValueTable(**defaults)
+
+    def test_grade_coeffs_not_forced_to_zero(self):
+        # Unlike will_chaos mode, grade_only KEEPS the tier weights — grade is
+        # exactly what it values.
+        t = self._table()
+        self.assertEqual(t.relic_coeff, 3000)
+        self.assertEqual(t.ancient_coeff, 8000)
+
+    def test_side_coeff_ignored_below_relic(self):
+        # High side coeff (boss L5 + attack L5 = 7000) but total 12 < 16 ->
+        # no grade -> value 0 (side coefficients contribute nothing).
+        t = self._table()
+        st = GemState(will=1, chaos=1, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        self.assertEqual(t.gem_value(st), 0.0)
+
+    def test_relic_band_scores_relic_coeff_only(self):
+        # total 16 (relic), side_coeff would be 7000 in side mode but is
+        # excluded here -> value == relic_coeff exactly.
+        t = self._table()
+        st = GemState(will=4, chaos=2, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        self.assertEqual(t.gem_value(st), 3000.0)
+
+    def test_ancient_band_scores_ancient_coeff_only(self):
+        t = self._table()
+        st = GemState(will=4, chaos=5, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # total 19 -> ancient; value == ancient_coeff, no side coeff.
+        self.assertEqual(t.gem_value(st), 8000.0)
+
+    def test_finishes_when_grade_unreachable(self):
+        # Dead-goal shape from the user's run: total 8, one turn, relic (16)
+        # unreachable. Every reachable state scores 0, so continuing the DP
+        # never beats finishing now (lookup == gem_value == 0).
+        t = self._table()
+        st = GemState(will=2, chaos=1, first=2, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        self.assertEqual(t.gem_value(st), 0.0)
+        self.assertEqual(t.lookup(st, 1), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -61,6 +61,7 @@ def build_ctx(
     relic_coeff: Optional[int] = 0,
     ancient_coeff: Optional[int] = 0,
     side_value_mode: str = "side",
+    grade_value_mode: str = "side",
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
@@ -96,6 +97,7 @@ def build_ctx(
             LastTurnGoal(), turns_total, _POOL,
             gem_type=gem_type, optimize=optimize, min_side_coeff=0,
             relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
+            value_mode=grade_value_mode,
         )
     return DecisionContext(
         goal=g, pool=_POOL, optimize=optimize, bis_only=bis_only,
@@ -888,6 +890,51 @@ class TestIgnoreSideNodeValuesBehaviour(unittest.TestCase):
         d = decide_post_roll(ctx, ti)
         self.assertIn(d.branch, ("infeasible", "no_feasible_offer"))
         self.assertNotEqual(d.action, ActionKind.FAIL)
+
+    def test_dead_goal_grade_unreachable_finishes_under_grade_only(self):
+        # Reproduces the user's auto run, turn 9: --ignore-side-node-values,
+        # optimize dps, will/chaos goal dead, and relic (16 pts) unreachable
+        # (total 7, one turn left, max one offer -> < 16). A side-node level
+        # offer (first+1 / second+1) IS present.
+        #
+        # DISCRIMINATING: identical input, the only difference is the
+        # grade-value table's mode.
+        #   grade_only: finish_val = tier_bonus(7) = 0; every offer also
+        #     scores 0 (no grade reachable) -> FINISH (the bug fix).
+        #   side:       finish_val = side_coeff 2800; first+1 raises it to
+        #     3800 -> process_ev > finish_val -> PROCESS (the old behaviour
+        #     that clicked for a side-node gain the player opted out of).
+        g = LastTurnGoal(min_total_will_chaos=8)
+        st = GemState(will=2, chaos=1, first=2, second=2, rerolls=0,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        offers = make_offers("first+1", "second+1", "will+1", "maintain")
+        ti = build_ti(state=st, offers=offers, turn=9, turns_left=1,
+                      rerolls=0, reset_available=False)
+
+        ctx_grade_only = build_ctx(
+            goal=g, gem_type="order_fortitude", optimize="dps",
+            side_value_mode="will_chaos", grade_value_mode="grade_only",
+            relic_coeff=3000, ancient_coeff=8000, endgame_risk=None,
+        )
+        ctx_side = build_ctx(
+            goal=g, gem_type="order_fortitude", optimize="dps",
+            side_value_mode="will_chaos", grade_value_mode="side",
+            relic_coeff=3000, ancient_coeff=8000, endgame_risk=None,
+        )
+
+        d_grade_only = decide_post_roll(ctx_grade_only, ti)
+        d_side = decide_post_roll(ctx_side, ti)
+
+        self.assertEqual(
+            d_grade_only.action, ActionKind.FINISH,
+            f"grade_only with no grade reachable should FINISH, got {d_grade_only}")
+        self.assertEqual(
+            d_side.action, ActionKind.PROCESS,
+            f"side mode chases the side-node level-up -> PROCESS, got {d_side}")
+        self.assertNotEqual(
+            d_grade_only.action, d_side.action,
+            "grade_only and side modes must diverge on this dead-goal input")
 
     def test_value_mode_switch_discriminating(self):
         # DISCRIMINATING test: with rerolls=0 on a goal-met relic gem, the

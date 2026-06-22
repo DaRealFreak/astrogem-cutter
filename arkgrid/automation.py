@@ -876,6 +876,8 @@ def run_auto(
                         min_side_coeff=0,
                         relic_coeff=relic_coeff,
                         ancient_coeff=ancient_coeff,
+                        value_mode=("grade_only" if ignore_side_node_values
+                                    else "side"),
                     )
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just

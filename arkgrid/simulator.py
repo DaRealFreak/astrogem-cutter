@@ -224,10 +224,15 @@ class GemSimulator:
 
         Same DP as `_get_side_value_table`, but built with a trivial,
         always-satisfied goal and no `min_side_coeff` floor, so it scores
-        `side_coeff + tier_bonus` regardless of the main goal. Consulted by
-        the dead-goal decision path (`decision._reset_or_chase_relic`), where
-        the main goal is permanently broken and the goal-conditioned
-        side-value table would otherwise zero every state.
+        gem value regardless of the main goal. Consulted by the dead-goal
+        decision path (`decision._reset_or_chase_relic`), where the main goal
+        is permanently broken and the goal-conditioned side-value table would
+        otherwise zero every state.
+
+        Value mode: `side` (`side_coeff + tier_bonus`) normally, but
+        `grade_only` (`tier_bonus` alone) under `--ignore-side-node-values` —
+        the player opted out of side-node value, so a dead goal chases only
+        relic/ancient grade and finishes when no higher grade is reachable.
         """
         cached = self._grade_value_table_cache.get(gem_type)
         if cached is not None:
@@ -238,6 +243,8 @@ class GemSimulator:
             min_side_coeff=0,
             relic_coeff=self.relic_coeff,
             ancient_coeff=self.ancient_coeff,
+            value_mode=("grade_only" if self.ignore_side_node_values
+                        else "side"),
         )
         self._grade_value_table_cache[gem_type] = table
         return table
