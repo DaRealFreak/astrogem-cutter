@@ -889,6 +889,65 @@ class TestIgnoreSideNodeValuesBehaviour(unittest.TestCase):
         self.assertIn(d.branch, ("infeasible", "no_feasible_offer"))
         self.assertNotEqual(d.action, ActionKind.FAIL)
 
+    def test_value_mode_switch_discriminating(self):
+        # DISCRIMINATING test: with rerolls=0 on a goal-met relic gem, the
+        # two value modes yield DIFFERENT decide_post_roll actions.
+        #
+        # State: will=4 chaos=4 first=4 second=4 (total=16, relic grade),
+        #        boss_damage L4 + attack_power L4 -> side_coeff = 5600.
+        # Offers: will+1, chaos+1 (improve will/chaos), first-1, second-1
+        #         (degrade side coeff and bust relic+ if clicked).
+        #
+        # "side" mode (relic_coeff=3000):
+        #   finish_val = 5600 + 3000 = 8600
+        #   process_ev = average of clicking 4 offers, most of which reduce
+        #   value or bust relic+ -> process_ev < finish_val -> FINISH.
+        #
+        # "will_chaos" mode (grade coeffs forced to 0):
+        #   finish_val = 4 + 4 = 8
+        #   process_ev = avg(will=5->9, chaos=5->9, first-1->8, second-1->8)
+        #              = (9+9+8+8)/4 = 8.5 > 8 -> return None -> PROCESS.
+        #
+        # Self-verification: temporarily building the wc ctx with "side" mode
+        # makes d_wc also FINISH, causing the assertNotEqual to fail (RED).
+        g = LastTurnGoal(min_will=4, min_chaos=4)
+        st = GemState(will=4, chaos=4, first=4, second=4, rerolls=0,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        offers = make_offers("will+1", "chaos+1", "first-1", "second-1")
+        ti = TurnInput(
+            state=st, offers=offers, turn=9, turns_left=1,
+            rerolls=0, reset_available=False,
+        )
+
+        ctx_wc = build_ctx(
+            goal=g, gem_type="order_fortitude", optimize="dps",
+            side_value_mode="will_chaos",
+            relic_coeff=0, ancient_coeff=0,
+            endgame_risk=0.0,
+        )
+        ctx_side = build_ctx(
+            goal=g, gem_type="order_fortitude", optimize="dps",
+            side_value_mode="side",
+            relic_coeff=3000, ancient_coeff=8000,
+            endgame_risk=0.0,
+        )
+
+        d_wc = decide_post_roll(ctx_wc, ti)
+        d_side = decide_post_roll(ctx_side, ti)
+
+        # will_chaos optimises will+chaos -> continues to process for a +1
+        self.assertEqual(d_wc.action, ActionKind.PROCESS,
+                         f"will_chaos mode should PROCESS for will/chaos gain, got {d_wc}")
+        # side mode protects the high-value relic gem -> finishes
+        self.assertEqual(d_side.action, ActionKind.FINISH,
+                         f"side mode should FINISH to lock relic+, got {d_side}")
+        # The two modes must diverge — this is what makes the test discriminating
+        self.assertNotEqual(
+            d_wc.action, d_side.action,
+            "will_chaos and side modes must produce DIFFERENT decisions on this input",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -133,6 +133,12 @@ class TestLastTurnGoal(unittest.TestCase):
         self.assertTrue(g.feasible(1, 1, 2))
         self.assertFalse(g.feasible(1, 1, 1))
 
+    def test_feasible_total_will_chaos_at_cap(self) -> None:
+        # total goal exactly at the 5+5 cap is feasible with enough turns.
+        g = LastTurnGoal(min_total_will_chaos=10)
+        self.assertTrue(g.feasible(1, 1, 2))
+        self.assertFalse(g.feasible(1, 1, 1))
+
 
 class TestGemState(unittest.TestCase):
     def test_clone_independence(self) -> None:
