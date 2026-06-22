@@ -18,12 +18,16 @@ Such a player wants to maximise will + chaos and assigns nearly no priority to
 side-node effects or grade — grade matters only as a fallback once the
 will/chaos goal is already dead (see the dead-goal handling below).
 
-Two things are missing for this player:
+Two independent things are missing:
 
 1. A way to express a **combined will/chaos** goal — e.g. "total ≥ 8", met by
-   5-3, 4-4, 3-5, or anything higher.
+   5-3, 4-4, 3-5, or anything higher. This is a *general* goal type, not a
+   new-character feature: endgame players want it too (e.g. as a combined
+   will/chaos floor alongside side-node goals). On its own it only defines
+   success — it must not change the value model or any decision.
 2. A way to tell the engine to **ignore side-node / grade value** and optimise
-   purely for will/chaos.
+   purely for will/chaos. This is the new-character switch, and it is the only
+   one of the two that changes decision-making.
 
 ## Goals
 
@@ -69,7 +73,11 @@ nodes entirely when the goal carries no `min_first` / `min_second` /
 
 ### Flag 1 — `--min-total-will-chaos N`
 
-Pure wiring:
+A general goal constraint, orthogonal to `--ignore-side-node-values` and useful
+to endgame players too. It only extends the success condition — on its own it
+leaves the value model and every finish / continue / reset / dead-goal decision
+exactly as they are for `--min-will` / `--min-chaos` goals today (side-node and
+grade value still apply). Pure wiring:
 
 - `cli.py`: populate `LastTurnGoal(min_total_will_chaos=args.min_total_will_chaos)`
   in `_resolve_args`; add the flag to `add_common` and to the `report` filter
