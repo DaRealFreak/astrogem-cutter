@@ -8,13 +8,15 @@
 The simulator/automation are built around DPS/support *side-node* goals: the
 gem's worth is `side_coeff + grade tier_bonus`, and even a pure will/chaos run
 keeps cutting to improve grade because `--relic-coeff` / `--ancient-coeff`
-default to fusion-derived values.
+default to fusion-derived values. This fits an **endgame** player, who values
+roughly everything — will/chaos, side-node effects, and grade.
 
-A **new character** has the opposite priority. Willpower on the gem reduces the
-willpower *cost* of slotting it (more gems fit per core); chaos contributes the
-points that hit a core's breakpoints (10, 14, 17, 18, 19, 20). Such a player
-wants to maximise will + chaos and does **not** care about the gem's grade or
-its side-node effects.
+A **new character** narrows that focus to will/chaos. Willpower on the gem
+reduces the willpower *cost* of slotting it (more gems fit per core); chaos
+contributes the points that hit a core's breakpoints (10, 14, 17, 18, 19, 20).
+Such a player wants to maximise will + chaos and assigns nearly no priority to
+side-node effects or grade — grade matters only as a fallback once the
+will/chaos goal is already dead (see the dead-goal handling below).
 
 Two things are missing for this player:
 
