@@ -515,6 +515,26 @@ class TestIgnoreSideNodeValuesTables(unittest.TestCase):
         svt = sim._get_side_value_table("order_fortitude")
         self.assertEqual(svt.value_mode, "side")
 
+    def test_maxed_value_table_is_side_mode_when_set(self):
+        sim = self._sim(ignore_side_node_values=True)
+        mvt = sim._get_maxed_value_table("order_fortitude")
+        self.assertEqual(mvt.value_mode, "side")
+
+    def test_maxed_value_table_in_context_under_flag(self):
+        sim = self._sim(ignore_side_node_values=True)
+        sim.astro_gem = AstroGem("order_fortitude", "boss_damage",
+                                 "attack_power", "dps")
+        ctx = sim._decision_context(p_fresh=0.5)
+        self.assertIsNotNone(ctx.maxed_value_table)
+        self.assertEqual(ctx.maxed_value_table.value_mode, "side")
+
+    def test_maxed_value_table_absent_without_flag(self):
+        sim = self._sim()  # no ignore_side_node_values
+        sim.astro_gem = AstroGem("order_fortitude", "boss_damage",
+                                 "attack_power", "dps")
+        ctx = sim._decision_context(p_fresh=0.5)
+        self.assertIsNone(ctx.maxed_value_table)
+
 
 class TestRerollGoalThreshold(unittest.TestCase):
     """--reroll-goal / --reroll-goal-threshold re-enables a coeff-gated extra

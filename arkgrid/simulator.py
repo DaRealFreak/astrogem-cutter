@@ -68,6 +68,8 @@ class GemSimulator:
         self._side_value_table: Optional[SideValueTable] = None
         self._grade_value_table_cache: Dict[str, SideValueTable] = {}
         self._grade_value_table: Optional[SideValueTable] = None
+        self._maxed_value_table_cache: Dict[str, SideValueTable] = {}
+        self._maxed_value_table: Optional[SideValueTable] = None
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
@@ -249,6 +251,30 @@ class GemSimulator:
         self._grade_value_table_cache[gem_type] = table
         return table
 
+    def _get_maxed_value_table(self, gem_type: str) -> SideValueTable:
+        """Build/fetch the cached side-mode value table used at the
+        will/chaos cap under --ignore-side-node-values.
+
+        This is exactly the table `_get_side_value_table` would build
+        *without* the flag (`value_mode="side"`, goal-conditioned). At the
+        cap the `will_chaos` model is degenerate (every state scores 10), so
+        the maxed-hold decision consults this side+grade oracle instead.
+        Only consulted when `ignore_side_node_values` is set.
+        """
+        cached = self._maxed_value_table_cache.get(gem_type)
+        if cached is not None:
+            return cached
+        table = SideValueTable(
+            self.goal, self.turns_total, self.pool,
+            gem_type=gem_type, optimize=self.optimize,
+            min_side_coeff=self.min_side_coeff,
+            relic_coeff=self.relic_coeff,
+            ancient_coeff=self.ancient_coeff,
+            value_mode="side",
+        )
+        self._maxed_value_table_cache[gem_type] = table
+        return table
+
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
         """Generate a random AstroGem: random type, random 2-of-4 effects."""
@@ -366,6 +392,10 @@ class GemSimulator:
         grade_value_table = self._grade_value_table
         if grade_value_table is None and gem_type:
             grade_value_table = self._get_grade_value_table(gem_type)
+        maxed_value_table = self._maxed_value_table
+        if (maxed_value_table is None and gem_type
+                and self.ignore_side_node_values):
+            maxed_value_table = self._get_maxed_value_table(gem_type)
         return DecisionContext(
             goal=self.goal,
             pool=self.pool,
@@ -388,6 +418,7 @@ class GemSimulator:
             endgame_risk=self.endgame_risk,
             side_value_table=side_value_table,
             grade_value_table=grade_value_table,
+            maxed_value_table=maxed_value_table,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],
@@ -519,6 +550,10 @@ class GemSimulator:
         self._grade_value_table = (
             self._get_grade_value_table(run_gem.gem_type)
             if run_gem.gem_type in GEM_TYPES else None)
+        self._maxed_value_table = (
+            self._get_maxed_value_table(run_gem.gem_type)
+            if (self.ignore_side_node_values
+                and run_gem.gem_type in GEM_TYPES) else None)
 
         reset_available = bool(self.use_reset_ticket)
         extra_ticket_active = bool(self.use_extra_ticket)
