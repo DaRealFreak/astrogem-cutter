@@ -1022,5 +1022,89 @@ class TestHandIsWcSafe(unittest.TestCase):
         self.assertFalse(_hand_is_wc_safe(offers))
 
 
+class TestMaxedHoldDecision(unittest.TestCase):
+    """will==5 chaos==5 under --ignore-side-node-values: hold will/chaos
+    firm and chase side+grade via the maxed oracle, instead of the
+    degenerate will_chaos 'reroll then finish'."""
+
+    def _ctx(self):
+        return build_ctx(
+            goal=LastTurnGoal(min_total_will_chaos=8),
+            gem_type="order_fortitude", optimize="dps",
+            side_value_mode="will_chaos",
+            relic_coeff=3000, ancient_coeff=8000,
+        )
+
+    def test_safe_hand_with_reroll_chases_not_finishes(self):
+        # Reproduces the reported run: 5/5, boss_damage low, rerolls in hand.
+        st = GemState(will=5, chaos=5, first=1, second=2, rerolls=2,
+                      first_effect="attack_power", second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("second+3", "second+1",
+                                         "first+1", "maintain"),
+                      turn=5, turns_left=5, rerolls=2, reset_available=False)
+        d = decide_post_roll(self._ctx(), ti)
+        self.assertEqual(d.branch, "maxed_hold")
+        self.assertIn(d.action, (ActionKind.PROCESS, ActionKind.REROLL))
+        self.assertNotEqual(d.action, ActionKind.FINISH)
+
+    def test_unsafe_hand_with_reroll_rerolls(self):
+        st = GemState(will=5, chaos=5, first=1, second=2, rerolls=2,
+                      first_effect="attack_power", second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("will-1", "second+3",
+                                         "second+1", "cost+100"),
+                      turn=5, turns_left=5, rerolls=2, reset_available=False)
+        d = decide_post_roll(self._ctx(), ti)
+        self.assertEqual(d.branch, "maxed_hold")
+        self.assertEqual(d.action, ActionKind.REROLL)
+
+    def test_unsafe_hand_no_reroll_finishes(self):
+        st = GemState(will=5, chaos=5, first=1, second=2, rerolls=0,
+                      first_effect="attack_power", second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("will-1", "second+3",
+                                         "second+1", "cost+100"),
+                      turn=9, turns_left=3, rerolls=0, reset_available=False)
+        d = decide_post_roll(self._ctx(), ti)
+        self.assertEqual(d.branch, "maxed_hold")
+        self.assertEqual(d.action, ActionKind.FINISH)
+
+    def test_safe_hand_no_reroll_processes(self):
+        st = GemState(will=5, chaos=5, first=1, second=2, rerolls=0,
+                      first_effect="attack_power", second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("second+3", "second+1",
+                                         "first+1", "maintain"),
+                      turn=9, turns_left=3, rerolls=0, reset_available=False)
+        d = decide_post_roll(self._ctx(), ti)
+        self.assertEqual(d.branch, "maxed_hold")
+        self.assertEqual(d.action, ActionKind.PROCESS)
+
+    def test_no_upside_finishes_even_with_rerolls(self):
+        # Fully maxed gem (5/5/5/5): nothing left to improve -> FINISH
+        # despite a free reroll (the old will_chaos model would reroll).
+        st = GemState(will=5, chaos=5, first=5, second=5, rerolls=2,
+                      first_effect="attack_power", second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("first-1", "second-1",
+                                         "maintain", "cost+100"),
+                      turn=5, turns_left=5, rerolls=2, reset_available=False)
+        d = decide_post_roll(self._ctx(), ti)
+        self.assertEqual(d.branch, "maxed_hold")
+        self.assertEqual(d.action, ActionKind.FINISH)
+
+    def test_below_cap_does_not_use_maxed_branch(self):
+        # 5/4 (total 9, goal met) is NOT the cap -> will_chaos behavior.
+        st = GemState(will=5, chaos=4, first=1, second=2, rerolls=2,
+                      first_effect="attack_power", second_effect="boss_damage")
+        ti = build_ti(state=st,
+                      offers=make_offers("chaos+1", "second+1",
+                                         "first+1", "maintain"),
+                      turn=5, turns_left=5, rerolls=2, reset_available=False)
+        d = decide_post_roll(self._ctx(), ti)
+        self.assertNotEqual(d.branch, "maxed_hold")
+
+
 if __name__ == "__main__":
     unittest.main()

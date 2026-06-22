@@ -376,6 +376,76 @@ def early_finish_decision(
     return _side_value_finish_decision(ctx, ti, m)
 
 
+def _maxed_hold_decision(ctx: DecisionContext, ti: TurnInput) -> Decision:
+    """will==5 and chaos==5 under --ignore-side-node-values.
+
+    Will/chaos is capped and the goal is locked, so chase
+    `side_coeff + grade tier_bonus` as free upside via the side-mode
+    oracle (`ctx.maxed_value_table`) — while holding will/chaos firm:
+
+    * Reroll is free and never changes state, so fish for a safe hand
+      while any upside remains.
+    * Process only a hand that can't reduce will/chaos (`_hand_is_wc_safe`),
+      and only when it improves expected value.
+    * Finish the moment the oracle sees no reachable upside (mirrors the
+      dead-goal `_grade_value_decision` finish-early guard) — this kills
+      the pointless-reroll churn the `will_chaos` model produced at the cap.
+    """
+    oracle = ctx.maxed_value_table
+    finish_val = oracle.gem_value(ti.state)
+    process_ev = oracle.expected_value_after_click(
+        ti.state, ti.offers, ti.turns_left - 1)
+    hand_safe = _hand_is_wc_safe(ti.offers)
+    can_reroll = ti.rerolls > 0 and ti.turn != 1
+    metrics = {"finish_val": finish_val, "process_ev": process_ev,
+               "hand_safe": hand_safe}
+
+    if can_reroll:
+        reroll_val = oracle.lookup(ti.state, ti.turns_left)
+        metrics["reroll_val"] = reroll_val
+        best_continue = (max(reroll_val, process_ev) if hand_safe
+                         else reroll_val)
+        if best_continue <= finish_val + _GRADE_VALUE_EPS:
+            return Decision(
+                action=ActionKind.FINISH, branch="maxed_hold",
+                reason=(f"will/chaos maxed, no side/grade upside left "
+                        f"(finish_val={finish_val:.0f} >= "
+                        f"continue={best_continue:.0f})"),
+                metrics=metrics,
+            )
+        if hand_safe and process_ev >= reroll_val:
+            return Decision(
+                action=ActionKind.PROCESS, branch="maxed_hold",
+                reason=(f"will/chaos maxed, processing safe hand for "
+                        f"side/grade (process_ev={process_ev:.0f} >= "
+                        f"reroll_val={reroll_val:.0f})"),
+                metrics=metrics,
+            )
+        reason = (f"will/chaos maxed, rerolling for side/grade "
+                  f"(reroll_val={reroll_val:.0f})" if hand_safe else
+                  "will/chaos maxed, rerolling — hand can reduce will/chaos")
+        return Decision(
+            action=ActionKind.REROLL, branch="maxed_hold",
+            reason=reason, metrics=metrics,
+        )
+
+    # No reroll (exhausted / turn 1): process a safe improving hand, else stop.
+    if hand_safe and process_ev > finish_val + _GRADE_VALUE_EPS:
+        return Decision(
+            action=ActionKind.PROCESS, branch="maxed_hold",
+            reason=(f"will/chaos maxed, processing safe hand for side/grade "
+                    f"(process_ev={process_ev:.0f} > "
+                    f"finish_val={finish_val:.0f})"),
+            metrics=metrics,
+        )
+    return Decision(
+        action=ActionKind.FINISH, branch="maxed_hold",
+        reason=(f"will/chaos maxed, holding — no safe improvement "
+                f"(finish_val={finish_val:.0f})"),
+        metrics=metrics,
+    )
+
+
 def _side_value_finish_decision(
     ctx: DecisionContext, ti: TurnInput, m: TurnMetrics,
 ) -> Optional[Decision]:
@@ -401,6 +471,13 @@ def _side_value_finish_decision(
     Gate on (`--confirm-min-coeff` set): a finish on a gem above the
     side-coefficient floor is surfaced as an F1-F4 prompt.
     """
+    # At the will/chaos cap under --ignore-side-node-values the will_chaos
+    # side-value table is degenerate (every state scores 10). Delegate to the
+    # side-mode maxed oracle, which chases side+grade while holding the cap.
+    if (ctx.maxed_value_table is not None
+            and ti.state.will == 5 and ti.state.chaos == 5):
+        return _maxed_hold_decision(ctx, ti)
+
     svt = ctx.side_value_table
     if svt is None or not svt.enabled:
         return None
