@@ -461,5 +461,73 @@ class TestSideValueTableFusionDefault(unittest.TestCase):
         self.assertEqual(svt._tier_bonus(12), 0)
 
 
+class TestSideValueTableWillChaosMode(unittest.TestCase):
+    """value_mode='will_chaos': gem_value = will+chaos, no grade/side value."""
+
+    POOL = OptionPool()
+
+    def _table(self, **kw):
+        defaults = dict(
+            goal=LastTurnGoal(min_total_will_chaos=8),
+            max_turns=9, pool=self.POOL,
+            gem_type="order_fortitude", optimize="dps",
+            value_mode="will_chaos",
+        )
+        defaults.update(kw)
+        return SideValueTable(**defaults)
+
+    def test_gem_value_is_will_plus_chaos(self):
+        t = self._table()
+        st = GemState(will=5, chaos=3, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # will+chaos = 8; side coeff and grade tier are ignored.
+        self.assertEqual(t.gem_value(st), 8.0)
+
+    def test_relic_ancient_forced_to_zero(self):
+        t = self._table(relic_coeff=3000, ancient_coeff=8000)
+        self.assertEqual(t.relic_coeff, 0)
+        self.assertEqual(t.ancient_coeff, 0)
+
+    def test_no_tier_bonus_at_relic_total(self):
+        # total points 18 (relic band) but value is will+chaos only.
+        t = self._table(relic_coeff=3000, ancient_coeff=8000)
+        st = GemState(will=4, chaos=4, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        self.assertEqual(t.gem_value(st), 8.0)
+
+    def test_zero_when_goal_broken(self):
+        t = self._table()
+        st = GemState(will=3, chaos=4, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # will+chaos = 7 < 8 -> goal broken -> value 0.
+        self.assertEqual(t.gem_value(st), 0.0)
+
+    def test_ignores_min_side_coeff_floor(self):
+        t = self._table(min_side_coeff=99999)
+        st = GemState(will=4, chaos=4, first=1, second=1,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # side coeff tiny but the floor is ignored in will_chaos mode.
+        self.assertEqual(t.gem_value(st), 8.0)
+
+    def test_pushes_toward_higher_will_chaos(self):
+        # goal comfortably met at 9, room to grow to 10 -> continuing beats
+        # finishing now.
+        t = self._table()
+        st = GemState(will=4, chaos=5, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        self.assertGreater(t.lookup(st, 5), t.gem_value(st))
+
+    def test_side_mode_is_default_and_unchanged(self):
+        # value_mode defaults to "side": grade bonus applies as before.
+        t = SideValueTable(LastTurnGoal(min_total_will_chaos=8), 9, self.POOL,
+                           gem_type="order_fortitude", optimize="dps",
+                           relic_coeff=3000, ancient_coeff=8000)
+        self.assertEqual(t.value_mode, "side")
+        st = GemState(will=4, chaos=4, first=5, second=5,
+                      first_effect="boss_damage", second_effect="attack_power")
+        # side_coeff = 5*1000 + 5*400 = 7000 ; total 18 -> relic +3000 = 10000.
+        self.assertEqual(t.gem_value(st), 10000.0)
+
+
 if __name__ == "__main__":
     unittest.main()

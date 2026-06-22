@@ -889,6 +889,7 @@ class SideValueTable:
         min_side_coeff: int = 0,
         relic_coeff: Optional[int] = None,
         ancient_coeff: Optional[int] = None,
+        value_mode: str = "side",
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
@@ -896,6 +897,7 @@ class SideValueTable:
         self._gem_type = gem_type
         self._optimize = optimize
         self._min_side_coeff = min_side_coeff
+        self.value_mode = value_mode
         self.enabled = gem_type in GEM_TYPES
         if self.enabled:
             # Default the tier weights to the fusion-derived average gem
@@ -911,6 +913,10 @@ class SideValueTable:
             # never reads these, but keep them well-defined ints.
             self.relic_coeff = relic_coeff or 0
             self.ancient_coeff = ancient_coeff or 0
+        if value_mode == "will_chaos":
+            # will/chaos value ignores grade entirely.
+            self.relic_coeff = 0
+            self.ancient_coeff = 0
         self._dp: Dict[tuple, float] = {}
 
         if not self.enabled:
@@ -953,6 +959,10 @@ class SideValueTable:
         """
         if not self.goal.satisfied(w, c, f, s):
             return 0.0
+        if self.value_mode == "will_chaos":
+            # New-character value: will + chaos only, no side/grade value
+            # and no side-coeff floor.
+            return float(w + c)
         coeff = self._effect_coeffs[fi] * f + self._effect_coeffs[si] * s
         if self._min_side_coeff > 0 and coeff < self._min_side_coeff:
             return 0.0
