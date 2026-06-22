@@ -1185,6 +1185,8 @@ def cmd_auto(args: argparse.Namespace) -> None:
         relic_coeff=args.relic_coeff,
         ancient_coeff=args.ancient_coeff,
         ignore_side_node_values=args.ignore_side_node_values,
+        reroll_goal=args.reroll_goal,
+        reroll_goal_threshold=args.reroll_goal_threshold,
     )
 
 

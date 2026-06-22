@@ -567,6 +567,8 @@ def run_auto(
     relic_coeff: Optional[int] = None,
     ancient_coeff: Optional[int] = None,
     ignore_side_node_values: bool = False,
+    reroll_goal: Optional[int] = None,
+    reroll_goal_threshold: float = 0.0,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -622,6 +624,9 @@ def run_auto(
 
         # Relic+ (>=16 total points) probability table — built on first detection
         relic_table: Optional[GoalProbabilityTable] = None
+
+        # Will/chaos-total reroll-ticket override table — built once.
+        reroll_goal_table: Optional[GoalProbabilityTable] = None
 
         # Side-value DP table — built on first detection.
         side_value_table: Optional[SideValueTable] = None
@@ -808,8 +813,11 @@ def run_auto(
                 # (state.rerolls += 1).  Size all reroll-aware tables to cover
                 # the post-override maximum so GoalProbabilityTable.lookup
                 # never clamps the granted reroll.
+                goal_reroll_active = (reroll_goal is not None
+                                      and reroll_goal_threshold > 0.0)
                 dp_max_rerolls = total_rerolls + (
-                    1 if relic_reroll_threshold > 0.0 else 0)
+                    1 if (relic_reroll_threshold > 0.0 or goal_reroll_active)
+                    else 0)
                 prob_table, target_effects, side_coeff_first, side_coeff_second = (
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
@@ -825,6 +833,14 @@ def run_auto(
                 if relic_table is None:
                     relic_table = GoalProbabilityTable(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
+                        early_finish=False,
+                        max_rerolls=dp_max_rerolls,
+                    )
+                if (reroll_goal is not None and reroll_goal_threshold > 0.0
+                        and reroll_goal_table is None):
+                    reroll_goal_table = GoalProbabilityTable(
+                        LastTurnGoal(min_total_will_chaos=reroll_goal),
+                        det.total_steps, pool,
                         early_finish=False,
                         max_rerolls=dp_max_rerolls,
                     )
@@ -964,17 +980,22 @@ def run_auto(
                     grade_value_table=grade_value_table,
                 )
 
-            # --- Relic+ reroll ticket override (per-turn check, F3-A) ---
+            # --- Relic+ / will+chaos-goal reroll ticket override (per-turn check, F3-A) ---
             # Must run BEFORE _analyze_frame so the granted reroll is visible
             # to decide_post_roll on the very frame the override triggers.
             # Mirrors simulator.simulate_one which applies the grant at the
             # top of the per-turn loop, before TurnInput is built.
-            if (not extra_ticket_active and extra_ticket
-                    and relic_reroll_threshold > 0.0 and relic_table is not None):
-                # Build a minimal state from det for the relic table lookup.
-                # _pre_state is provisional: used ONLY to gate this override via
-                # relic_table.lookup().  It deliberately does not reuse _analyze_frame's
-                # GemState because the override must run before _analyze_frame is called.
+            # The single extra-reroll ticket is granted from EITHER trigger
+            # (relic+ threshold OR will/chaos-goal threshold); --no-extra-ticket
+            # (extra_ticket=False) disables both absolutely.
+            relic_armed = (relic_reroll_threshold > 0.0 and relic_table is not None)
+            goal_armed = (reroll_goal is not None and reroll_goal_threshold > 0.0
+                          and reroll_goal_table is not None)
+            if not extra_ticket_active and extra_ticket and (relic_armed or goal_armed):
+                # Build a minimal state from det for the table lookups.
+                # _pre_state is provisional: used ONLY to gate this override.
+                # It deliberately does not reuse _analyze_frame's GemState
+                # because the override must run before _analyze_frame is called.
                 _pre_state = GemState(
                     will=det.willpower or 1,
                     chaos=det.chaos or 1,
@@ -985,10 +1006,21 @@ def run_auto(
                     rerolls=(internal_rerolls if internal_rerolls is not None else 0),
                 )
                 _pre_turns_left = det.current_step  # current_step == turns_left
-                p_relic_cur = relic_table.lookup(
-                    _pre_state, _pre_turns_left,
-                    rerolls=_pre_state.rerolls)
-                if p_relic_cur >= relic_reroll_threshold:
+                _grant_reason = None
+                if relic_armed:
+                    p_relic_cur = relic_table.lookup(
+                        _pre_state, _pre_turns_left, rerolls=_pre_state.rerolls)
+                    if p_relic_cur >= relic_reroll_threshold:
+                        _grant_reason = (f"P(relic+)={p_relic_cur:.1%} >= "
+                                         f"{relic_reroll_threshold:.1%}")
+                if _grant_reason is None and goal_armed:
+                    p_goal_cur = reroll_goal_table.lookup(
+                        _pre_state, _pre_turns_left, rerolls=_pre_state.rerolls)
+                    if p_goal_cur >= reroll_goal_threshold:
+                        _grant_reason = (f"P(will+chaos>={reroll_goal})="
+                                         f"{p_goal_cur:.1%} >= "
+                                         f"{reroll_goal_threshold:.1%}")
+                if _grant_reason is not None:
                     extra_ticket_active = True
                     # Grant +1 reroll to internal tracking so _analyze_frame
                     # sees the updated count (same as simulator state.rerolls += 1).
@@ -998,8 +1030,7 @@ def run_auto(
                     # OCR via parse_rerolls(extra_ticket=True), which already returns
                     # the ticket-inclusive count; skipping the +1 is correct, not a miss.
                     print(f"  [info] Extra reroll ticket re-enabled "
-                          f"(P(relic+)={p_relic_cur:.1%} >= "
-                          f"{relic_reroll_threshold:.1%})")
+                          f"({_grant_reason})")
 
             # --- Analyze ---
             # Use OCR for rerolls only when a new turn is detected (turn
