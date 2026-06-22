@@ -168,6 +168,15 @@ class TestWillChaosTotalGoal(unittest.TestCase):
         goal, _, _, _ = _resolve_args(args)
         self.assertIsNone(goal.min_total_will_chaos)
 
+    def test_ignore_side_node_values_parses(self):
+        args = _build_parser().parse_args(
+            ["sim", "--min-total-will-chaos", "8", "--ignore-side-node-values"])
+        self.assertTrue(args.ignore_side_node_values)
+
+    def test_ignore_side_node_values_default_false(self):
+        args = _build_parser().parse_args(["sim", "--min-will", "4"])
+        self.assertFalse(args.ignore_side_node_values)
+
 
 if __name__ == "__main__":
     unittest.main()

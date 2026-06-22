@@ -206,6 +206,11 @@ def _matches(rec: GemRecord, args: argparse.Namespace) -> bool:
         if not bool(a.get("bis_only")):
             return False
 
+    ignore_side = _filter_value(args, "ignore_side_node_values", False)
+    if ignore_side:
+        if not bool(a.get("ignore_side_node_values")):
+            return False
+
     extra_ticket = _filter_value(args, "extra_ticket", None)
     if extra_ticket is not None:
         if bool(a.get("extra_ticket")) != bool(extra_ticket):

@@ -68,6 +68,14 @@ def _build_parser() -> argparse.ArgumentParser:
                              "met by 5-3, 4-4, 3-5, or higher). A general goal "
                              "constraint, useful to endgame players too; on its "
                              "own it does not change decision-making.")
+        p.add_argument("--ignore-side-node-values", action="store_true",
+                        default=False,
+                        help="Optimise purely for willpower/chaos: the gem's "
+                             "value becomes will+chaos (no side-node / grade "
+                             "value). After the goal is met the engine pushes "
+                             "will/chaos higher; only once the goal is fully "
+                             "infeasible does it fall back to chasing grade. "
+                             "Intended for new characters.")
         p.add_argument("--extra-ticket", action="store_true", default=True,
                         help="Use extra reroll ticket (default: yes)")
         p.add_argument("--no-extra-ticket", action="store_false", dest="extra_ticket")
@@ -246,6 +254,8 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--relic-reroll-threshold", type=float, default=0.0,
                    metavar="F")
     p.add_argument("--bis-only", action="store_true", default=False)
+    p.add_argument("--ignore-side-node-values", action="store_true",
+                   default=False)
     p.add_argument("--gem-type", choices=list(GEM_TYPES.keys()), default=None)
     p.add_argument("--first-effect", choices=ALL_EFFECTS, default=None)
     p.add_argument("--second-effect", choices=ALL_EFFECTS, default=None)
@@ -598,6 +608,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     endgame_risk=args.endgame_risk,
                     relic_coeff=args.relic_coeff,
                     ancient_coeff=args.ancient_coeff,
+                    ignore_side_node_values=args.ignore_side_node_values,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -636,6 +647,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         endgame_risk=args.endgame_risk,
         relic_coeff=args.relic_coeff,
         ancient_coeff=args.ancient_coeff,
+        ignore_side_node_values=args.ignore_side_node_values,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -1029,6 +1041,9 @@ def cmd_live(args: argparse.Namespace) -> None:
             min_side_coeff=getattr(args, "min_side_coeff", 0),
             relic_coeff=getattr(args, "relic_coeff", None),
             ancient_coeff=getattr(args, "ancient_coeff", None),
+            value_mode=("will_chaos"
+                        if getattr(args, "ignore_side_node_values", False)
+                        else "side"),
         )
         finish_val = svt.gem_value(state)
         process_ev = svt.expected_value_after_click(
@@ -1102,6 +1117,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             endgame_risk=getattr(args, "endgame_risk", None),
             relic_coeff=getattr(args, "relic_coeff", None),
             ancient_coeff=getattr(args, "ancient_coeff", None),
+            ignore_side_node_values=getattr(args, "ignore_side_node_values", False),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,
@@ -1148,6 +1164,7 @@ def cmd_auto(args: argparse.Namespace) -> None:
         endgame_risk=args.endgame_risk,
         relic_coeff=args.relic_coeff,
         ancient_coeff=args.ancient_coeff,
+        ignore_side_node_values=args.ignore_side_node_values,
     )
 
 

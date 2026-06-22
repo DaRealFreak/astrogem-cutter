@@ -566,6 +566,7 @@ def run_auto(
     endgame_risk: Optional[float] = None,
     relic_coeff: Optional[int] = None,
     ancient_coeff: Optional[int] = None,
+    ignore_side_node_values: bool = False,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -845,6 +846,8 @@ def run_auto(
                         min_side_coeff=min_side_coeff,
                         relic_coeff=relic_coeff,
                         ancient_coeff=ancient_coeff,
+                        value_mode=("will_chaos" if ignore_side_node_values
+                                    else "side"),
                     )
                 # Goal-independent grade-value table (trivial goal, no
                 # side-coeff floor) for dead-goal turns — built per gem type
