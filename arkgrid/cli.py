@@ -62,6 +62,12 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Minimum chaos goal")
         p.add_argument("--exact-will", type=int, default=None, metavar="N")
         p.add_argument("--exact-chaos", type=int, default=None, metavar="N")
+        p.add_argument("--min-total-will-chaos", type=int, default=None,
+                        metavar="N",
+                        help="Minimum combined willpower+chaos total (e.g. 8 = "
+                             "met by 5-3, 4-4, 3-5, or higher). A general goal "
+                             "constraint, useful to endgame players too; on its "
+                             "own it does not change decision-making.")
         p.add_argument("--extra-ticket", action="store_true", default=True,
                         help="Use extra reroll ticket (default: yes)")
         p.add_argument("--no-extra-ticket", action="store_false", dest="extra_ticket")
@@ -223,6 +229,7 @@ def _add_report_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--min-chaos", type=int, default=None, metavar="N")
     p.add_argument("--exact-will", type=int, default=None, metavar="N")
     p.add_argument("--exact-chaos", type=int, default=None, metavar="N")
+    p.add_argument("--min-total-will-chaos", type=int, default=None, metavar="N")
     p.add_argument("--min-first", type=int, default=None, metavar="N")
     p.add_argument("--min-second", type=int, default=None, metavar="N")
     p.add_argument("--min-side-coeff", type=int, default=0, metavar="N")
@@ -257,6 +264,7 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
         min_chaos=args.min_chaos,
         exact_will=args.exact_will,
         exact_chaos=args.exact_chaos,
+        min_total_will_chaos=getattr(args, "min_total_will_chaos", None),
         min_first=getattr(args, "min_first", None),
         min_second=getattr(args, "min_second", None),
     )
@@ -329,6 +337,8 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
         parts.append(f"exact_will={goal.exact_will}")
     if goal.exact_chaos is not None:
         parts.append(f"exact_chaos={goal.exact_chaos}")
+    if goal.min_total_will_chaos is not None:
+        parts.append(f"min_total_will_chaos={goal.min_total_will_chaos}")
     if goal.min_first is not None:
         parts.append(f"min_first={goal.min_first}")
     if goal.min_second is not None:
@@ -821,6 +831,7 @@ def cmd_live(args: argparse.Namespace) -> None:
         min_chaos=args.min_chaos,
         exact_will=args.exact_will,
         exact_chaos=args.exact_chaos,
+        min_total_will_chaos=getattr(args, "min_total_will_chaos", None),
         min_first=getattr(args, "min_first", None),
         min_second=getattr(args, "min_second", None),
     )
@@ -942,6 +953,8 @@ def cmd_live(args: argparse.Namespace) -> None:
         goal_parts.append(f"exact_will={goal.exact_will}")
     if goal.exact_chaos is not None:
         goal_parts.append(f"exact_chaos={goal.exact_chaos}")
+    if goal.min_total_will_chaos is not None:
+        goal_parts.append(f"min_total_will_chaos={goal.min_total_will_chaos}")
     if goal.min_first is not None:
         goal_parts.append(f"min_first={goal.min_first}")
     if goal.min_second is not None:

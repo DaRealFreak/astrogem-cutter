@@ -81,6 +81,11 @@ class LastTurnGoal:
         if target_c is not None and target_c > 5:
             return False
 
+        if self.min_total_will_chaos is not None and self.min_total_will_chaos > 10:
+            return False
+        if self.exact_total_will_chaos is not None and self.exact_total_will_chaos > 10:
+            return False
+
         if self.exact_will is not None and will > self.exact_will:
             return False
         if self.exact_chaos is not None and chaos > self.exact_chaos:

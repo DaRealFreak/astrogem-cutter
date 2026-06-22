@@ -152,5 +152,22 @@ class TestFusionAutoDefaults(unittest.TestCase):
         self.assertEqual(args.ancient_coeff, 8000)
 
 
+class TestWillChaosTotalGoal(unittest.TestCase):
+    def test_min_total_will_chaos_parses_and_resolves(self):
+        parser = _build_parser()
+        args = parser.parse_args(["sim", "--min-total-will-chaos", "8"])
+        goal, _, _, _ = _resolve_args(args)
+        self.assertEqual(goal.min_total_will_chaos, 8)
+        self.assertTrue(goal.satisfied(4, 4))
+        self.assertTrue(goal.satisfied(3, 5))
+        self.assertFalse(goal.satisfied(3, 4))
+
+    def test_min_total_will_chaos_default_none(self):
+        args = _build_parser().parse_args(["sim", "--min-will", "4"])
+        self.assertIsNone(args.min_total_will_chaos)
+        goal, _, _, _ = _resolve_args(args)
+        self.assertIsNone(goal.min_total_will_chaos)
+
+
 if __name__ == "__main__":
     unittest.main()

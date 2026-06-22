@@ -115,6 +115,7 @@ def load_runs(log_dir: str = "logs") -> List[GemRecord]:
 # Filter args whose CLI default is None: a None value means "don't filter".
 _NULLABLE_INT_FILTERS = (
     "min_will", "min_chaos", "exact_will", "exact_chaos",
+    "min_total_will_chaos",
     "min_first", "min_second",
 )
 # Filter args whose CLI default is 0 / False / empty: a "falsy" value means

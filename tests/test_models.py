@@ -118,6 +118,21 @@ class TestLastTurnGoal(unittest.TestCase):
             change_dest_max_coeff=0,
         ))
 
+    def test_feasible_total_will_chaos_above_cap(self) -> None:
+        # will+chaos cap at 5+5=10; a total goal above 10 is impossible.
+        g = LastTurnGoal(min_total_will_chaos=11)
+        self.assertFalse(g.feasible(1, 1, 9))
+
+    def test_feasible_exact_total_will_chaos_above_cap(self) -> None:
+        g = LastTurnGoal(exact_total_will_chaos=11)
+        self.assertFalse(g.feasible(1, 1, 9))
+
+    def test_feasible_total_will_chaos_reachable(self) -> None:
+        g = LastTurnGoal(min_total_will_chaos=8)
+        # at 1+1=2 need +6, max +4/turn => 2 turns minimum
+        self.assertTrue(g.feasible(1, 1, 2))
+        self.assertFalse(g.feasible(1, 1, 1))
+
 
 class TestGemState(unittest.TestCase):
     def test_clone_independence(self) -> None:
