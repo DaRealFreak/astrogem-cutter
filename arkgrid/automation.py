@@ -635,6 +635,10 @@ def run_auto(
         # first detection, only when relic/ancient grade has a coefficient.
         grade_value_table: Optional[SideValueTable] = None
 
+        # Side-mode oracle for the will/chaos cap under
+        # --ignore-side-node-values — built on first detection, flag-gated.
+        maxed_value_table: Optional[SideValueTable] = None
+
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
 
@@ -879,6 +883,19 @@ def run_auto(
                         value_mode=("grade_only" if ignore_side_node_values
                                     else "side"),
                     )
+                # Side-mode oracle for the will/chaos cap under
+                # --ignore-side-node-values (see decision._maxed_hold_decision).
+                # Built only under the flag; the maxed branch never fires
+                # otherwise, so it stays None for the default value model.
+                if maxed_value_table is None and ignore_side_node_values:
+                    maxed_value_table = SideValueTable(
+                        goal, det.total_steps, pool,
+                        gem_type=gem_type_domain, optimize=optimize,
+                        min_side_coeff=min_side_coeff,
+                        relic_coeff=relic_coeff,
+                        ancient_coeff=ancient_coeff,
+                        value_mode="side",
+                    )
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just
                 # changed, and force_reroll_active is resolved below.
@@ -980,6 +997,7 @@ def run_auto(
                     endgame_risk=endgame_risk,
                     side_value_table=side_value_table,
                     grade_value_table=grade_value_table,
+                    maxed_value_table=maxed_value_table,
                 )
 
             # --- Relic+ / will+chaos-goal reroll ticket override (per-turn check, F3-A) ---
