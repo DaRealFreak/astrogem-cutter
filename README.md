@@ -74,6 +74,7 @@ python -m arkgrid report [--log-dir logs] [--rarity rare] [--top-options N] [fil
 | `--min-chaos N` | Minimum chaos target |
 | `--exact-will N` | Exact willpower target |
 | `--exact-chaos N` | Exact chaos target |
+| `--min-total-will-chaos N` | Minimum combined willpower+chaos total (e.g. `8` = met by 5-3, 4-4, 3-5, or higher). A general goal constraint, useful to endgame players too; on its own it only defines success and does not change any decision-making. |
 | `--min-first N` | Minimum level for first side node (1-5) |
 | `--min-second N` | Minimum level for second side node (1-5) |
 | `--min-side-coeff N` | Minimum coefficient-weighted level total from target side nodes. Value = `sum(level * coefficient)`. E.g. boss_damage(1000) at level 5 = 5000. Works with or without `--first-effect`/`--second-effect` — without a configured gem, the DP probability is averaged over all possible random effect assignments and MC trials use each run's random gem for the check. Default: `0`. |
@@ -126,9 +127,10 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--early-finish-coeff N` | Risk tolerance for early finish when goal is already satisfied. `0` = always finish when met (safe). Higher values accept more risk for side upgrades. Formula: finish if `best_coeff_gain * P(miss) > N`. E.g. `750` continues for boss_damage+3 at 25% miss. `-1` = disabled. Default: `0`. |
 | `--relic-no-early-finish F` | Suppress early finish when P(relic+ >=16) from current state exceeds this threshold — chase 16+ total points even when goal is met. `0.0` = disabled. Default: `0.0`. |
 | `--relic-reroll-threshold F` | Re-enable extra reroll ticket mid-run when P(relic+ >=16) from current state exceeds this threshold, overriding `--reroll-min-coeff` gating. `0.0` = disabled. Default: `0.0`. |
-| `--force-reroll-no-progress N` | Heuristic override: when the gem's starting target-effect coefficient is ≥ `N`, force a reroll (if rerolls remain) on any turn where no offer progresses the goal (no will/chaos/needed side level/coefficient increase). Bypasses the DP's marginal keep-vs-reroll calculation. On high-coeff gems this boosts main-goal success at some cost to relic+ / total-points upside. `0` = disabled. Try `1050+` on support, `1400+` on DPS. Default: `0`. See [strategy: forced reroll](documentation/strategy.md#forced-reroll-on-no-progress-turns). |
+| `--force-reroll-no-progress N` | Heuristic override of the DP's reroll decision. When the gem's starting target-effect coefficient sum is ≥ `N`, force a reroll (if rerolls remain) on any turn where **no offer advances the goal**. "Progress" = a positive delta on a stat the goal *still needs* — note `will+`/`chaos+` stop counting once that stat reaches its goal, and a `change_effect` counts only as a rescue when the current effect contributes 0 coefficient. It only changes an outcome where the DP would otherwise keep and process a no-progress board — the DP does that to bank an off-goal `will+3`/`chaos+2` for grade points (pool-dilution upside); this flag rerolls to chase the goal instead. Net effect ≈ **+1–2.6pp main-goal success** at **−1–5pp relic+ / total-points** upside. `0` = disabled. Try `1050+` on support, `1400+` on DPS. Default: `0`. See [strategy: forced reroll](documentation/strategy.md#forced-reroll-on-no-progress-turns). |
 | `--confirm-risk F` | Activate the interactive confirmation gate (`auto`). When the goal is already met and continuing has side-coefficient upside, pause and ask the player if `P(losing the goal if you keep cutting) >= F`. Either this flag or `--confirm-min-coeff` activates the gate. Overrides `--early-finish-coeff`. `0.0` = gate always prompts when goal is met and any risk exists. Default: `0.0` when unset. |
 | `--confirm-min-coeff N` | Side-coefficient floor for the confirmation gate: only prompt about gems whose current side coefficient `>= N`. Setting this flag alone also activates the gate. `0` = prompt for every gem regardless of coefficient. Default: `0`. |
+| `--ignore-side-node-values` | Optimise purely for willpower/chaos: the gem's value becomes `will + chaos` (side-node and grade value ignored). After the goal is met the engine keeps pushing will/chaos higher instead of chasing grade; only once the goal is *fully* infeasible does it fall back to chasing grade. Intended for new characters who only care about willpower/chaos. Default: off. |
 
 ### Stats-only options
 
@@ -210,6 +212,10 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --min-first 4 --min-second 4 
 
 # Save extra reroll ticket for high-coeff gems only
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reroll-min-coeff 1100
+
+# New character: combined will/chaos goal, optimise purely for will/chaos (ignore side nodes/grade)
+python -m arkgrid stats --min-total-will-chaos 8 --ignore-side-node-values --rarity epic \
+  --first-effect boss_damage --second-effect attack_power
 
 # Show effect change outcomes for a gem type
 python -m arkgrid effects --gem-type order_stability --optimize dps
