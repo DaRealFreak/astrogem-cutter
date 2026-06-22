@@ -483,5 +483,30 @@ class TestSideValueTableWiring(unittest.TestCase):
         self.assertIsNone(sim.ancient_coeff)
 
 
+class TestIgnoreSideNodeValuesTables(unittest.TestCase):
+    def _sim(self, **kw):
+        defaults = dict(
+            rarity="epic", use_extra_ticket=True, use_reset_ticket=False,
+            goal=LastTurnGoal(min_total_will_chaos=8), optimize="dps",
+        )
+        defaults.update(kw)
+        return GemSimulator(**defaults)
+
+    def test_side_value_table_uses_will_chaos_mode_when_set(self):
+        sim = self._sim(ignore_side_node_values=True)
+        svt = sim._get_side_value_table("order_fortitude")
+        self.assertEqual(svt.value_mode, "will_chaos")
+
+    def test_grade_value_table_stays_side_mode_when_set(self):
+        sim = self._sim(ignore_side_node_values=True)
+        gvt = sim._get_grade_value_table("order_fortitude")
+        self.assertEqual(gvt.value_mode, "side")
+
+    def test_default_side_value_table_is_side_mode(self):
+        sim = self._sim()
+        svt = sim._get_side_value_table("order_fortitude")
+        self.assertEqual(svt.value_mode, "side")
+
+
 if __name__ == "__main__":
     unittest.main()

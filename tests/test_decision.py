@@ -60,6 +60,7 @@ def build_ctx(
     endgame_risk: Optional[float] = 0.0,
     relic_coeff: Optional[int] = 0,
     ancient_coeff: Optional[int] = 0,
+    side_value_mode: str = "side",
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
@@ -83,6 +84,7 @@ def build_ctx(
         g, turns_total, _POOL, gem_type=gem_type, optimize=optimize,
         min_side_coeff=min_side_coeff,
         relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
+        value_mode=side_value_mode,
     )
     # Goal-independent grade-value table. Built when a grade coefficient is
     # in play (explicit > 0); the unit tests that exercise the binary
@@ -845,6 +847,47 @@ class TestEndgameGate(unittest.TestCase):
         d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.FINISH)
+
+
+class TestIgnoreSideNodeValuesBehaviour(unittest.TestCase):
+    """With a will_chaos side-value table, a goal-met gem pushes will/chaos
+    higher (never finishes with a free reroll), and a fully-dead goal still
+    chases grade via the unchanged grade-value table."""
+
+    def test_goal_met_with_reroll_continues_not_finishes(self):
+        g = LastTurnGoal(min_total_will_chaos=8)
+        ctx = build_ctx(goal=g, side_value_mode="will_chaos",
+                        relic_coeff=0, ancient_coeff=0)
+        st = GemState(will=4, chaos=5, first=5, second=5, rerolls=2,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("will+1", "chaos+1",
+                                         "first-1", "second-1"),
+                      turn=5, turns_left=5, rerolls=2,
+                      reset_available=False)
+        d = decide_post_roll(ctx, ti)
+        # Goal met (9), free reroll in hand -> never FINISH.
+        self.assertIn(d.action, (ActionKind.REROLL, ActionKind.PROCESS))
+
+    def test_dead_goal_still_chases_grade(self):
+        # Goal needs 5-5 (total 10) but state can't reach it in 1 turn ->
+        # infeasible. No reset/reroll -> grade chase via grade_value_table
+        # (side mode), NOT a FAIL.
+        g = LastTurnGoal(min_total_will_chaos=10)
+        ctx = build_ctx(goal=g, side_value_mode="will_chaos",
+                        relic_coeff=3000, ancient_coeff=8000)
+        st = GemState(will=1, chaos=1, first=5, second=5, rerolls=0,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        ti = build_ti(state=st,
+                      offers=make_offers("will+1", "chaos+1",
+                                         "first+1", "second+1"),
+                      turn=9, turns_left=1, rerolls=0,
+                      reset_available=False)
+        d = decide_post_roll(ctx, ti)
+        self.assertIn(d.branch, ("infeasible", "no_feasible_offer"))
+        self.assertNotEqual(d.action, ActionKind.FAIL)
 
 
 if __name__ == "__main__":

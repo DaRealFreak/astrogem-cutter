@@ -44,6 +44,7 @@ class GemSimulator:
             endgame_risk: Optional[float] = None,
             relic_coeff: Optional[int] = None,
             ancient_coeff: Optional[int] = None,
+            ignore_side_node_values: bool = False,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -58,6 +59,7 @@ class GemSimulator:
         self.endgame_risk = endgame_risk
         self.relic_coeff = relic_coeff
         self.ancient_coeff = ancient_coeff
+        self.ignore_side_node_values = ignore_side_node_values
         self._side_value_table_cache: Dict[str, SideValueTable] = {}
         self._side_value_table: Optional[SideValueTable] = None
         self._grade_value_table_cache: Dict[str, SideValueTable] = {}
@@ -193,6 +195,8 @@ class GemSimulator:
             min_side_coeff=self.min_side_coeff,
             relic_coeff=self.relic_coeff,
             ancient_coeff=self.ancient_coeff,
+            value_mode=("will_chaos" if self.ignore_side_node_values
+                        else "side"),
         )
         self._side_value_table_cache[gem_type] = table
         return table
