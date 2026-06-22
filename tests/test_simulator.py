@@ -534,6 +534,8 @@ class TestIgnoreSideNodeValuesTables(unittest.TestCase):
                                  "attack_power", "dps")
         ctx = sim._decision_context(p_fresh=0.5)
         self.assertIsNone(ctx.maxed_value_table)
+        # The raw per-run attribute must also stay unset without the flag.
+        self.assertIsNone(sim._maxed_value_table)
 
 
 class TestRerollGoalThreshold(unittest.TestCase):

@@ -1046,7 +1046,6 @@ class TestMaxedHoldDecision(unittest.TestCase):
         d = decide_post_roll(self._ctx(), ti)
         self.assertEqual(d.branch, "maxed_hold")
         self.assertIn(d.action, (ActionKind.PROCESS, ActionKind.REROLL))
-        self.assertNotEqual(d.action, ActionKind.FINISH)
 
     def test_unsafe_hand_with_reroll_rerolls(self):
         st = GemState(will=5, chaos=5, first=1, second=2, rerolls=2,
@@ -1104,6 +1103,8 @@ class TestMaxedHoldDecision(unittest.TestCase):
                       turn=5, turns_left=5, rerolls=2, reset_available=False)
         d = decide_post_roll(self._ctx(), ti)
         self.assertNotEqual(d.branch, "maxed_hold")
+        # 5/4 keeps a free reroll and can still reach 10 -> never finishes.
+        self.assertNotEqual(d.action, ActionKind.FINISH)
 
 
 if __name__ == "__main__":
