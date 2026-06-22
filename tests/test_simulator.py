@@ -549,6 +549,19 @@ class TestRerollGoalThreshold(unittest.TestCase):
         r = sim.simulate_one(seed=1)
         self.assertFalse(r.extra_ticket_used)
 
+    def test_both_triggers_armed_grants_single_ticket(self):
+        # Both override triggers armed and trivially crossable. Relic is
+        # checked first; exactly ONE ticket is granted (both pending flags
+        # clear atomically). Epic base rerolls (ticket gated off) = 2, so a
+        # single grant shows as 3 available on turn 1 — turn 1 excludes view
+        # options, so no other reroll source can inflate this count. A double
+        # grant would read 4.
+        sim = self._sim(relic_reroll_threshold=0.0001,
+                        reroll_goal=8, reroll_goal_threshold=0.0001)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertTrue(r.extra_ticket_used)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()
