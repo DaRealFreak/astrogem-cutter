@@ -127,6 +127,8 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--early-finish-coeff N` | Risk tolerance for early finish when goal is already satisfied. `0` = always finish when met (safe). Higher values accept more risk for side upgrades. Formula: finish if `best_coeff_gain * P(miss) > N`. E.g. `750` continues for boss_damage+3 at 25% miss. `-1` = disabled. Default: `0`. |
 | `--relic-no-early-finish F` | Suppress early finish when P(relic+ >=16) from current state exceeds this threshold — chase 16+ total points even when goal is met. `0.0` = disabled. Default: `0.0`. |
 | `--relic-reroll-threshold F` | Re-enable extra reroll ticket mid-run when P(relic+ >=16) from current state exceeds this threshold, overriding `--reroll-min-coeff` gating. `0.0` = disabled. Default: `0.0`. |
+| `--reroll-goal N` | Combined willpower+chaos total used *only* for the extra-reroll-ticket decision, independent of `--min-total-will-chaos`. Pairs with `--reroll-goal-threshold`. Default: unset. |
+| `--reroll-goal-threshold F` | Re-enable the extra reroll ticket mid-run (even when `--reroll-min-coeff` disabled it) once `P(will+chaos >= --reroll-goal) >= F`. Both flags required; whichever of this / `--relic-reroll-threshold` crosses first grants the single ticket. Always disabled by `--no-extra-ticket`. `0.0` = disabled. Default: `0.0`. |
 | `--force-reroll-no-progress N` | Heuristic override of the DP's reroll decision. When the gem's starting target-effect coefficient sum is ≥ `N`, force a reroll (if rerolls remain) on any turn where **no offer advances the goal**. "Progress" = a positive delta on a stat the goal *still needs* — note `will+`/`chaos+` stop counting once that stat reaches its goal, and a `change_effect` counts only as a rescue when the current effect contributes 0 coefficient. It only changes an outcome where the DP would otherwise keep and process a no-progress board — the DP does that to bank an off-goal `will+3`/`chaos+2` for grade points (pool-dilution upside); this flag rerolls to chase the goal instead. Net effect ≈ **+1–2.6pp main-goal success** at **−1–5pp relic+ / total-points** upside. `0` = disabled. Try `1050+` on support, `1400+` on DPS. Default: `0`. See [strategy: forced reroll](documentation/strategy.md#forced-reroll-on-no-progress-turns). |
 | `--confirm-risk F` | Activate the interactive confirmation gate (`auto`). When the goal is already met and continuing has side-coefficient upside, pause and ask the player if `P(losing the goal if you keep cutting) >= F`. Either this flag or `--confirm-min-coeff` activates the gate. Overrides `--early-finish-coeff`. `0.0` = gate always prompts when goal is met and any risk exists. Default: `0.0` when unset. |
 | `--confirm-min-coeff N` | Side-coefficient floor for the confirmation gate: only prompt about gems whose current side coefficient `>= N`. Setting this flag alone also activates the gate. `0` = prompt for every gem regardless of coefficient. Default: `0`. |
@@ -215,6 +217,12 @@ python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reroll-min-co
 
 # New character: combined will/chaos goal, optimise purely for will/chaos (ignore side nodes/grade)
 python -m arkgrid stats --min-total-will-chaos 8 --ignore-side-node-values --rarity epic \
+  --first-effect boss_damage --second-effect attack_power
+
+# New character: keep anything >=7, but only spend the extra reroll ticket when
+# there's a >=15% shot at a stronger 9-point gem
+python -m arkgrid stats --min-total-will-chaos 7 --ignore-side-node-values --rarity epic \
+  --reroll-min-coeff 700 --reroll-goal 9 --reroll-goal-threshold 0.15 \
   --first-effect boss_damage --second-effect attack_power
 
 # Show effect change outcomes for a gem type
