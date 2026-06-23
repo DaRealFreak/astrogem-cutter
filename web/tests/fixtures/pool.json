@@ -1,0 +1,10299 @@
+{
+ "meta": {
+  "schema": 1,
+  "arkgrid_sha": "f5b8e43"
+ },
+ "records": [
+  {
+   "snapshot": [
+    {
+     "key": "will+1",
+     "weight": 11.65,
+     "kind": "will",
+     "delta": 1
+    },
+    {
+     "key": "will+2",
+     "weight": 4.4,
+     "kind": "will",
+     "delta": 2
+    },
+    {
+     "key": "will+3",
+     "weight": 1.75,
+     "kind": "will",
+     "delta": 3
+    },
+    {
+     "key": "will+4",
+     "weight": 0.45,
+     "kind": "will",
+     "delta": 4
+    },
+    {
+     "key": "will-1",
+     "weight": 3.0,
+     "kind": "will",
+     "delta": -1
+    },
+    {
+     "key": "chaos+1",
+     "weight": 11.65,
+     "kind": "chaos",
+     "delta": 1
+    },
+    {
+     "key": "chaos+2",
+     "weight": 4.4,
+     "kind": "chaos",
+     "delta": 2
+    },
+    {
+     "key": "chaos+3",
+     "weight": 1.75,
+     "kind": "chaos",
+     "delta": 3
+    },
+    {
+     "key": "chaos+4",
+     "weight": 0.45,
+     "kind": "chaos",
+     "delta": 4
+    },
+    {
+     "key": "chaos-1",
+     "weight": 3.0,
+     "kind": "chaos",
+     "delta": -1
+    },
+    {
+     "key": "first+1",
+     "weight": 11.65,
+     "kind": "first",
+     "delta": 1
+    },
+    {
+     "key": "first+2",
+     "weight": 4.4,
+     "kind": "first",
+     "delta": 2
+    },
+    {
+     "key": "first+3",
+     "weight": 1.75,
+     "kind": "first",
+     "delta": 3
+    },
+    {
+     "key": "first+4",
+     "weight": 0.45,
+     "kind": "first",
+     "delta": 4
+    },
+    {
+     "key": "first-1",
+     "weight": 3.0,
+     "kind": "first",
+     "delta": -1
+    },
+    {
+     "key": "second+1",
+     "weight": 11.65,
+     "kind": "second",
+     "delta": 1
+    },
+    {
+     "key": "second+2",
+     "weight": 4.4,
+     "kind": "second",
+     "delta": 2
+    },
+    {
+     "key": "second+3",
+     "weight": 1.75,
+     "kind": "second",
+     "delta": 3
+    },
+    {
+     "key": "second+4",
+     "weight": 0.45,
+     "kind": "second",
+     "delta": 4
+    },
+    {
+     "key": "second-1",
+     "weight": 3.0,
+     "kind": "second",
+     "delta": -1
+    },
+    {
+     "key": "change_first_effect",
+     "weight": 3.25,
+     "kind": "other",
+     "delta": 0
+    },
+    {
+     "key": "change_second_effect",
+     "weight": 3.25,
+     "kind": "other",
+     "delta": 0
+    },
+    {
+     "key": "maintain",
+     "weight": 1.75,
+     "kind": "other",
+     "delta": 0
+    },
+    {
+     "key": "cost+100",
+     "weight": 1.75,
+     "kind": "cost",
+     "delta": 0
+    },
+    {
+     "key": "cost-100",
+     "weight": 1.75,
+     "kind": "cost",
+     "delta": 0
+    },
+    {
+     "key": "view+1",
+     "weight": 2.5,
+     "kind": "view",
+     "delta": 1
+    },
+    {
+     "key": "view+2",
+     "weight": 0.75,
+     "kind": "view",
+     "delta": 2
+    }
+   ]
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "will-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "chaos-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "first-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+3",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second+4",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "second-1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_first_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "change_second_effect",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "maintain",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost+100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "cost-100",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+1",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 1,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 5,
+     "first": 5,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 2,
+     "chaos": 1,
+     "first": 5,
+     "second": 3,
+     "cost_ratio": -100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 1,
+     "chaos": 5,
+     "first": 1,
+     "second": 1,
+     "cost_ratio": 0
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 1,
+    "turns_left": 5
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 2,
+    "turns_left": 4
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 3,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 5,
+    "turns_left": 1
+   },
+   "expected": false
+  },
+  {
+   "inputs": {
+    "key": "view+2",
+    "state": {
+     "will": 5,
+     "chaos": 1,
+     "first": 1,
+     "second": 5,
+     "cost_ratio": 100
+    },
+    "turn": 4,
+    "turns_left": 2
+   },
+   "expected": true
+  }
+ ]
+}

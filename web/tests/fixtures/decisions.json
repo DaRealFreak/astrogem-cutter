@@ -1,0 +1,6668 @@
+{
+ "meta": {
+  "schema": 1,
+  "arkgrid_sha": "f5b8e43"
+ },
+ "records": [
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {},
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 7,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 6,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "side_value_finish"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "action": "reset",
+    "branch": "infeasible"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 1,
+    "turns_left": 9,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 2,
+    "turns_left": 8,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "finish",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": false,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "maxed_hold"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "g": {
+     "min_will": 5,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "config": {
+     "ignore_side": true
+    },
+    "turns_total": 9,
+    "dp_max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     2,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "reset_available": true,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "action": "reroll",
+    "branch": "maxed_hold"
+   }
+  }
+ ]
+}

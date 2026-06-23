@@ -1,0 +1,2636 @@
+{
+ "meta": {
+  "schema": 1,
+  "arkgrid_sha": "f5b8e43"
+ },
+ "records": [
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0003205663990782969,
+    "epac": 0.0031533542117894984,
+    "reroll": false,
+    "reset_lookup": 0.0003205663990782969,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0009454583598500385,
+    "epac": 0.006286690335492281,
+    "reroll": false,
+    "reset_lookup": 0.0003205663990782969,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0018591190008770252,
+    "epac": 0.009400136269219778,
+    "reroll": false,
+    "reset_lookup": 0.0003205663990782969,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.12247081463410288,
+    "epac": 0.21593112618668853,
+    "reroll": false,
+    "reset_lookup": 0.10895593257119957,
+    "relic_lookup": 0.15619096638660027,
+    "ancient_lookup": 0.009071240365216953
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.18284018389466772,
+    "epac": 0.29220197627943156,
+    "reroll": false,
+    "reset_lookup": 0.10895593257119957,
+    "relic_lookup": 0.27530993888012595,
+    "ancient_lookup": 0.022211426699438496
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.24359328277337244,
+    "epac": 0.35972202598316255,
+    "reroll": false,
+    "reset_lookup": 0.10895593257119957,
+    "relic_lookup": 0.3921434638205929,
+    "ancient_lookup": 0.04077831698549213
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.16045627376425858,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.2951663317382065,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.4082613157710875,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5948280585530084,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.4826439414750706,
+    "ancient_lookup": 0.004351910607870733
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.6709054524945722,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.745436365653157,
+    "ancient_lookup": 0.012408075806744242
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.7320788917072637,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.8845517914217166,
+    "ancient_lookup": 0.02359707872576808
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.8983187889819652,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9214374325412488,
+    "ancient_lookup": 0.45730313324645694
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9427793623949063,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9698682447031726,
+    "ancient_lookup": 0.6365472121047799
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9628521475614302,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9888126413349331,
+    "ancient_lookup": 0.7655656808754862
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.75,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.75,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.75,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.8413009404388715,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9999999999999999,
+    "ancient_lookup": 0.8328108672936257
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.8992584339776535,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 0.9371075362860034
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9360496328541531,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 0.976341392960252
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9752071339199251,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9940148643215462,
+    "ancient_lookup": 0.7373117809446393
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9872494292246354,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9984936413708498,
+    "ancient_lookup": 0.86792918104298
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.992489874166997,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9996223969511676,
+    "ancient_lookup": 0.9329466540924155
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.1573261309925726,
+    "epac": 0.25,
+    "reroll": false,
+    "reset_lookup": 0.1573261309925726,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.2899007504920531,
+    "epac": 0.25,
+    "reroll": false,
+    "reset_lookup": 0.1573261309925726,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.4016179180378679,
+    "epac": 0.25,
+    "reroll": true,
+    "reset_lookup": 0.1573261309925726,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.27893916020889975,
+    "epac": 0.3106963493405893,
+    "reroll": false,
+    "reset_lookup": 0.2725696628198815,
+    "relic_lookup": 0.0032577177451812178,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.4023209777832835,
+    "epac": 0.3618921669583428,
+    "reroll": false,
+    "reset_lookup": 0.2725696628198815,
+    "relic_lookup": 0.009054439256553568,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.5024828559510547,
+    "epac": 0.40525847286370337,
+    "reroll": false,
+    "reset_lookup": 0.2725696628198815,
+    "relic_lookup": 0.01680595883220439,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.7675093707219248,
+    "epac": 0.7219923183007881,
+    "reroll": false,
+    "reset_lookup": 0.7443174740254913,
+    "relic_lookup": 0.6975935806479235,
+    "ancient_lookup": 0.17270000117523857
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.8451683241833051,
+    "epac": 0.7994728216398438,
+    "reroll": false,
+    "reset_lookup": 0.7443174740254913,
+    "relic_lookup": 0.8436945033726448,
+    "ancient_lookup": 0.30912888271215294
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "attack_power",
+    "second_effect": "ally_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.8862204621652076,
+    "epac": 0.8448323973770628,
+    "reroll": true,
+    "reset_lookup": 0.7443174740254913,
+    "relic_lookup": 0.9234927499960968,
+    "ancient_lookup": 0.44051129449599485
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0026980245978313645,
+    "epac": 0.03345418020908991,
+    "reroll": false,
+    "reset_lookup": 0.0026980245978313645,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.007552163202719907,
+    "epac": 0.0642001613497182,
+    "reroll": false,
+    "reset_lookup": 0.0026980245978313645,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.014112940124733325,
+    "epac": 0.09249367036054827,
+    "reroll": false,
+    "reset_lookup": 0.0026980245978313645,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.1847845189186695,
+    "epac": 0.39299559971327924,
+    "reroll": false,
+    "reset_lookup": 0.17137283193459232,
+    "relic_lookup": 0.03359817723740969,
+    "ancient_lookup": 0.0007720983809435127
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.2684744201548039,
+    "epac": 0.49871878017109367,
+    "reroll": false,
+    "reset_lookup": 0.17137283193459232,
+    "relic_lookup": 0.07096287875479099,
+    "ancient_lookup": 0.0021705794868486982
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.3493888183780937,
+    "epac": 0.5800981983394173,
+    "reroll": false,
+    "reset_lookup": 0.17137283193459232,
+    "relic_lookup": 0.11478220072976594,
+    "ancient_lookup": 0.004466756211786894
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.16045627376425858,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.2951663317382065,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.4082613157710875,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.4826439414750706,
+    "ancient_lookup": 0.004351910607870733
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.7452236184951271,
+    "ancient_lookup": 0.012408075806744242
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.8844725614456225,
+    "ancient_lookup": 0.02359707872576808
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.8707606275165332,
+    "ancient_lookup": 0.3260644309172082
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9480749359676565,
+    "ancient_lookup": 0.5095426625374008
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9785740864360268,
+    "ancient_lookup": 0.6480197001541004
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9999999999999999,
+    "ancient_lookup": 0.8328108672936257
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 0.9371075362860034
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 0.976341392960252
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9956498794391435,
+    "ancient_lookup": 0.7276580684451338
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9989819045049471,
+    "ancient_lookup": 0.8635986621710068
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 1.0,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.9997353803188314,
+    "ancient_lookup": 0.923252526880947
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.5,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.6765455704270236,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.0032577177451812178,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.790754463979241,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.009054439256553568,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.8646372090114274,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.01680595883220439,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9383537372531854,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.4987940709844159,
+    "ancient_lookup": 0.06029937180971957
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9727657940993351,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.6957715115722936,
+    "ancient_lookup": 0.12851671451848448
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9837814599519897,
+    "reroll": true,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.8140412436227651,
+    "ancient_lookup": 0.2071398368615762
+   }
+  }
+ ]
+}
