@@ -493,28 +493,26 @@ class TestScenarioRelicRerollTicketOverride(unittest.TestCase):
         goal = LastTurnGoal(min_will=4, min_chaos=5)
         astro_gem = AstroGem(
             "order_immutability", "boss_damage", "brand_power", "dps")
-        # boss_damage=1000 is the only DPS effect → total_coeff=1000 < 2000
+        # ticket off by default; relic override is the only enabler
         sim = GemSimulator(
             rarity="epic",
-            use_extra_ticket=True,
+            use_extra_ticket=None,
             use_reset_ticket=False,
             goal=goal,
             astro_gem=astro_gem,
             optimize="dps",
             pool=ScenarioHelper.POOL,
-            reroll_min_coeff=2000,
             relic_reroll_threshold=0.25,
         )
-        # Without relic override: extra ticket disabled (coeff 1000 < 2000)
+        # Without relic override: extra ticket disabled (ticket off by default; relic override is the only enabler)
         sim_no_relic = GemSimulator(
             rarity="epic",
-            use_extra_ticket=True,
+            use_extra_ticket=None,
             use_reset_ticket=False,
             goal=goal,
             astro_gem=astro_gem,
             optimize="dps",
             pool=ScenarioHelper.POOL,
-            reroll_min_coeff=2000,
         )
         # Run many trials and compare extra ticket usage
         relic_tickets = 0
@@ -541,13 +539,12 @@ class TestScenarioRelicRerollTicketOverride(unittest.TestCase):
             "order_immutability", "boss_damage", "brand_power", "dps")
         sim = GemSimulator(
             rarity="epic",
-            use_extra_ticket=True,
+            use_extra_ticket=None,
             use_reset_ticket=False,
             goal=goal,
             astro_gem=astro_gem,
             optimize="dps",
             pool=ScenarioHelper.POOL,
-            reroll_min_coeff=2000,
             relic_reroll_threshold=0.25,
         )
         r = sim.simulate_one(seed=42, log=True)

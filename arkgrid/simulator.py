@@ -25,7 +25,7 @@ class GemSimulator:
     def __init__(
             self,
             rarity: str,
-            use_extra_ticket: bool,
+            use_extra_ticket: Optional[bool],
             use_reset_ticket: bool,
             goal: LastTurnGoal,
             side_node_threshold: float = 0.5,
@@ -83,7 +83,8 @@ class GemSimulator:
         self.use_extra_ticket = use_extra_ticket
         self.use_reset_ticket = use_reset_ticket
 
-        self.base_rerolls = self.RARITY_REROLLS[rarity] + (1 if use_extra_ticket else 0)
+        self.base_rerolls = self.RARITY_REROLLS[rarity] + (
+            1 if use_extra_ticket is not False else 0)
         self.turns_total = self.RARITY_TURNS[rarity]
         self.pool = pool or OptionPool()
 
@@ -556,7 +557,8 @@ class GemSimulator:
                 and run_gem.gem_type in GEM_TYPES) else None)
 
         reset_available = bool(self.use_reset_ticket)
-        extra_ticket_active = bool(self.use_extra_ticket)
+        extra_ticket_active = (self.use_extra_ticket is True)
+        ownable = (self.use_extra_ticket is not False)
         coeff = (DPS_COEFF if run_gem.optimize == "dps"
                  else SUPPORT_COEFF)
         target = (DPS_EFFECTS if run_gem.optimize == "dps"
@@ -567,9 +569,10 @@ class GemSimulator:
         if reset_available and self.reset_min_coeff > 0:
             if total_coeff < self.reset_min_coeff:
                 reset_available = False
-        if extra_ticket_active and self.reroll_min_coeff > 0:
-            if total_coeff < self.reroll_min_coeff:
-                extra_ticket_active = False
+        if (ownable and not extra_ticket_active
+                and self.reroll_min_coeff > 0
+                and total_coeff >= self.reroll_min_coeff):
+            extra_ticket_active = True
         self._force_reroll_active = (
             self.force_reroll_no_progress > 0
             and total_coeff >= self.force_reroll_no_progress)
@@ -577,11 +580,11 @@ class GemSimulator:
         # Track whether the extra reroll ticket was disabled by coeff gating
         # but could be re-enabled mid-run by relic+ override.
         relic_reroll_pending = (
-            not extra_ticket_active and self.use_extra_ticket
+            not extra_ticket_active and ownable
             and self.relic_reroll_threshold > 0.0
         )
         goal_reroll_pending = (
-            not extra_ticket_active and self.use_extra_ticket
+            not extra_ticket_active and ownable
             and self._reroll_goal_prob_table is not None
         )
 

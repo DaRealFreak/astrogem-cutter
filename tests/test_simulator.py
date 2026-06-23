@@ -539,23 +539,23 @@ class TestIgnoreSideNodeValuesTables(unittest.TestCase):
 
 
 class TestRerollGoalThreshold(unittest.TestCase):
-    """--reroll-goal / --reroll-goal-threshold re-enables a coeff-gated extra
-    reroll ticket when P(will+chaos >= reroll_goal) crosses the threshold."""
+    """--reroll-goal / --reroll-goal-threshold enables the off-by-default
+    extra reroll ticket when P(will+chaos >= reroll_goal) crosses the
+    threshold."""
 
     def _sim(self, **kw):
         defaults = dict(
-            rarity="epic", use_extra_ticket=True, use_reset_ticket=False,
+            rarity="epic", use_extra_ticket=None, use_reset_ticket=False,
             goal=LastTurnGoal(min_total_will_chaos=7),
             astro_gem=AstroGem("order_fortitude", "boss_damage",
                                "attack_power", "dps"),
             optimize="dps", effect_aware=True,
-            reroll_min_coeff=99999,  # gate the extra ticket OFF for any gem
         )
         defaults.update(kw)
         return GemSimulator(**defaults)
 
     def test_grants_ticket_when_prob_crosses(self):
-        # ticket gated off by reroll_min_coeff, but P(will+chaos>=8) easily
+        # ticket off by default, but P(will+chaos>=8) easily
         # exceeds 1% -> override re-enables the extra ticket.
         sim = self._sim(reroll_goal=8, reroll_goal_threshold=0.01)
         r = sim.simulate_one(seed=1)
@@ -591,6 +591,64 @@ class TestRerollGoalThreshold(unittest.TestCase):
         r = sim.simulate_one(seed=1, log=True)
         self.assertTrue(r.extra_ticket_used)
         self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+
+
+class TestExtraTicketOffByDefault(unittest.TestCase):
+    """The extra reroll ticket is off by default (use_extra_ticket=None) and
+    granted only by an enabler (--reroll-min-coeff / threshold) or forced on
+    (use_extra_ticket=True). --no-extra-ticket (False) is a hard off that
+    disarms enablers. The gem here has DPS coeff boss_damage(1000) +
+    attack_power(400) = 1400; epic base rerolls = 2."""
+
+    def _sim(self, **kw):
+        defaults = dict(
+            rarity="epic", use_reset_ticket=False,
+            goal=LastTurnGoal(min_total_will_chaos=7),
+            astro_gem=AstroGem("order_fortitude", "boss_damage",
+                               "attack_power", "dps"),
+            optimize="dps", effect_aware=True,
+        )
+        defaults.update(kw)
+        return GemSimulator(**defaults)
+
+    def test_default_none_no_enabler_holds_ticket(self):
+        # Reported-bug regression: no ticket flag, no enabler -> never granted.
+        sim = self._sim(use_extra_ticket=None)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertFalse(r.extra_ticket_used)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
+
+    def test_force_on_grants_without_enabler(self):
+        # Explicit --extra-ticket (True) = always on, no enabler needed.
+        sim = self._sim(use_extra_ticket=True)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+
+    def test_force_on_ignores_low_coeff(self):
+        # Force-on outranks --reroll-min-coeff: on even below the coeff floor.
+        sim = self._sim(use_extra_ticket=True, reroll_min_coeff=99999)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+
+    def test_coeff_enabler_at_or_above_grants_at_start(self):
+        # 1400 >= 1000 -> ticket enabled at run start.
+        sim = self._sim(use_extra_ticket=None, reroll_min_coeff=1000)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+
+    def test_coeff_enabler_below_threshold_stays_off(self):
+        # 1400 < 2000 and no other enabler -> ticket stays off.
+        sim = self._sim(use_extra_ticket=None, reroll_min_coeff=2000)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertFalse(r.extra_ticket_used)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
+
+    def test_hard_off_disarms_enablers(self):
+        # --no-extra-ticket (False) overrides a trivially-crossable relic enabler.
+        sim = self._sim(use_extra_ticket=False, relic_reroll_threshold=0.0001)
+        r = sim.simulate_one(seed=1, log=True)
+        self.assertFalse(r.extra_ticket_used)
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
 
 
 if __name__ == "__main__":
