@@ -32,3 +32,7 @@ logs
 
 # Template extraction tool output
 tools/extracted/
+
+# Web project
+web/node_modules/
+web/dist/
