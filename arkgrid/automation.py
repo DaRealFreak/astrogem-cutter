@@ -546,7 +546,7 @@ def _infer_picked(old: GemState, new: GemState) -> str:
 def run_auto(
     monitor_index: int,
     goal: LastTurnGoal,
-    extra_ticket: bool,
+    extra_ticket: Optional[bool],
     reset_ticket,  # bool | str (rarity threshold: common/rare/epic) | None
     optimize: str,
     bis_only: bool,
@@ -646,7 +646,8 @@ def run_auto(
         # Resolved against the gem's rarity once detection succeeds; until
         # then we optimistically enable it (any truthy --reset-ticket value).
         reset_available = bool(reset_ticket)
-        extra_ticket_active = bool(extra_ticket)
+        extra_ticket_active = (extra_ticket is True)
+        ownable = (extra_ticket is not False)
         # F3-B: once the extra-reroll ticket is actually spent, stop adding
         # the phantom +1 in parse_rerolls even if the game still shows the
         # ticket icon as "available".
@@ -813,15 +814,18 @@ def run_auto(
                 rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
                 base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
                 total_rerolls = base_rerolls + (1 if extra_ticket_active else 0)
-                # The relic+ reroll override grants one extra reroll mid-run
-                # (state.rerolls += 1).  Size all reroll-aware tables to cover
-                # the post-override maximum so GoalProbabilityTable.lookup
-                # never clamps the granted reroll.
+                # The single ticket may still be granted after this table is
+                # built — by the coeff enabler (start of run) or the relic/goal
+                # threshold override (mid-run), each adding at most +1. Size for
+                # it whenever the ticket is ownable, not yet active, and some
+                # enabler could fire, so GoalProbabilityTable.lookup never clamps
+                # the granted reroll.
                 goal_reroll_active = (reroll_goal is not None
                                       and reroll_goal_threshold > 0.0)
-                dp_max_rerolls = total_rerolls + (
-                    1 if (relic_reroll_threshold > 0.0 or goal_reroll_active)
-                    else 0)
+                grant_possible = (ownable and not extra_ticket_active and (
+                    reroll_min_coeff > 0 or relic_reroll_threshold > 0.0
+                    or goal_reroll_active))
+                dp_max_rerolls = total_rerolls + (1 if grant_possible else 0)
                 prob_table, target_effects, side_coeff_first, side_coeff_second = (
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
@@ -936,10 +940,12 @@ def run_auto(
                             reset_available = False
                             print(f"  [info] Reset ticket disabled "
                                   f"(coeff {total_coeff} < {reset_min_coeff})")
-                    if reroll_min_coeff > 0 and total_coeff < reroll_min_coeff:
-                        extra_ticket_active = False
-                        print(f"  [info] Extra reroll ticket disabled "
-                              f"(coeff {total_coeff} < {reroll_min_coeff})")
+                    if (ownable and not extra_ticket_active
+                            and reroll_min_coeff > 0
+                            and total_coeff >= reroll_min_coeff):
+                        extra_ticket_active = True
+                        print(f"  [info] Extra reroll ticket enabled "
+                              f"(coeff {total_coeff} >= {reroll_min_coeff})")
                     force_reroll_active = (
                         force_reroll_no_progress > 0
                         and total_coeff >= force_reroll_no_progress)
@@ -1011,7 +1017,7 @@ def run_auto(
             relic_armed = (relic_reroll_threshold > 0.0 and relic_table is not None)
             goal_armed = (reroll_goal is not None and reroll_goal_threshold > 0.0
                           and reroll_goal_table is not None)
-            if not extra_ticket_active and extra_ticket and (relic_armed or goal_armed):
+            if not extra_ticket_active and ownable and (relic_armed or goal_armed):
                 # Build a minimal state from det for the table lookups.
                 # _pre_state is provisional: used ONLY to gate this override.
                 # It deliberately does not reuse _analyze_frame's GemState
