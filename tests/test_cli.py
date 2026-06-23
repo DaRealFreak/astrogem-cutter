@@ -190,5 +190,23 @@ class TestWillChaosTotalGoal(unittest.TestCase):
         self.assertEqual(args.reroll_goal_threshold, 0.0)
 
 
+class TestExtraTicketTriState(unittest.TestCase):
+    """--extra-ticket is tri-state: None default (off, enabler-armed),
+    True on --extra-ticket (forced on), False on --no-extra-ticket (hard off)."""
+
+    def _parse(self, extra):
+        return _build_parser().parse_args(
+            ["sim", "--min-total-will-chaos", "7"] + extra)
+
+    def test_default_is_none(self):
+        self.assertIsNone(self._parse([]).extra_ticket)
+
+    def test_explicit_extra_ticket_is_true(self):
+        self.assertIs(self._parse(["--extra-ticket"]).extra_ticket, True)
+
+    def test_no_extra_ticket_is_false(self):
+        self.assertIs(self._parse(["--no-extra-ticket"]).extra_ticket, False)
+
+
 if __name__ == "__main__":
     unittest.main()

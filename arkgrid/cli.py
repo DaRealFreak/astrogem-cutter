@@ -76,8 +76,13 @@ def _build_parser() -> argparse.ArgumentParser:
                              "will/chaos higher; only once the goal is fully "
                              "infeasible does it fall back to chasing grade. "
                              "Intended for new characters.")
-        p.add_argument("--extra-ticket", action="store_true", default=True,
-                        help="Use extra reroll ticket (default: yes)")
+        p.add_argument("--extra-ticket", action="store_true", default=None,
+                        help="Force the extra reroll ticket ON for every gem "
+                             "(unconditional +1). Default (omitted): the ticket "
+                             "is OFF unless enabled by --reroll-min-coeff, "
+                             "--relic-reroll-threshold, or --reroll-goal + "
+                             "--reroll-goal-threshold. --no-extra-ticket is a "
+                             "hard off that disarms those enablers.")
         p.add_argument("--no-extra-ticket", action="store_false", dest="extra_ticket")
         p.add_argument("--reset-ticket", nargs="?", const=True, default=None,
                         type=_parse_reset_ticket, metavar="RARITY",
@@ -380,7 +385,14 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
     print(f"Goal:     {goal_str}")
     print(f"Gem:      {gem_str}")
     print(f"Optimize: {args.optimize}")
-    print(f"Extra ticket: {'yes' if args.extra_ticket else 'no'}")
+    if args.extra_ticket is True:
+        extra_ticket_str = "always (forced)"
+    elif args.extra_ticket is False:
+        extra_ticket_str = "no"
+    else:
+        extra_ticket_str = ("conditional (enabled by --reroll-min-coeff / "
+                            "--relic-reroll-threshold / --reroll-goal)")
+    print(f"Extra ticket: {extra_ticket_str}")
     print(f"Side threshold: {args.side_threshold}")
     er = getattr(args, "endgame_risk", None)
     if er is None:
@@ -569,7 +581,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
         for rarity in rarities:
             resolved_reset = _reset_enabled_for_rarity(use_reset, rarity)
             base_rerolls = (GemSimulator.RARITY_REROLLS[rarity]
-                            + (1 if args.extra_ticket else 0))
+                            + (1 if args.extra_ticket is not False else 0))
             dp_prob = _compute_dp_prob(
                 goal, rarity, astro_gem, args.optimize,
                 args.bis_only, args.min_side_coeff,
@@ -971,7 +983,13 @@ def cmd_live(args: argparse.Namespace) -> None:
         reset_str = f"yes ({args.reset_ticket}+)" if enabled else f"no ({args.reset_ticket}+)"
     else:
         reset_str = "yes" if args.reset_ticket else "no"
-    print(f"Tickets:    reset={reset_str}  extra_reroll={'yes' if args.extra_ticket else 'no'}")
+    if args.extra_ticket is True:
+        extra_reroll_str = "always"
+    elif args.extra_ticket is False:
+        extra_reroll_str = "no"
+    else:
+        extra_reroll_str = "conditional"
+    print(f"Tickets:    reset={reset_str}  extra_reroll={extra_reroll_str}")
     print()
 
     goal_parts = []
