@@ -300,7 +300,8 @@ def export_dp_lookups():
                     recs.append({"inputs": {
                         "table": "roll", "gem_type": gt, "first_effect": fe,
                         "second_effect": se, "optimize": opt, "goal": g,
-                        "rarity": rarity, "state": [w,c,f,s], "turns_left": tl,
+                        "rarity": rarity, "max_rerolls": mr,
+                        "state": [w,c,f,s], "turns_left": tl,
                         "rerolls": r, "offers": okeys},
                       "expected": {
                         "lookup": roll.lookup(st, tl, rerolls=r),
@@ -419,6 +420,8 @@ def export_decisions():
                             ("gt","fe","se","opt","g","rarity")},
                             "config": {k: cfg[k] for k in cfg if k not in
                                 ("gt","fe","se","opt","g","rarity")},
+                            "turns_total": ctx.turns_total,
+                            "dp_max_rerolls": ctx.base_rerolls,
                             "state": [w,c,f,s], "turn": turn, "turns_left": tl,
                             "rerolls": r, "reset_available": reset_av,
                             "offers": [o.key for o in offers]},
@@ -755,7 +758,6 @@ import { OptionPool } from '../src/lib/engine/pool';
 import { LastTurnGoal, GemState } from '../src/lib/engine/models';
 
 const RT: Record<string, number> = { common: 5, rare: 7, epic: 9 };
-const RR: Record<string, number> = { common: 0, rare: 1, epic: 2 };
 const recs = JSON.parse(readFileSync(
   new URL('./fixtures/dp_lookups.json', import.meta.url), 'utf8')).records;
 const goalOf = (g: any) => new LastTurnGoal({ minWill: g.min_will, minChaos: g.min_chaos,
@@ -772,17 +774,17 @@ describe('GoalProbabilityTable parity', () => {
       const ckey = JSON.stringify([i.gem_type, i.goal, i.rarity]);
       if (!cache.has(ckey)) {
         const turns = RT[i.rarity];
-        const mr = RR[i.rarity] + 1;  // extra_ticket=None ⇒ +1; relic_thr=0 ⇒ no extra
+        const mr = i.max_rerolls;  // resolved dp_max_rerolls emitted by the exporter
         cache.set(ckey, {
           roll: new GoalProbabilityTable(goalOf(i.goal), turns, pool, {
-            earlyFinish: true, maxRerolls: RR[i.rarity], effectAware: true,
+            earlyFinish: true, maxRerolls: mr, effectAware: true,
             gemType: i.gem_type, optimize: i.optimize }),
           reset: new GoalProbabilityTable(goalOf(i.goal), turns, pool, {
             earlyFinish: true, effectAware: true, gemType: i.gem_type, optimize: i.optimize }),
           relic: new GoalProbabilityTable(new LastTurnGoal({ minTotal: 16 }), turns, pool, {
-            maxRerolls: RR[i.rarity] }),
+            maxRerolls: mr }),
           anc: new GoalProbabilityTable(new LastTurnGoal({ minTotal: 19 }), turns, pool, {
-            maxRerolls: RR[i.rarity] }),
+            maxRerolls: mr }),
         });
       }
       const t = cache.get(ckey);
@@ -802,7 +804,7 @@ describe('GoalProbabilityTable parity', () => {
 });
 ```
 
-> Note: the test mirrors the exporter's `max_rerolls` choice. The exporter used `dp_max_rerolls(rarity, None, 0.0, False)` = `RR[rarity]` for the roll/relic/ancient tables (relic_thr 0 ⇒ no +1). Match that here: use `maxRerolls: RR[i.rarity]`. (Fix the comment above accordingly.)
+> Note: the table-build budget (`maxRerolls`) and `turns` come from the fixture record (`i.max_rerolls`, `RT[i.rarity]`), which the exporter resolved via `dp_max_rerolls(...)`. Do **not** re-derive the budget in the test — read the value the exporter emitted, so the DP logic is what's under test, not the budget formula. (The budget formula itself is verified in Task 9, where `buildEngineContext` derives it and the decision parity re-runs against it.)
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -980,7 +982,7 @@ describe('decidePostRoll parity', () => {
 });
 ```
 
-Create `web/tests/helpers/buildCtx.ts` that constructs a `DecisionContext` from a fixture `inputs` object, building the six tables (roll/reset effect-aware, relic, side-value, grade-value, maxed) exactly as `export_golden.build_ctx` does. Keep it in `tests/helpers/` for Task 8; Task 9 promotes this logic to `engine/index.ts`.
+Create `web/tests/helpers/buildCtx.ts` that constructs a `DecisionContext` from a fixture `inputs` object, building the six tables (roll/reset effect-aware, relic, side-value, grade-value, maxed) exactly as `export_golden.build_ctx` does. It reads `turns_total` and `dp_max_rerolls` straight from the fixture inputs (the exporter emitted them) rather than re-deriving the budget. Keep it in `tests/helpers/` for Task 8; Task 9 promotes this logic to `engine/index.ts` (which *does* derive the budget — see Task 9 Step 4).
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -1025,7 +1027,11 @@ git commit -m "feat(web): port decision.py (branches + decide_post_roll) with go
     extraTicket?: boolean | null;  // tri-state: true/false/null
     optimize?: 'dps' | 'support';
   }
-  export interface EngineContext { /* opaque: holds DecisionContext + relic/ancient/side tables */ }
+  export interface EngineContext {
+    /* holds DecisionContext + relic/ancient/side tables; exposes resolved build params */
+    readonly turnsTotal: number;
+    readonly dpMaxRerolls: number;
+  }
 
   export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): EngineContext;
 
@@ -1091,7 +1097,7 @@ Build the tables per the rarity/config (mirror `build_ctx` from the exporter + t
 
 - [ ] **Step 4: Refactor `decision.test.ts` to use `buildEngineContext`**
 
-Replace `tests/helpers/buildCtx.ts` usage with `buildEngineContext` (delete the helper). Re-run the decision parity suite to confirm the shared builder still matches Python.
+Replace `tests/helpers/buildCtx.ts` usage with `buildEngineContext` (delete the helper), passing the fixture's `rarity` + `config` flags so `buildEngineContext` **derives** `turnsTotal`/`dpMaxRerolls` itself (per the Global Constraints formula) instead of reading them from the fixture. Re-running the decision parity suite against derived values is what verifies the budget formula end-to-end. Add one direct assertion too: for `{rarity:'epic'}` (extraTicket undefined, relicRerollThreshold 0) the context's resolved `dpMaxRerolls` is `3`, and for `{rarity:'rare', relicRerollThreshold:0.3}` it is `3` — locking the formula explicitly.
 
 Run: `cd web && npx vitest run tests/decision.test.ts tests/advise.test.ts`
 Expected: PASS (both).
