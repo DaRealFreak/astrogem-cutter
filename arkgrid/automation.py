@@ -378,6 +378,37 @@ def _build_prob_table(
 
 
 
+def _build_reset_table(
+    goal: LastTurnGoal,
+    turns_total: int,
+    pool: OptionPool,
+    *,
+    gem_type_domain: str,
+    optimize: str,
+    min_side_coeff: int,
+    effect_aware: bool = True,
+) -> GoalProbabilityTable:
+    """Build the standard (non-reroll) reset / p_fresh DP table.
+
+    Mirrors ``GemSimulator._get_ea_tables``' reset table: effect-aware with the
+    ``min_side_coeff`` floor when the gem type is known, so ``p_fresh`` and the
+    offer-conditional ``p_keep_goal_reset`` price a ``--min-side-coeff`` goal
+    exactly as the simulator does. A plain (non-effect-aware) table would drop
+    the side-coeff requirement entirely and report over-optimistic fresh-start
+    odds, diverging from the simulator's reset decisions. Falls back to the
+    plain table only when the gem type is unknown (no effect/coeff info), which
+    matches the goal prob_table's own fallback in ``_build_prob_table``.
+    """
+    if effect_aware and gem_type_domain in GEM_TYPES:
+        return GoalProbabilityTable(
+            goal, turns_total, pool,
+            min_side_coeff=min_side_coeff,
+            early_finish=True,
+            effect_aware=True, gem_type=gem_type_domain, optimize=optimize,
+        )
+    return GoalProbabilityTable(goal, turns_total, pool, early_finish=True)
+
+
 def _parse_view_delta(delta_key: Optional[str]) -> int:
     """Extract the signed integer from a view/reroll delta key (e.g. 'reroll+1' -> 1)."""
     if not delta_key:
@@ -853,13 +884,21 @@ def run_auto(
                         max_rerolls=dp_max_rerolls,
                     )
                 # Use standard (non-reroll) DP for p_fresh — the reroll-aware
-                # DP overestimates fresh start probability.
-                reset_prob_table = GoalProbabilityTable(
+                # DP overestimates fresh start probability. Effect-aware with
+                # the side-coeff floor (mirrors GemSimulator) so --min-side-coeff
+                # goals are priced the same here as in simulation.
+                reset_prob_table = _build_reset_table(
                     goal, det.total_steps, pool,
-                    early_finish=True,
+                    gem_type_domain=gem_type_domain, optimize=optimize,
+                    min_side_coeff=min_side_coeff, effect_aware=effect_aware_dp,
                 )
+                # p_fresh state carries the detected effects so the effect-aware
+                # table resolves indices (a reset reverts to the gem's original
+                # effects, matching this fresh-start state).
                 p_fresh = reset_prob_table.lookup(
-                    GemState(will=1, chaos=1, first=1, second=1),
+                    GemState(will=1, chaos=1, first=1, second=1,
+                             first_effect=det.first_effect,
+                             second_effect=det.second_effect),
                     det.total_steps,
                 )
                 # Side-value DP table: built once per gem type detected.

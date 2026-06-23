@@ -439,6 +439,70 @@ class TestLastTurnFreshStart(unittest.TestCase):
         self.assertIsNone(d)
 
 
+class TestGoalMetNeverDiscarded(unittest.TestCase):
+    """Regression: a gem that ALREADY satisfies the goal must never be RESET.
+
+    `early_finish_decision` runs first and, when the side-value gate prefers
+    *continuing* for extra side value, returns ``None`` to "defer to the rest
+    of the tree (PROCESS)". But ``None`` falls THROUGH to the reset branches
+    (`prob_reset_decision`, `last_turn_reset_decision`), which only look at the
+    goal *probability* and have no goal-satisfied guard. So they can RESET a
+    gem that is already a guaranteed success — throwing it away for a fresh
+    start. Resetting (or failing) a goal-met gem is always strictly worse than
+    finishing or processing it, so the contract is: when the goal is met,
+    decide_post_roll returns FINISH / PROCESS / REROLL — never RESET / FAIL.
+
+    Both scenarios below use a goal-met state on a turn with no rerolls left,
+    a hand that contains one goal-breaking offer (so post-click P(goal) < 1)
+    plus side-raising offers (so the value gate prefers to continue, making
+    early_finish defer instead of finishing).
+    """
+
+    # will=4,chaos=3 satisfies the default goal (min_will=4, min_chaos=3);
+    # first=1,second=1 leaves side-value headroom so process_ev > finish_val.
+    _GOAL_MET = dict(will=4, chaos=3, first=1, second=1,
+                     first_effect="attack_power", second_effect="boss_damage")
+    # will-1 would drop will to 3 and break the goal; the rest keep it met.
+    _HAND = ("will-1", "first+1", "second+1", "second+2")
+
+    def _state(self):
+        return GemState(rerolls=0, **self._GOAL_MET)
+
+    def test_goal_is_actually_met(self):
+        s = self._state()
+        ctx = build_ctx()
+        self.assertTrue(ctx.goal.satisfied(s.will, s.chaos, s.first, s.second))
+
+    def test_prob_reset_does_not_discard_goal_met_gem(self):
+        # gem_type must contain attack_power + boss_damage so the side-value
+        # table is enabled for this state (chaos_distortion does).
+        ctx = build_ctx(prob_reset_threshold=0.9, gem_type="chaos_distortion")
+        ti = build_ti(state=self._state(), offers=make_offers(*self._HAND),
+                      turn=9, turns_left=1, rerolls=0, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertNotIn(
+            d.action, (ActionKind.RESET, ActionKind.FAIL),
+            f"goal-met gem must not be discarded; got {d.action} "
+            f"(branch={d.branch}, reason={d.reason})",
+        )
+
+    def test_last_turn_reset_does_not_discard_goal_met_gem(self):
+        # prob_reset disabled (0.0) so only the last-turn fresh-start branch
+        # can fire; it still compares P(goal) and ignores that the goal is met.
+        # Pin p_fresh high so the fresh-start odds beat the (sub-1.0) post-click
+        # P(goal) of a goal-met hand that contains one goal-breaking offer.
+        ctx = build_ctx(prob_reset_threshold=0.0, gem_type="chaos_distortion",
+                        p_fresh=0.99)
+        ti = build_ti(state=self._state(), offers=make_offers(*self._HAND),
+                      turn=9, turns_left=1, rerolls=0, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertNotIn(
+            d.action, (ActionKind.RESET, ActionKind.FAIL),
+            f"goal-met gem must not be discarded; got {d.action} "
+            f"(branch={d.branch}, reason={d.reason})",
+        )
+
+
 class TestDPReroll(unittest.TestCase):
     """Branch 5: DP-optimal reroll + force-no-progress override."""
 

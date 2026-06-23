@@ -26,11 +26,15 @@ import unittest
 # can be collected on Linux/macOS CI runners without failing the import,
 # and skip the whole class on those platforms via ``_IMPORT_OK``.
 try:
-    from arkgrid.automation import scale_to_screen
+    from arkgrid.automation import scale_to_screen, _build_reset_table
     _IMPORT_OK = True
 except RuntimeError:
     # Raised on non-Windows: "The 'auto' command requires Windows."
     _IMPORT_OK = False
+
+from arkgrid.models import GemState, LastTurnGoal
+from arkgrid.pool import OptionPool
+from arkgrid.probability import GoalProbabilityTable
 
 
 @unittest.skipUnless(_IMPORT_OK, "arkgrid.automation requires Windows")
@@ -159,6 +163,62 @@ class TestScaleToScreen(unittest.TestCase):
         """BTN_REROLL (1254, 595) on 1920x1200 shifts down by the letter offset."""
         # (1254*1 + 0, 595*1 + 60) = (1254, 655)
         self.assertEqual(scale_to_screen(1254, 595, 1920, 1200), (1254, 655))
+
+
+@unittest.skipUnless(_IMPORT_OK, "arkgrid.automation requires Windows")
+class TestBuildResetTable(unittest.TestCase):
+    """Regression: run_auto's reset/p_fresh DP table must be effect-aware with
+    the side-coeff floor for --min-side-coeff goals, matching the simulator.
+
+    The old code built a plain (non-effect-aware) table that dropped the
+    side-coeff requirement entirely, so p_fresh was over-optimistic and auto's
+    reset decisions diverged from the simulator's.
+    """
+
+    _GEM = "chaos_distortion"  # pool contains attack_power + boss_damage
+    _GOAL = LastTurnGoal(min_total_will_chaos=6)
+    _MIN_SIDE_COEFF = 4000
+    _TURNS = 7
+    _START = dict(will=1, chaos=1, first=1, second=1,
+                  first_effect="attack_power", second_effect="boss_damage")
+
+    def test_reset_table_matches_simulator_for_min_side_coeff_goal(self):
+        pool = OptionPool()
+        start = GemState(**self._START)
+
+        auto_tbl = _build_reset_table(
+            self._GOAL, self._TURNS, pool,
+            gem_type_domain=self._GEM, optimize="dps",
+            min_side_coeff=self._MIN_SIDE_COEFF, effect_aware=True)
+        # What GemSimulator._get_ea_tables builds for resets.
+        sim_tbl = GoalProbabilityTable(
+            self._GOAL, self._TURNS, pool,
+            min_side_coeff=self._MIN_SIDE_COEFF, early_finish=True,
+            effect_aware=True, gem_type=self._GEM, optimize="dps")
+        # The old, buggy automation table (plain, side-coeff ignored).
+        plain_tbl = GoalProbabilityTable(
+            self._GOAL, self._TURNS, pool, early_finish=True)
+
+        p_auto = auto_tbl.lookup(start, self._TURNS)
+        p_sim = sim_tbl.lookup(start, self._TURNS)
+        p_plain = plain_tbl.lookup(start, self._TURNS)
+
+        self.assertAlmostEqual(
+            p_auto, p_sim, places=9,
+            msg="auto reset table must match the simulator's effect-aware "
+                "reset table for a --min-side-coeff goal")
+        self.assertGreater(
+            p_plain, p_auto + 1e-6,
+            "the plain (non-EA) table over-estimates p_fresh because it "
+            "ignores the side-coeff floor — that was the bug")
+
+    def test_unknown_gem_type_falls_back_to_plain_table(self):
+        pool = OptionPool()
+        tbl = _build_reset_table(
+            self._GOAL, self._TURNS, pool,
+            gem_type_domain="not_a_real_gem", optimize="dps",
+            min_side_coeff=self._MIN_SIDE_COEFF, effect_aware=True)
+        self.assertFalse(tbl.effect_aware)
 
 
 if __name__ == "__main__":

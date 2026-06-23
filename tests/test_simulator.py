@@ -651,5 +651,64 @@ class TestExtraTicketOffByDefault(unittest.TestCase):
         self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
 
 
+class TestHasProgressOfferUsesLiveCoeffs(unittest.TestCase):
+    """Regression: the simulator's reroll-loop progress check must use the
+    LIVE side coefficients of the current state, matching the shared
+    `decision.has_progress_offer` that automation uses.
+
+    `GemSimulator._has_progress_offer` reads `self._side_coeff_first/second`,
+    which are computed ONCE in `__init__` from the *configured* gem — they are
+    (0, 0) for random-gem runs (no `astro_gem`) and go stale after a mid-run
+    `change_effect`. The shared `decision.has_progress_offer` (used by
+    automation and by the sim's own main-tree dp_reroll branch) computes the
+    coefficients live from `state.first_effect/second_effect`. With
+    `--force-reroll-no-progress` + `--min-side-coeff`, this makes the
+    simulator's reroll loop and the live automation loop take OPPOSITE
+    force-reroll decisions on the same hand.
+    """
+
+    def _live_coeffs(self, state):
+        from arkgrid.constants import DPS_COEFF, DPS_EFFECTS
+        first = (DPS_COEFF.get(state.first_effect, 0)
+                 if state.first_effect in DPS_EFFECTS else 0)
+        second = (DPS_COEFF.get(state.second_effect, 0)
+                  if state.second_effect in DPS_EFFECTS else 0)
+        return first, second
+
+    def test_random_gem_run_matches_live_progress_check(self):
+        from arkgrid.decision import has_progress_offer
+        MIN_SIDE_COEFF = 4000
+        # Built like `cmd_sim` for a random-gem MC run: astro_gem=None.
+        sim = GemSimulator(
+            rarity="rare", use_extra_ticket=False, use_reset_ticket=False,
+            goal=LastTurnGoal(min_total_will_chaos=6), astro_gem=None,
+            optimize="dps", min_side_coeff=MIN_SIDE_COEFF,
+            force_reroll_no_progress=1000,
+        )
+        # Live state: first side is boss_damage (DPS coeff 1000, contributing).
+        state = GemState(will=3, chaos=3, first=2, second=1,
+                         first_effect="boss_damage",
+                         second_effect="ally_damage")
+        # Only goal-progress is first+1 (raises the contributing side toward
+        # the min_side_coeff floor); the will/chaos goal (>=6) is already met.
+        offers = [
+            Option("first+1", 1.0, "first", 1),
+            Option("cost+100", 1.0, "cost", 0),
+            Option("maintain", 1.0, "other", 0),
+            Option("chaos-1", 1.0, "chaos", -1),
+        ]
+        live_first, live_second = self._live_coeffs(state)
+        expected = has_progress_offer(offers, state, sim.goal, MIN_SIDE_COEFF,
+                                      live_first, live_second)
+        actual = sim._has_progress_offer(offers, state)
+        self.assertEqual(
+            actual, expected,
+            "sim reroll-loop _has_progress_offer must agree with the live "
+            "decision.has_progress_offer (automation's path); it used stale "
+            f"side coeffs ({sim._side_coeff_first}, {sim._side_coeff_second}) "
+            f"vs live ({live_first}, {live_second})",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

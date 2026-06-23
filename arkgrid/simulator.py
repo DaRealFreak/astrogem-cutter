@@ -476,12 +476,25 @@ class GemSimulator:
         return ok / len(offers)
 
     def _has_progress_offer(self, offers: List[Option], state: GemState) -> bool:
-        """Thin wrapper around `decision.has_progress_offer` that supplies
-        the simulator's stored side-coefficient configuration.
+        """Thin wrapper around `decision.has_progress_offer`.
+
+        Side coefficients are computed LIVE from the current state's effects,
+        matching `decision.dp_reroll_decision` (automation's path). The stored
+        `self._side_coeff_first/second` reflect only the *configured* gem's
+        starting effects — they are (0, 0) for random-gem runs and go stale
+        after a mid-run change_effect, which would make the simulator's reroll
+        loop disagree with the live decision on `--force-reroll-no-progress`.
         """
+        opt = self.astro_gem.optimize if self.astro_gem else self.optimize
+        coeff_map = DPS_COEFF if opt == "dps" else SUPPORT_COEFF
+        target = DPS_EFFECTS if opt == "dps" else SUPPORT_EFFECTS
+        side_first = (coeff_map.get(state.first_effect, 0)
+                      if state.first_effect in target else 0)
+        side_second = (coeff_map.get(state.second_effect, 0)
+                       if state.second_effect in target else 0)
         return has_progress_offer(
             offers, state, self.goal, self.min_side_coeff,
-            self._side_coeff_first, self._side_coeff_second,
+            side_first, side_second,
         )
 
     def roll_offers_with_rerolls(

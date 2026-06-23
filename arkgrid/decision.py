@@ -847,6 +847,12 @@ def prob_reset_decision(
     """Branch 2: post-click P(goal) below user-set reset threshold."""
     if ctx.prob_reset_threshold <= 0 or not ti.reset_available:
         return None
+    # Never reset a gem that already satisfies the goal — it is a guaranteed
+    # success, so discarding it for a fresh start is strictly worse. The
+    # threshold is a "draw toward an unmet goal" knob; a met goal means
+    # early_finish has already chosen finish/process/reroll for it.
+    if _goal_fully_satisfied(ctx, ti.state):
+        return None
     if m.p_keep_goal_reset >= ctx.prob_reset_threshold:
         return None
     return _maybe_confirm(ctx, ti, Decision(
@@ -876,6 +882,10 @@ def last_turn_reset_decision(
     if (ti.turns_left != 1
             or not ti.reset_available
             or ctx.p_fresh <= 0):
+        return None
+    # Never reset a gem that already satisfies the goal (see prob_reset_decision)
+    # — a fresh start can only lose the success already in hand.
+    if _goal_fully_satisfied(ctx, ti.state):
         return None
     if m.p_keep_goal_reset >= ctx.p_fresh:
         return None
