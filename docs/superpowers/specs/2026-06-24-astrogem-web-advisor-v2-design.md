@@ -60,9 +60,9 @@ The single change to the parity-locked engine. Additive only; existing fields un
   actions: { process: ActionMetrics | null; reroll: ActionMetrics | null; reset: ActionMetrics | null };
   ```
 - **process** = the *best offer* — the offer maximizing `pGoalAfter`, tie-broken by `eValueAfter` — evaluated across all four tables. Requires extending the after-click lookup to the relic & ancient tables (today only goal + side-value have per-offer/after-click methods). `null` only if there are no offers.
-- **reroll** = expected metrics after a redraw (one reroll spent), `null` when `rerolls === 0`. Requires a new per-table method `expectedAfterReroll(state, turnsLeft, rerolls)` deriving the post-reroll expectation; the reroll-aware DP already computes this internally for the goal table (in the keep-vs-reroll max) — generalize it to the relic/ancient/side-value tables.
-- **reset** = fresh-gem metrics: lookups from the initial all-1 `GemState` with the full reroll budget, on each of the four tables. `null` when reset is unavailable (see §5).
-- **Parity:** existing outputs stay byte-identical. New golden vectors (`tools/export_golden.py`) cover the per-action lookups that have a Python equivalent (process best-offer relic/ancient after-click, reset fresh-start on each table). The **reroll** projection is genuinely new math (Python's simulator computes reroll EV internally but never exposes a clean per-table "expected-after-reroll" number); it is derived from the existing reroll-aware DP and validated as a standalone unit (its goal-table value must agree with the DP's internal keep-vs-reroll comparison the existing `shouldReroll` path already uses).
+- **reroll** = metrics after a redraw (one reroll spent), `null` when `rerolls === 0`. **No new table method needed** (planning discovery): the reroll value is `table.lookup(state, turnsLeft, rerolls - 1)` on the reroll-aware goal/relic/ancient tables — exactly what `shouldRerollDp` already uses. A reroll changes neither `state` nor `turnsLeft`, so the side-value (E[coeff]) is unchanged = `sideValueTable.lookup(state, turnsLeft)`.
+- **reset** = fresh-gem metrics: lookups from the initial all-1 `GemState` (with the gem's effect identities) and full reroll budget, on each table. `null` when reset is unavailable (see §5).
+- **Parity:** existing outputs stay byte-identical. **All three rows are parity-testable** against Python (every cell is an existing Python table method — `expected_prob_after_click` for process, reroll-aware `lookup` with `rerolls-1` for reroll, fresh-state `lookup` for reset). New golden vectors (`tools/export_golden.py`) cover them; if a single cell has no clean Python equivalent it falls back to a TS unit test.
 
 ## 4. Info panel (3×4 matrix)
 
@@ -138,6 +138,6 @@ The v1 spine is unchanged: capture worker → `captureController` → `computeAd
 
 ## Risks
 
-- **Engine reroll projection** is the only genuinely-new math; mitigated by deriving it from the existing reroll-aware DP and cross-checking its goal-table value against the `shouldReroll` path. If it proves unreliable, fall back to showing reroll as "—" (the matrix degrades gracefully) rather than blocking the feature.
+- **Engine `actions` projection** turned out to need no new DP/table math (planning confirmed every cell is an existing lookup), so the original "new reroll math" risk is largely retired. Residual risk: the reset row uses the reroll-aware tables (matrix consistency) rather than the conservative standard table the reset *decision* uses, so the displayed reset P(goal) can read slightly higher than the internal reset threshold — acceptable for an informational panel. If any matrix cell proves unreliable it degrades to "—" rather than blocking the feature.
 - **Debug bitmap transfer** adds per-frame work; gated behind the debug toggle so the normal path is unaffected.
 - **Turn-log reset inference** changes a decision input (`resetAvailable`); covered by node unit tests and kept overridable via `resetOverride`.
