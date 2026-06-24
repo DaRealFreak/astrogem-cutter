@@ -160,7 +160,7 @@ describe('opencv.js spike', () => {
     const frame = decodeToBgrMat(resolve(EXAMPLE, '20260401130608_1.jpg'));
     const gray = new cv.Mat();
     cv.cvtColor(frame, gray, cv.COLOR_BGR2GRAY);
-    const tmplBgr = decodeToBgrMat(resolve(TEMPLATES, 'anchor/anchor.png'));
+    const tmplBgr = decodeToBgrMat(resolve(TEMPLATES, 'anchor/processing.png'));
     const tmpl = new cv.Mat();
     cv.cvtColor(tmplBgr, tmpl, cv.COLOR_BGR2GRAY);
     const res = new cv.Mat();
@@ -172,7 +172,7 @@ describe('opencv.js spike', () => {
 });
 ```
 
-(If `anchor/anchor.png` is not the exact filename, list `arkgrid/vision/templates/anchor/` and use the actual PNG.)
+(If `anchor/processing.png` is not the exact filename, list `arkgrid/vision/templates/anchor/` and use the actual PNG.)
 
 - [ ] **Step 5: Run the spike**
 
@@ -399,7 +399,7 @@ describe('matcher', () => {
     const cv = getCv();
     const frameBgr = decodeToBgrMat(resolve(REPO, 'examples/20260401130608_1.jpg'));
     const frame = new cv.Mat(); cv.cvtColor(frameBgr, frame, cv.COLOR_BGR2GRAY);
-    const anchor = tmplGray('arkgrid/vision/templates/anchor/anchor.png');
+    const anchor = tmplGray('arkgrid/vision/templates/anchor/processing.png');
     const r = findTemplate(frame, anchor, [650, 20, 700, 80]);
     expect(r.score).toBeGreaterThan(0.7);
     [frameBgr, frame, anchor].forEach((m) => m.delete());
@@ -409,7 +409,7 @@ describe('matcher', () => {
     const cv = getCv();
     const frameBgr = decodeToBgrMat(resolve(REPO, 'examples/20260401130608_1.jpg'));
     const frame = new cv.Mat(); cv.cvtColor(frameBgr, frame, cv.COLOR_BGR2GRAY);
-    const anchor = tmplGray('arkgrid/vision/templates/anchor/anchor.png');
+    const anchor = tmplGray('arkgrid/vision/templates/anchor/processing.png');
     // search a bottom-screen ROI where the "Processing" anchor text is not present
     const res = findBestMatch(frame, new Map([['anchor', anchor]]), [100, 900, 400, 120], 0.70);
     expect(res).toBeNull();
@@ -839,7 +839,7 @@ git commit -m "feat(web): DetectionResult->engine adapter + end-to-end detect->a
 - §7 risks (init, decoder/resize drift, adapter fidelity) → Task 1 spike, Task 7 investigate-don't-loosen, Task 8 unit tests. ✓
 - §8 out of scope (detect_finish, capture, worker, atlas, UI, deploy) → omitted; `detect_finish`/`FINISH_*` explicitly skipped in Tasks 3/7. ✓
 
-**Placeholder scan:** No "TBD"/"implement later". Task 1 Step 6 is a *conditional* path gated on a spike outcome, not a placeholder. The `anchor/anchor.png` filename caveat instructs verifying the actual file (the templates/anchor dir has exactly 1 PNG per Plan 1's listing).
+**Placeholder scan:** No "TBD"/"implement later". Task 1 Step 6 is a *conditional* path gated on a spike outcome, not a placeholder. The `anchor/processing.png` filename caveat instructs verifying the actual file (the templates/anchor dir has exactly 1 PNG per Plan 1's listing).
 
 **Type consistency:** `DetectionResult`/`OptionDetection` (Task 6) are consumed identically in Tasks 7/8. `detect(frameBgr, store)`, `findBestMatch`, `TemplateStore.load`, `parseRerolls`/`parseDelta`/`determineOptionKind`, `detectionToEngineInputs` names match across defining and consuming tasks. Engine imports (`buildEngineContext`/`advise`/`GemState`/`Option`/`AstroGem`) match Plan 1's exported surface.
 
