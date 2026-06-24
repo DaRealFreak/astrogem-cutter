@@ -14,7 +14,7 @@ import {
   SUPPORT_EFFECTS,
   changeDestMaxCoeff,
 } from './constants';
-import { GemState, LastTurnGoal, Option } from './models';
+import type { GemState, LastTurnGoal, Option } from './models';
 import { OptionPool } from './pool';
 import { GoalProbabilityTable, SideValueTable } from './probability';
 

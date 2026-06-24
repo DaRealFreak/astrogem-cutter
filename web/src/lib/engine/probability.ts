@@ -14,7 +14,8 @@
 //   standard:              (w, c, f, s, tl)
 
 import { DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS, fusionAvgCoeff } from './constants';
-import { Option, LastTurnGoal, GemState } from './models';
+import type { Option, LastTurnGoal } from './models';
+import { GemState } from './models';
 import { OptionPool } from './pool';
 
 export interface GoalTableOpts {

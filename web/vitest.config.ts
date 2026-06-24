@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { resolve } from 'node:path';
 
 // opencv-dependent test files run in a real browser; everything else in Node.
@@ -7,6 +8,7 @@ import { resolve } from 'node:path';
 // hangs under vitest's Node loader). So they must run in the browser project too,
 // where opencv loads fine. (They don't call initOpenCv — they just can't be in Node.)
 const BROWSER_TESTS = [
+  'tests/app/foundation.test.ts',
   'tests/cv/**/*.test.ts',
   'tests/vision/matcher.test.ts',
   'tests/vision/templates.test.ts',
@@ -34,9 +36,10 @@ export default defineConfig({
         },
       },
       {
-        // BROWSER: opencv-dependent vision tests, in headless Chromium
+        // BROWSER: opencv-dependent vision tests + Svelte component tests, in headless Chromium
         // Note: do NOT exclude @techstark/opencv-js from optimizeDeps; Vite needs
         // to pre-bundle the UMD module to make it importable as ESM in the browser.
+        plugins: [svelte()],
         server: {
           host: '127.0.0.1',
           port: 51000,

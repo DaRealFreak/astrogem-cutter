@@ -1,7 +1,8 @@
 // Port of arkgrid/pool.py (_build_pool + eligible + _can_increase/_can_decrease)
 // Skips: generate_offers, _weighted_* (RNG, out of scope)
 
-import { Option, makeOption, GemState } from './models';
+import type { Option, GemState } from './models';
+import { makeOption } from './models';
 
 export class OptionPool {
   readonly pool: Option[];

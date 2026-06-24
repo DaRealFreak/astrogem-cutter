@@ -11,7 +11,8 @@ import {
   SUPPORT_COEFF,
   SUPPORT_EFFECTS,
 } from './constants';
-import { AstroGem, GemState, LastTurnGoal } from './models';
+import type { AstroGem } from './models';
+import { GemState, LastTurnGoal } from './models';
 import { OptionPool } from './pool';
 import { GoalProbabilityTable, SideValueTable } from './probability';
 import type { DecisionContext } from './decision';

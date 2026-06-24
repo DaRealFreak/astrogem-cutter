@@ -3,19 +3,29 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "tsc -p tsconfig.check.json --noEmit"
+    "check": "svelte-check --tsconfig ./tsconfig.app.json"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "@testing-library/svelte": "^5.2.8",
+    "@tsconfig/svelte": "^5.0.5",
     "@types/node": "^26.0.0",
     "@vitest/browser": "^3.2.4",
     "playwright": "^1.61.1",
+    "svelte": "^5.39.6",
+    "svelte-check": "^4.3.2",
     "typescript": "~5.9.3",
     "vite": "^7.1.12",
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@techstark/opencv-js": "^4.12.0-release.1"
+    "@techstark/opencv-js": "^4.12.0-release.1",
+    "@types/dom-mediacapture-transform": "^0.1.11",
+    "svelte-persisted-state": "^1.2.0"
   }
 }
