@@ -164,6 +164,10 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--animation-delay SECS` | Seconds to wait after each click for animation. Default: `1.0`. |
 | `--dry-run` | Run full detection and decision loop without clicking. |
 
+## Web advisor (in progress)
+
+[`web/`](web/README.md) holds a client-side browser advisor (TypeScript, bound for GitHub Pages) that will watch a shared game screen and show the `auto --dry-run` recommendation plus goal/relic/ancient probabilities and expected coefficient — read-only, no clicking. So far only the **decision engine** (a TypeScript port of the `arkgrid` brains) and its Python golden-vector parity harness exist; screen capture and UI come later. See [`web/README.md`](web/README.md).
+
 ## Documentation
 
 - [Gem types & effects](documentation/gem_types.md) — gem types, effect pools, and priority rankings
