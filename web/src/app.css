@@ -1,38 +1,239 @@
-:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+/* ── Design tokens ────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-6: 1.5rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --border: color-mix(in srgb, currentColor 18%, transparent);
+  --border-subtle: color-mix(in srgb, currentColor 10%, transparent);
+  --muted: color-mix(in srgb, currentColor 60%, transparent);
+
+  /* action badge colors */
+  --action-process: #2a7;
+  --action-reroll: #a70;
+  --action-finish: #27a;
+  --action-reset: #a27;
+  --action-fail: #a00;
+}
+
 * { box-sizing: border-box; }
 body { margin: 0; }
-.app-shell { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
-.app-config { padding: 1rem; border-right: 1px solid color-mix(in srgb, currentColor 18%, transparent); overflow-y: auto; }
-.app-main { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
-@media (max-width: 720px) { .app-shell { grid-template-columns: 1fr; } }
 
-/* CaptureControls */
-.capture-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.capture-controls .status { font-size: 0.85rem; color: color-mix(in srgb, currentColor 60%, transparent); }
-.capture-controls .error { color: #c00; font-size: 0.85rem; }
+/* ── App shell ────────────────────────────────────────────────────────── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 100vh;
+}
+.app-config {
+  padding: var(--sp-4);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.app-config h1 {
+  margin: 0 0 var(--sp-4);
+  font-size: 1.25rem;
+}
+.app-main {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+@media (max-width: 720px) {
+  .app-shell { grid-template-columns: 1fr; }
+}
+
+/* ── BrowserGuard ─────────────────────────────────────────────────────── */
+.browser-guard {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-md);
+  border: 1px solid #a70;
+  background: color-mix(in srgb, #a70 10%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+.card {
+  padding: var(--sp-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+/* ── ConfigPanel ──────────────────────────────────────────────────────── */
+.config { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.config-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  margin: 0;
+}
+.config-section legend,
+.config-section > summary {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  padding: 0 var(--sp-1);
+  cursor: default;
+}
+.config-section > summary { cursor: pointer; padding: 0; }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+.field-row label,
+.field-row .field-label {
+  font-size: 0.875rem;
+}
+.field-row input[type="number"],
+.field-row select {
+  width: 110px;
+  font-size: 0.875rem;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+}
+.field-row input[type="checkbox"] {
+  width: auto;
+  justify-self: end;
+}
+
+/* Segmented toggle */
+.segmented-toggle {
+  display: flex;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.segmented-toggle button {
+  flex: 1;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: 0.8rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.segmented-toggle button:not(:first-child) {
+  border-left: 1px solid var(--border);
+}
+.segmented-toggle button.active {
+  background: color-mix(in srgb, currentColor 15%, transparent);
+  font-weight: 600;
+}
+
+/* Advanced details */
+details.advanced { border-radius: var(--radius-md); }
+details.advanced[open] > summary { margin-bottom: var(--sp-2); }
+
+/* ── CaptureControls ──────────────────────────────────────────────────── */
+.capture-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.capture-controls .status { font-size: 0.85rem; color: var(--muted); }
+.capture-controls .error { color: var(--action-fail); font-size: 0.85rem; }
 canvas.debug { max-width: 100%; display: block; }
 
-/* AdvisorPanel */
+/* ── AdvisorPanel ─────────────────────────────────────────────────────── */
 .advisor.waiting { opacity: 0.6; }
+
+/* badge */
+.badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-sm);
+  border: 2px solid currentColor;
+  margin-bottom: var(--sp-2);
+}
+
+/* action color tokens — used by both badge and matrix rows */
 .action { font-size: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.25rem 0; }
-.action-process { color: #2a7; }
-.action-reroll  { color: #a70; }
-.action-finish  { color: #27a; }
-.action-reset   { color: #a27; }
-.action-fail    { color: #a00; }
-.metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem 1rem; margin: 0; }
+.action-process { color: var(--action-process); }
+.action-reroll  { color: var(--action-reroll); }
+.action-finish  { color: var(--action-finish); }
+.action-reset   { color: var(--action-reset); }
+.action-fail    { color: var(--action-fail); }
+
+/* when used as a badge, inherit size from .badge not .action */
+.action.badge { font-size: 0.8rem; }
+
+.advisor .reason { margin: 0 0 var(--sp-2); font-size: 0.9rem; }
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1) var(--sp-4);
+  margin: 0;
+}
 .metrics > div { display: contents; }
 .metrics dt { font-size: 0.8rem; opacity: 0.7; }
 .metrics dd { margin: 0; font-variant-numeric: tabular-nums; }
 
-/* OfferTable */
-.offers { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.offers th, .offers td { padding: 0.25rem 0.5rem; text-align: left; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
-.offers .favored { background: color-mix(in srgb, #2a7 15%, transparent); font-weight: 600; }
+/* ── ActionMatrix ─────────────────────────────────────────────────────── */
+.action-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.action-matrix th,
+.action-matrix td {
+  padding: var(--sp-1) var(--sp-2);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.action-matrix th { font-size: 0.78rem; font-weight: 600; opacity: 0.7; }
+.action-matrix tr.recommended td { font-weight: 600; }
 
-/* DetectedState */
-.detected { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.15rem 1rem; margin: 0; font-size: 0.85rem; }
+/* ── OfferTable ───────────────────────────────────────────────────────── */
+.offers { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.offers th, .offers td { padding: var(--sp-1) var(--sp-2); text-align: left; border-bottom: 1px solid var(--border-subtle); }
+.offers .favored { background: color-mix(in srgb, var(--action-process) 15%, transparent); font-weight: 600; }
+
+/* ── TurnLog ──────────────────────────────────────────────────────────── */
+.turn-log {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.turn-log th,
+.turn-log td {
+  padding: var(--sp-1) var(--sp-2);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.turn-log th { font-size: 0.78rem; font-weight: 600; opacity: 0.7; }
+p.turn-log.empty { font-size: 0.85rem; opacity: 0.6; margin: 0; }
+
+/* ── DetectedState ────────────────────────────────────────────────────── */
+.detected { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.15rem var(--sp-4); margin: 0; font-size: 0.85rem; }
 .detected > div { display: contents; }
 .detected dt { opacity: 0.65; }
 .detected dd { margin: 0; }
 .detected .score { font-size: 0.75rem; opacity: 0.55; }
+
+/* ── ScreenshotUpload / DebugView canvas ──────────────────────────────── */
+.screenshot-upload { display: flex; align-items: center; gap: var(--sp-2); font-size: 0.85rem; }

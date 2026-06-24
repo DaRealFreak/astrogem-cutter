@@ -5,10 +5,10 @@
 </script>
 
 {#if waiting || !output}
-  <div class="advisor waiting"><p>Waiting for cutting screen…</p></div>
+  <div class="advisor waiting card"><p>Waiting for cutting screen…</p></div>
 {:else}
-  <div class="advisor">
-    <div class="action action-{output.action}">{output.action}</div>
+  <div class="advisor card">
+    <div class="action action-{output.action} badge">{output.action.toUpperCase()}</div>
     <p class="reason">{output.reason}</p>
     <dl class="metrics">
       <div><dt>P(goal)</dt><dd>{pct(output.pGoal)}</dd></div>

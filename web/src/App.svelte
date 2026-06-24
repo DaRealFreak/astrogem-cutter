@@ -4,18 +4,30 @@
   import AdvisorPanel from './components/AdvisorPanel.svelte';
   import OfferTable from './components/OfferTable.svelte';
   import DetectedState from './components/DetectedState.svelte';
+  import BrowserGuard from './components/BrowserGuard.svelte';
+  import ActionMatrix from './components/ActionMatrix.svelte';
+  import TurnLog from './components/TurnLog.svelte';
   import { advisor } from './lib/state/advisor.state.svelte';
+  import { turnLog } from './lib/state/turnLog.state.svelte';
+  import { isCaptureSupported } from './lib/app/captureSupport';
+
+  const supported = isCaptureSupported();
 </script>
 
 <main class="app-shell">
   <aside class="app-config">
-    <h1>Astrogem Advisor</h1>
+    <h1>Astrogem Cutter</h1>
     <ConfigPanel />
   </aside>
   <section class="app-main">
-    <CaptureControls />
+    <BrowserGuard {supported} />
+    <CaptureControls {supported} />
     <AdvisorPanel output={advisor.output} waiting={advisor.waiting} />
+    {#if advisor.output}
+      <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} />
+    {/if}
     {#if advisor.output}<OfferTable perOffer={advisor.output.perOffer} />{/if}
+    <TurnLog entries={turnLog.entries} />
     <DetectedState detection={advisor.detection} />
   </section>
 </main>

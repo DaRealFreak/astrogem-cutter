@@ -7,6 +7,8 @@
   import ScreenshotUpload from './ScreenshotUpload.svelte';
   import DebugView from './DebugView.svelte';
 
+  let { supported = true }: { supported?: boolean } = $props();
+
   let controller: CaptureController | null = null;
   let debugCanvas = $state<HTMLCanvasElement | null>(null);
   let drawDebug = $state(false);
@@ -41,7 +43,7 @@
   {#if advisor.status === 'recording'}
     <button onclick={stop}>Stop</button>
   {:else}
-    <button onclick={start} disabled={advisor.status === 'loading'}>Share screen</button>
+    <button onclick={start} disabled={!supported || advisor.status === 'loading'}>Share screen</button>
   {/if}
   <span class="status">Status: {advisor.status}</span>
   <label><input type="checkbox" checked={drawDebug} onchange={toggleDebug} /> debug</label>
