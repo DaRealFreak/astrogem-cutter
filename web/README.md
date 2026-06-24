@@ -53,6 +53,10 @@ The app deploys to GitHub Pages automatically on push to `master` (when the `fea
 
 The app is **read-only and advisory** — it never controls the game. It watches your shared screen, detects gem stats and offers via OpenCV template matching, runs the DP decision engine, and displays the recommended action and probabilities. You do the clicking in-game.
 
+## Known limitations
+
+**Armed extra-ticket under advanced reroll knobs.** The web advisor is *stateless per frame*: each detected screen is advised independently, with no memory of earlier turns. The Python `auto` loop, by contrast, tracks the extra reroll ticket statefully — when the ticket is merely *armed* (the default, off-but-enableable), `auto` keeps it inactive until an enabler fires mid-run (`--relic-reroll-threshold` P(relic+) crossing, a `--reroll-goal` threshold, or a coeff enabler), then counts it from that point on. The stateless port can't reproduce that mid-run flip, so when you set one of those advanced enablers, the advisor's reroll-budget assumptions can differ slightly from `auto --dry-run` and it may recommend a different action on some frames. **With the defaults (extra ticket armed, `relic-reroll-threshold` 0, no coeff/goal enabler), behavior matches `auto` exactly** — the divergence is confined to those advanced configurations. Because the app only *advises*, the practical impact is a possible reroll-vs-process/finish recommendation difference under those settings; you remain free to reroll manually. A fuller fidelity fix (per-frame ticket-active derivation) is a possible follow-up.
+
 ## The engine API
 
 `buildEngineContext(gem, config)` builds the DP tables once per gem type; `advise(ctx, input)`
