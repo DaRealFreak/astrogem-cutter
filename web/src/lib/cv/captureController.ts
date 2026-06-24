@@ -30,7 +30,9 @@ export class CaptureController {
   private awaitFrameCompletion: (() => void) | null = null;
 
   // external callbacks
-  onDetection: ((result: DetectionResult | null) => void) | null = null;
+  // `source` lets the consumer treat live frames (debounced) and one-shot
+  // uploaded stills (committed immediately) differently.
+  onDetection: ((result: DetectionResult | null, source: 'frame' | 'image') => void) | null = null;
   onStatus: ((s: 'idle' | 'loading' | 'recording') => void) | null = null;
   onError: ((e: StartCaptureErrorType) => void) | null = null;
   onDebug: ((image: ImageBitmap | null, result: DetectionResult | null) => void) | null = null;
@@ -83,7 +85,7 @@ export class CaptureController {
           const onDetection = this.onDetection;
           if (onDetection) {
             queueMicrotask(() => {
-              onDetection(result); // forward null too (UI uses null → "waiting")
+              onDetection(result, 'frame'); // forward null too (UI uses null → "waiting")
             });
           }
         }
@@ -94,7 +96,7 @@ export class CaptureController {
         // loop, so there is no awaitFrameCompletion to release and no
         // 'recording' gate — route unconditionally to onDetection so uploads
         // drive computeAdvice + turnLog.observe just like live frames.
-        this.onDetection?.(data.result ?? null);
+        this.onDetection?.(data.result ?? null, 'image');
         break;
 
       case 'init:error':

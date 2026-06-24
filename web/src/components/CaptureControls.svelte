@@ -1,9 +1,12 @@
 <script lang="ts">
   import { CaptureController } from '../lib/cv/captureController';
   import { computeAdvice } from '../lib/app/computeAdvice';
+  import { isCompleteDetection } from '../lib/app/optimize';
+  import { DetectionStabilizer, detectionSignature } from '../lib/app/detectionStability';
   import { config } from '../lib/state/config.state.svelte';
   import { advisor } from '../lib/state/advisor.state.svelte';
   import { turnLog } from '../lib/state/turnLog.state.svelte';
+  import type { DetectionResult } from '../lib/cv/types';
   import ScreenshotUpload from './ScreenshotUpload.svelte';
   import DebugView from './DebugView.svelte';
 
@@ -13,22 +16,45 @@
   let debugCanvas = $state<HTMLCanvasElement | null>(null);
   let drawDebug = $state(false);
   let debugImage = $state<ImageBitmap | null>(null);
+  // Debounces live frames so the advice + turn log only update on a settled
+  // reading (the game animates ~0.2-0.4s after a turn flips, misreading offers
+  // and side-node levels in between). Uploads bypass it (one-shot).
+  const stabilizer = new DetectionStabilizer();
+
+  /** Update the advisor + turn log from a settled detection. */
+  function commit(det: DetectionResult) {
+    const { ready, output } = computeAdvice(det, config.current, turnLog.resetObserved);
+    if (ready && output) {
+      advisor.detection = det;
+      advisor.output = output;
+      advisor.waiting = false;
+      turnLog.observe(det, output.action, output.pGoal, output.eValue);
+    }
+  }
 
   function ensure(): CaptureController {
     if (controller) return controller;
     const c = new CaptureController(debugCanvas);
     c.onStatus = (s) => { advisor.status = s; };
     c.onError = (e) => { advisor.error = e; advisor.status = 'idle'; };
-    c.onDetection = (det) => {
-      advisor.detection = det;
+    c.onDetection = (det, source) => {
       advisor.error = null;
-      if (!det) { advisor.waiting = true; return; }
-      const { ready, output } = computeAdvice(det, config.current, turnLog.resetObserved);
-      advisor.waiting = !ready;
-      if (ready && output) {
-        advisor.output = output;
-        turnLog.observe(det, output.action, output.pGoal, output.eValue);
+      // Uploaded stills are one-shot — commit immediately, no debounce.
+      if (source === 'image') {
+        stabilizer.reset();
+        if (det) commit(det);
+        else advisor.waiting = true;
+        return;
       }
+      // Live frames: only commit once the reading has settled (anti-flicker).
+      // While unsettled we keep showing the last committed advice rather than
+      // flickering through transient animation-frame misreads.
+      if (!det || !isCompleteDetection(det)) {
+        stabilizer.reset();
+        if (!advisor.output) advisor.waiting = true;
+        return;
+      }
+      if (stabilizer.push(detectionSignature(det))) commit(det);
     };
     c.onDebug = (img) => { debugImage = img; };
     controller = c;

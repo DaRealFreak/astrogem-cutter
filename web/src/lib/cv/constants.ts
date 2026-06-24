@@ -78,6 +78,18 @@ export const ROI_REROLL: Roi = [340, 542, 56, 20];
 export const ROI_PROCESS_STEPS: Roi = [195, 714, 28, 18];
 
 // ---------------------------------------------------------------------------
+// Reset button – the "Reset" label sits on a dark panel below the points text.
+// Availability is read from brightness, not template matching: the glyph is
+// identical when enabled (bright white) and disabled (dim grey), so a
+// brightness-normalised matcher (TM_CCOEFF_NORMED) cannot distinguish them.
+// We measure the fraction of pixels brighter than RESET_BRIGHT_LUMA; enabled
+// ~0.075 of the ROI, disabled ~0.001. On turn 1 the button is always greyed
+// (reset is a no-op), so it reads as unavailable there — correct and harmless.
+export const ROI_RESET_BUTTON: Roi = [41, 200, 82, 22];
+export const RESET_BRIGHT_LUMA = 140; // grayscale value separating white text from grey
+export const RESET_ENABLED_FRACTION = 0.02; // bright-pixel fraction above which reset is enabled
+
+// ---------------------------------------------------------------------------
 // Option name → internal key mapping
 // Maps the display text (as recognized) to our domain option types.
 // ---------------------------------------------------------------------------

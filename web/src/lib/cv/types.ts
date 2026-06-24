@@ -35,6 +35,10 @@ export interface DetectionResult {
   secondLevelScore: number;
   rerolls: string | null;
   rerollsScore: number;
+  /** Reset button availability, read from brightness. Null until anchor found. */
+  resetEnabled?: boolean | null;
+  /** Bright-pixel fraction in the reset ROI (debug/score). */
+  resetScore?: number;
   currentStep: number | null;
   stepScore: number;
   totalSteps: number | null;

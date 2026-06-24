@@ -22,3 +22,24 @@ export function inferResetFromLog(resetObserved: boolean, override: 'auto' | 'al
   if (override === 'never') return false;
   return !resetObserved;
 }
+
+/**
+ * Resolve whether the reset ticket is available for this frame.
+ *
+ * A manual override always wins. Otherwise the reset button's detected
+ * brightness (`detectedResetEnabled`) is authoritative — the in-game button is
+ * greyed once the ticket is spent (and on turn 1, where reset is a no-op), so
+ * the screen tells us directly. The stateless log inference (`!resetObserved`)
+ * is only a fallback for detections that predate brightness detection (e.g. a
+ * fixture without the field).
+ */
+export function resolveResetAvailable(
+  detectedResetEnabled: boolean | null | undefined,
+  resetObserved: boolean,
+  override: 'auto' | 'always' | 'never',
+): boolean {
+  if (override === 'always') return true;
+  if (override === 'never') return false;
+  if (typeof detectedResetEnabled === 'boolean') return detectedResetEnabled;
+  return !resetObserved;
+}

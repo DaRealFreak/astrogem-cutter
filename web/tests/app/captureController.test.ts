@@ -48,6 +48,6 @@ describe('image:done routing', () => {
     dispatch(c, { type: 'image:done', result: null });
 
     expect(onDetection).toHaveBeenCalledTimes(1);
-    expect(onDetection).toHaveBeenCalledWith(null);
+    expect(onDetection).toHaveBeenCalledWith(null, 'image');
   });
 });

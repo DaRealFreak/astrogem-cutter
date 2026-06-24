@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyRunTransition, inferResetFromLog } from '../../src/lib/app/runTransition';
+import { classifyRunTransition, inferResetFromLog, resolveResetAvailable } from '../../src/lib/app/runTransition';
 
 const id = (gemType = 'order_stability', f = 'attack_power', s = 'boss_damage') => ({ gemType, firstEffect: f, secondEffect: s });
 
@@ -26,5 +26,22 @@ describe('inferResetFromLog', () => {
   it('honors always/never', () => {
     expect(inferResetFromLog(true, 'always')).toBe(true);
     expect(inferResetFromLog(false, 'never')).toBe(false);
+  });
+});
+
+describe('resolveResetAvailable', () => {
+  it('detected brightness is authoritative under auto, overriding the log heuristic', () => {
+    // log heuristic would say available (resetObserved=false) but detection says locked
+    expect(resolveResetAvailable(false, false, 'auto')).toBe(false);
+    // log heuristic would say unavailable (resetObserved=true) but detection says available
+    expect(resolveResetAvailable(true, true, 'auto')).toBe(true);
+  });
+  it('falls back to the log heuristic when no detected value is present', () => {
+    expect(resolveResetAvailable(undefined, false, 'auto')).toBe(true);
+    expect(resolveResetAvailable(null, true, 'auto')).toBe(false);
+  });
+  it('manual override wins over detection', () => {
+    expect(resolveResetAvailable(false, false, 'always')).toBe(true);
+    expect(resolveResetAvailable(true, false, 'never')).toBe(false);
   });
 });

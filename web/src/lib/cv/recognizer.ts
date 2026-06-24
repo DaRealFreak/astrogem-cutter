@@ -27,6 +27,9 @@ import {
   ROI_STAT_WILLPOWER,
   ROI_STAT_CHAOS,
   ROI_REROLL,
+  ROI_RESET_BUTTON,
+  RESET_BRIGHT_LUMA,
+  RESET_ENABLED_FRACTION,
   ROI_PROCESS_STEPS,
   ROI_STAT_FIRST,
   ROI_STAT_SECOND,
@@ -118,6 +121,8 @@ function blankResult(): DetectionResult {
     secondLevelScore: 0.0,
     rerolls: null,
     rerollsScore: 0.0,
+    resetEnabled: null,
+    resetScore: 0.0,
     currentStep: null,
     stepScore: 0.0,
     totalSteps: null,
@@ -192,6 +197,23 @@ export function detect(gray: any, store: TemplateStore): DetectionResult {
     result.rerolls = key;
     result.rerollsScore = score;
     crop.delete();
+  }
+
+  // --- Reset button (brightness, not template matching) ---
+  // Mirrors Python `(crop > RESET_BRIGHT_LUMA).mean()`: THRESH_BINARY keeps
+  // pixels strictly greater than the threshold, countNonZero / area = fraction.
+  crop = _cropRoi(gray, ax, ay, ROI_RESET_BUTTON);
+  if (crop !== null) {
+    const dst = new cv.Mat();
+    try {
+      cv.threshold(crop, dst, RESET_BRIGHT_LUMA, 255, cv.THRESH_BINARY);
+      const frac = cv.countNonZero(dst) / (crop.rows * crop.cols);
+      result.resetScore = frac;
+      result.resetEnabled = frac >= RESET_ENABLED_FRACTION;
+    } finally {
+      dst.delete();
+      crop.delete();
+    }
   }
 
   // --- Steps + Rarity (both from same crop) ---

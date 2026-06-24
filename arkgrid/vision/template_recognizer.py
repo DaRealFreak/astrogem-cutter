@@ -76,6 +76,10 @@ class DetectionResult:
     rerolls: Optional[str] = None          # "0_ticket_available", "1", "2", ...
     rerolls_score: float = 0.0
 
+    # Reset button availability (read from brightness, not template matching)
+    reset_enabled: Optional[bool] = None   # None until anchor found
+    reset_score: float = 0.0               # bright-pixel fraction in the ROI
+
     # Turn info
     current_step: Optional[int] = None     # 1-9
     step_score: float = 0.0
@@ -243,6 +247,13 @@ def detect(frame_bgr: np.ndarray) -> DetectionResult:
         key, score = _match(crop, rr_templates, strip_variants=True)
         result.rerolls = key
         result.rerolls_score = score
+
+    # --- Reset button (brightness, not template matching) ---
+    crop = _crop_roi(gray, ax, ay, C.ROI_RESET_BUTTON)
+    if crop is not None:
+        frac = float((crop > C.RESET_BRIGHT_LUMA).mean())
+        result.reset_score = frac
+        result.reset_enabled = frac >= C.RESET_ENABLED_FRACTION
 
     # --- Steps + Rarity (both from same crop) ---
     crop = _crop_roi(gray, ax, ay, C.ROI_PROCESS_STEPS)

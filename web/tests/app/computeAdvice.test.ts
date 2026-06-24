@@ -64,4 +64,18 @@ describe('computeAdvice', () => {
     const { output } = computeAdvice(complete, { ...DEFAULT_CONFIG, resetOverride: 'never' }, false);
     expect(output!.actions.reset).toBeNull();
   });
+
+  it('detected resetEnabled=false locks reset under auto, even with resetObserved=false', () => {
+    // Brightness says the button is greyed → reset unavailable, despite the log
+    // heuristic (resetObserved=false) implying it is still available.
+    const det = { ...complete, resetEnabled: false };
+    const { output } = computeAdvice(det, DEFAULT_CONFIG, false);
+    expect(output!.actions.reset).toBeNull();
+  });
+
+  it('detected resetEnabled=true keeps reset available under auto, even with resetObserved=true', () => {
+    const det = { ...complete, resetEnabled: true };
+    const { output } = computeAdvice(det, DEFAULT_CONFIG, true);
+    expect(output!.actions.reset).not.toBeNull();
+  });
 });

@@ -27,14 +27,14 @@ describe('detect() golden parity', () => {
         found: d.found, gem_type: d.gemType, willpower: d.willpower, chaos: d.chaos,
         first_effect: d.firstEffect, first_level: d.firstLevel,
         second_effect: d.secondEffect, second_level: d.secondLevel,
-        rerolls: d.rerolls, current_step: d.currentStep, total_steps: d.totalSteps,
+        rerolls: d.rerolls, reset_enabled: d.resetEnabled ?? null, current_step: d.currentStep, total_steps: d.totalSteps,
         options: d.options.map((o) => ({ name_key: o.nameKey, delta_key: o.deltaKey })),
       };
       const want = {
         found: e.found, gem_type: e.gem_type, willpower: e.willpower, chaos: e.chaos,
         first_effect: e.first_effect, first_level: e.first_level,
         second_effect: e.second_effect, second_level: e.second_level,
-        rerolls: e.rerolls, current_step: e.current_step, total_steps: e.total_steps,
+        rerolls: e.rerolls, reset_enabled: e.reset_enabled ?? null, current_step: e.current_step, total_steps: e.total_steps,
         options: e.options.map((o: any) => ({ name_key: o.name_key, delta_key: o.delta_key })),
       };
       if (JSON.stringify(got) !== JSON.stringify(want)) {

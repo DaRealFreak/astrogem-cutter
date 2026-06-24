@@ -12,6 +12,7 @@
     <div><dt>1st</dt><dd>{effectLabel(detection.firstEffect) || '—'} Lv{detection.firstLevel ?? '—'}</dd></div>
     <div><dt>2nd</dt><dd>{effectLabel(detection.secondEffect) || '—'} Lv{detection.secondLevel ?? '—'}</dd></div>
     <div><dt>Rerolls</dt><dd>{detection.rerolls ?? '—'}</dd></div>
+    <div><dt>Reset</dt><dd>{detection.resetEnabled == null ? '—' : detection.resetEnabled ? 'available' : 'locked'}</dd></div>
     <div><dt>Step</dt><dd>{detection.currentStep ?? '—'}/{detection.totalSteps ?? '—'}</dd></div>
   </dl>
 {/if}
