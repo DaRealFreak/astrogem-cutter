@@ -53,6 +53,58 @@ The app deploys to GitHub Pages automatically on push to `master` (when the `fea
 
 The app is **read-only and advisory** — it never controls the game. It watches your shared screen, detects gem stats and offers via OpenCV template matching, runs the DP decision engine, and displays the recommended action and probabilities. You do the clicking in-game.
 
+## Features
+
+### Goal-mode toggle
+
+The **Goal Mode** dropdown in the configuration panel supports two modes:
+
+- **Separate (min will + min chaos):** Independent targets for will and chaos levels. E.g., min will = 4, min chaos = 5.
+- **Combined (min total will+chaos):** A single combined target for the sum of will and chaos. E.g., min total = 9 means will + chaos ≥ 9.
+
+The advisor recalculates probabilities and recommendations automatically when you switch modes.
+
+### Info matrix (Action Decision Panel)
+
+After analyzing a detected screen, the advisor displays an **Action Decision Panel** matrix with four metrics across three actions (Process / Reroll / Reset):
+
+- **P(Goal):** Probability of achieving your configured goal from the current state.
+- **P(Relic+):** Probability of reaching relic+ grade (total points ≥ 16) by gem completion.
+- **P(Ancient):** Probability of reaching ancient grade (total points ≥ 19) by gem completion.
+- **E[Coeff]:** Expected side-coefficient value of the final gem.
+
+The **recommended row** (from the DP engine) is **highlighted** to draw your attention. Use this matrix to evaluate risk/reward trade-offs; the advisor shows all three paths so you can override if you prefer a different risk tolerance.
+
+### Turn log and reset inference
+
+The **Turn Log** panel records every detected turn in your session:
+
+- Each entry shows the turn number, gem stats, offers, detected action, and the branch reason.
+- **Reset availability** is **inferred from the log:** by default, you have one reset ticket available until you observe a reset being used. The advisor tracks whether a reset is still available based on the session history.
+- **Heuristic limits:** The inference has two known edge cases:
+  - **Identical back-to-back gems:** Two consecutive detected screens with the same gem stats may be interpreted as a reset (if in-game UI quirk causes a re-detection); this can slightly miscount reset availability.
+  - **Mid-run joins:** If you start advising mid-run (joining an existing gem), the advisor defaults reset as available. You can override this if you know the reset was already used.
+- **Manual override:** The **resetOverride** dropdown (under the Capture controls) lets you manually set reset availability to:
+  - **Auto:** Infer from the session log (default).
+  - **Always:** Assume the reset ticket is always available.
+  - **Never:** Assume no reset ticket is available.
+
+### Debug view and screenshot upload
+
+Behind an optional **Debug** toggle in the Capture controls:
+
+- **Screen Mirror + ROI Overlays:** When live capture is active, the debug panel mirrors your captured screen with OpenCV detection overlays — bounding boxes for gem stats, options, buttons, and effect ROI regions. This helps verify that detection is working correctly.
+- **Screenshot Upload:** A file input to upload a `.png` screenshot (e.g., a saved frame of your game) runs the same detect→advise pipeline on the still image. Useful for testing without a live share or replaying specific scenarios.
+
+### Chromium-only requirement
+
+The advisor requires a **Chromium-based browser** (Chrome, Edge, Opera, Brave) for full functionality:
+
+- **Screen capture API:** Used to record your shared screen or capture window.
+- **OffscreenCanvas + WebWorker:** Used to run the OpenCV.js template-matching pipeline off the main thread without blocking the UI.
+
+**If you open the app in Firefox or Safari,** a guidance banner appears asking you to use a Chromium browser. The app displays read-only results if detection fails, but live capture and advisor features are unavailable in those browsers.
+
 ## Known limitations
 
 **Armed extra-ticket under advanced reroll knobs.** The web advisor is *stateless per frame*: each detected screen is advised independently, with no memory of earlier turns. The Python `auto` loop, by contrast, tracks the extra reroll ticket statefully — when the ticket is merely *armed* (the default, off-but-enableable), `auto` keeps it inactive until an enabler fires mid-run (`--relic-reroll-threshold` P(relic+) crossing, a `--reroll-goal` threshold, or a coeff enabler), then counts it from that point on. The stateless port can't reproduce that mid-run flip, so when you set one of those advanced enablers, the advisor's reroll-budget assumptions can differ slightly from `auto --dry-run` and it may recommend a different action on some frames. **With the defaults (extra ticket armed, `relic-reroll-threshold` 0, no coeff/goal enabler), behavior matches `auto` exactly** — the divergence is confined to those advanced configurations. Because the app only *advises*, the practical impact is a possible reroll-vs-process/finish recommendation difference under those settings; you remain free to reroll manually. A fuller fidelity fix (per-frame ticket-active derivation) is a possible follow-up.
