@@ -610,6 +610,12 @@ export class GoalProbabilityTable {
   // Public API
   // ------------------------------------------------------------------
 
+  /** Reroll budget the table was built with (mirrors Python `_max_rerolls`,
+   *  read by `decision.compute_post_roll_metrics`). */
+  get maxRerolls(): number {
+    return this._maxRerolls;
+  }
+
   lookup(state: GemState, turnsLeft: number, rerolls?: number): number {
     if (this.effectAware) {
       const idx = this._effectIndices(state);
