@@ -288,22 +288,17 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
   const probT = dc.probTable, relicT = ctx._relicProbTable, ancientT = ctx._ancientProbTable, sideT = ctx._sideValueTable;
   const tlAfter = turnsLeft - 1;
 
-  // process = best offer (max goal-after, tie-break value-after)
-  let processM: ActionMetrics | null = null;
-  if (offers.length > 0) {
-    let best = offers[0]!, bestG = -1, bestV = -1;
-    for (const o of offers) {
-      const g = probT.expectedProbAfterClick(state, [o], tlAfter, rerolls);
-      const v = sideT.expectedValueAfterClick(state, [o], tlAfter);
-      if (g > bestG || (g === bestG && v > bestV)) { best = o; bestG = g; bestV = v; }
-    }
-    processM = {
-      pGoal: bestG,
-      pRelic: relicT.expectedProbAfterClick(state, [best], tlAfter, rerolls),
-      pAncient: ancientT.expectedProbAfterClick(state, [best], tlAfter, rerolls),
-      eValue: bestV,
-    };
-  }
+  // process = expected outcome of clicking. The game applies a uniformly-random
+  // one of the 4 offers (simulator.py: rng.choice(offers)), so this is the
+  // AVERAGE over the offers — not the best single offer. The per-offer table
+  // above shows each individual outcome (the spread). Matches the keep value
+  // the reroll decision compares against.
+  const processM: ActionMetrics | null = offers.length > 0 ? {
+    pGoal: probT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
+    pRelic: relicT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
+    pAncient: ancientT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
+    eValue: sideT.expectedValueAfterClick(state, offers, tlAfter),
+  } : null;
 
   // reroll = same state, one reroll spent (state/turnsLeft unchanged → side value unchanged)
   const rerollM: ActionMetrics | null = rerolls > 0 ? {

@@ -307,8 +307,10 @@ def export_actions():
     """Export per-action (process/reroll/reset) metrics for a handful of cases.
 
     Mirrors the TS actions projection in advise():
-      - process: best offer (max expected_prob_after_click for goal); reports
-        pGoal/pRelic/pAncient/eValue for that best offer.
+      - process: expected outcome of clicking — a uniformly-random offer is
+        applied (simulator.py rng.choice), so this is the AVERAGE over the
+        offers (expected_prob_after_click / expected_value_after_click on the
+        full offer set), not the best single offer.
       - reroll: lookup(state, turnsLeft, rerolls-1); eValue = lookup(state, turnsLeft)
         (unchanged because reroll doesn't change state/turnsLeft).
       - reset: lookup(fresh_state, turns_total, base_rerolls) across all tables.
@@ -350,25 +352,14 @@ def export_actions():
 
                     tl_after = max(0, tl - 1)
 
-                    # process = best offer by pGoal (tie-break eValue)
-                    best_g = -1.0
-                    best_v = -1.0
-                    best_offer = offers[0] if offers else None
-                    for o in offers:
-                        g_val = roll.expected_prob_after_click(st, [o], tl_after, rerolls=r)
-                        v_val = svt.expected_value_after_click(st, [o], tl_after)
-                        if g_val > best_g or (g_val == best_g and v_val > best_v):
-                            best_g = g_val
-                            best_v = v_val
-                            best_offer = o
-
-                    if offers and best_offer is not None:
+                    # process = expected outcome of clicking (a uniformly-random
+                    # offer is applied) → average over the offers, not the best.
+                    if offers:
                         process_rec = {
-                            "pGoal": best_g,
-                            "pRelic": relic.expected_prob_after_click(st, [best_offer], tl_after, rerolls=r),
-                            "pAncient": anc.expected_prob_after_click(st, [best_offer], tl_after, rerolls=r),
-                            "eValue": best_v,
-                            "bestOfferKey": best_offer.key,
+                            "pGoal": roll.expected_prob_after_click(st, offers, tl_after, rerolls=r),
+                            "pRelic": relic.expected_prob_after_click(st, offers, tl_after, rerolls=r),
+                            "pAncient": anc.expected_prob_after_click(st, offers, tl_after, rerolls=r),
+                            "eValue": svt.expected_value_after_click(st, offers, tl_after),
                         }
                     else:
                         process_rec = None

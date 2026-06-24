@@ -42,11 +42,18 @@ describe('advise().actions', () => {
     expect(out.actions.reroll!.pGoal).toBeGreaterThanOrEqual(0);
   });
 
-  it('process picks the best offer (max pGoal)', () => {
-    const out1 = advise(ctx, { state, offers: [byKey.get('will+1')!, byKey.get('chaos+1')!], turn: 3, turnsLeft: 5, rerolls: 1, resetAvailable: false });
-    // process should never have a lower pGoal than the individual offers
-    expect(out1.actions.process!.pGoal).toBeGreaterThanOrEqual(0);
-    expect(out1.actions.process!.pGoal).toBeLessThanOrEqual(1);
+  it('process is the expected (average) outcome over the offers, not the best', () => {
+    // A uniformly-random offer is applied, so process pGoal must equal the mean
+    // of the per-offer "P(goal) after" values — and be ≤ the best single offer.
+    const offs = [byKey.get('will+1')!, byKey.get('chaos+1')!];
+    const out1 = advise(ctx, { state, offers: offs, turn: 3, turnsLeft: 5, rerolls: 1, resetAvailable: false });
+    const mean = out1.perOffer.reduce((a, o) => a + o.pGoalAfter, 0) / out1.perOffer.length;
+    const best = Math.max(...out1.perOffer.map((o) => o.pGoalAfter));
+    expect(out1.actions.process!.pGoal).toBeCloseTo(mean, 9);
+    expect(out1.actions.process!.eValue).toBeCloseTo(
+      out1.perOffer.reduce((a, o) => a + o.eValueAfter, 0) / out1.perOffer.length, 9);
+    // sanity: the average is no greater than the best (and they differ when offers differ)
+    expect(out1.actions.process!.pGoal).toBeLessThanOrEqual(best + 1e-9);
   });
 
   it('reset reflects fresh state at full budget', () => {

@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "7dc45b1"
+  "arkgrid_sha": "8204cc9"
  },
  "records": [
   {
@@ -35,11 +35,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.2983386332215613,
-     "pRelic": 0.3848490522242692,
-     "pAncient": 0.03351593481965616,
-     "eValue": 916.5796732697008,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.18939496025268862,
+     "pRelic": 0.20224442933857117,
+     "pAncient": 0.012401248134051213,
+     "eValue": 497.46863485273457
     },
     "reroll": null,
     "reset": {
@@ -81,11 +80,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.3899193220000119,
-     "pRelic": 0.5933887828104845,
-     "pAncient": 0.0778684765968115,
-     "eValue": 916.5796732697008,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.2631955325519917,
+     "pRelic": 0.3442187298392691,
+     "pAncient": 0.030296884637114434,
+     "eValue": 497.46863485273457
     },
     "reroll": {
      "pGoal": 0.14060103413775973,
@@ -132,11 +130,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.4672922166737853,
-     "pRelic": 0.7416034437215464,
-     "pAncient": 0.13425321379856262,
-     "eValue": 916.5796732697008,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.33070888131172804,
+     "pRelic": 0.4666946358220957,
+     "pAncient": 0.054293525230214766,
+     "eValue": 497.46863485273457
     },
     "reroll": {
      "pGoal": 0.21474061945576864,
@@ -186,8 +183,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": null,
     "reset": {
@@ -232,8 +228,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": {
      "pGoal": 0.0,
@@ -283,8 +278,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": {
      "pGoal": 0.0,
@@ -331,11 +325,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.836647744666597,
-     "pAncient": 0.2550821796199231,
-     "eValue": 4004.809047491253,
-     "bestOfferKey": "chaos+1"
+     "pGoal": 0.6413446870053043,
+     "pRelic": 0.736359021322003,
+     "pAncient": 0.1683195252616861,
+     "eValue": 2589.5512430546614
     },
     "reroll": null,
     "reset": {
@@ -377,11 +370,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9347205485117001,
-     "pAncient": 0.4429570551344839,
-     "eValue": 4004.809047491253,
-     "bestOfferKey": "chaos+1"
+     "pGoal": 0.7298463816174696,
+     "pRelic": 0.8799296127745466,
+     "pAncient": 0.31218381596769146,
+     "eValue": 2589.5512430546614
     },
     "reroll": {
      "pGoal": 0.69808194463297,
@@ -428,11 +420,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9755421986006626,
-     "pAncient": 0.6052484570557428,
-     "eValue": 4004.809047491253,
-     "bestOfferKey": "chaos+1"
+     "pGoal": 0.7892658218638589,
+     "pRelic": 0.9494674999612827,
+     "pAncient": 0.45155372094798585,
+     "eValue": 2589.5512430546614
     },
     "reroll": {
      "pGoal": 0.8011324066532792,
@@ -479,11 +470,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.25,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 1200.0,
-     "bestOfferKey": "chaos+1"
+     "eValue": 300.0
     },
     "reroll": null,
     "reset": {
@@ -525,11 +515,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.25,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 1200.0,
-     "bestOfferKey": "chaos+1"
+     "eValue": 300.0
     },
     "reroll": {
      "pGoal": 0.15051679586563307,
@@ -576,11 +565,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.25,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 1200.0,
-     "bestOfferKey": "chaos+1"
+     "eValue": 300.0
     },
     "reroll": {
      "pGoal": 0.27837828589360947,
@@ -627,11 +615,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9612428440667388,
-     "pAncient": 0.5489121486780109,
-     "eValue": 5120.460693675141,
-     "bestOfferKey": "first+2"
+     "pGoal": 0.924326823697397,
+     "pRelic": 0.893079978780392,
+     "pAncient": 0.37982164859559814,
+     "eValue": 4226.213111702006
     },
     "reroll": null,
     "reset": {
@@ -673,11 +660,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9877827860078195,
-     "pAncient": 0.722693215849497,
-     "eValue": 5120.460693675141,
-     "bestOfferKey": "first+2"
+     "pGoal": 0.9486393344931995,
+     "pRelic": 0.959085409992121,
+     "pAncient": 0.5642983532537753,
+     "eValue": 4226.213111702006
     },
     "reroll": {
      "pGoal": 1.0,
@@ -724,11 +710,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9961820361428975,
-     "pAncient": 0.8329491122704816,
-     "eValue": 5120.460693675141,
-     "bestOfferKey": "first+2"
+     "pGoal": 0.9631477268705534,
+     "pRelic": 0.9851066243769768,
+     "pAncient": 0.7059338688169016,
+     "eValue": 4226.213111702006
     },
     "reroll": {
      "pGoal": 1.0,
@@ -775,11 +760,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pGoal": 0.75,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 4844.0,
-     "bestOfferKey": "first+2"
+     "eValue": 2622.0
     },
     "reroll": null,
     "reset": {
@@ -821,11 +805,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pGoal": 0.75,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 4844.0,
-     "bestOfferKey": "first+2"
+     "eValue": 2622.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -872,11 +855,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pGoal": 0.75,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 4844.0,
-     "bestOfferKey": "first+2"
+     "eValue": 2622.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -922,11 +904,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.6497200862045154,
-     "pRelic": 0.13091100026784497,
-     "pAncient": 0.0030505425758280418,
-     "eValue": 1410.151805700482,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.3614218191683764,
+     "pRelic": 0.0488165520231846,
+     "pAncient": 0.0008931402134308291,
+     "eValue": 712.685503999081
     },
     "reroll": null,
     "reset": {
@@ -967,11 +948,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.7659015935862233,
-     "pRelic": 0.2549615396676605,
-     "pAncient": 0.008654607005890757,
-     "eValue": 1410.151805700482,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.4711261865404831,
+     "pRelic": 0.10023992675285835,
+     "pAncient": 0.002614473542495884,
+     "eValue": 712.685503999081
     },
     "reroll": {
      "pGoal": 0.22191994938274853,
@@ -1017,11 +997,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.8284449409404451,
-     "pRelic": 0.3734360376616871,
-     "pAncient": 0.01745198872310751,
-     "eValue": 1410.151805700482,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.5548393486868146,
+     "pRelic": 0.1541952091537535,
+     "pAncient": 0.005410184641530905,
+     "eValue": 712.685503999081
     },
     "reroll": {
      "pGoal": 0.33342988722957845,
@@ -1070,8 +1049,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": null,
     "reset": {
@@ -1115,8 +1093,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": {
      "pGoal": 0.0,
@@ -1165,8 +1142,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": {
      "pGoal": 0.0,
@@ -1212,11 +1188,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.7153458288791863,
-     "pAncient": 0.09296133694117337,
-     "eValue": 4158.650320124593,
-     "bestOfferKey": "will+1"
+     "pGoal": 0.8903899806000557,
+     "pRelic": 0.5448581356614826,
+     "pAncient": 0.05044585066129116,
+     "eValue": 3330.252170650852
     },
     "reroll": null,
     "reset": {
@@ -1257,11 +1232,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.882761482609356,
-     "pAncient": 0.20216848647959798,
-     "eValue": 4158.650320124593,
-     "bestOfferKey": "will+1"
+     "pGoal": 0.9438908326802711,
+     "pRelic": 0.7496755731460714,
+     "pAncient": 0.1125853820452299,
+     "eValue": 3330.252170650852
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1307,11 +1281,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9527792306913896,
-     "pAncient": 0.31973815737693484,
-     "eValue": 4158.650320124593,
-     "bestOfferKey": "will+1"
+     "pGoal": 0.9660504857218739,
+     "pRelic": 0.8697420030000684,
+     "pAncient": 0.1823045484822945,
+     "eValue": 3330.252170650852
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1357,11 +1330,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.5,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 2100.0,
-     "bestOfferKey": "will+1"
+     "eValue": 1050.0
     },
     "reroll": null,
     "reset": {
@@ -1402,11 +1374,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.5,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 2100.0,
-     "bestOfferKey": "will+1"
+     "eValue": 1050.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1452,11 +1423,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.5,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 2100.0,
-     "bestOfferKey": "will+1"
+     "eValue": 1050.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1503,10 +1473,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 0.9474877299064126,
-     "pAncient": 0.4487651557083789,
-     "eValue": 5734.0,
-     "bestOfferKey": "first+2"
+     "pRelic": 0.8211491401306805,
+     "pAncient": 0.2382828105538367,
+     "eValue": 4791.397981753657
     },
     "reroll": null,
     "reset": {
@@ -1548,10 +1517,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 0.9844336714371597,
-     "pAncient": 0.6408276748612398,
-     "eValue": 5734.0,
-     "bestOfferKey": "first+2"
+     "pRelic": 0.9298397548503868,
+     "pAncient": 0.3922298822089805,
+     "eValue": 4791.397981753657
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1598,10 +1566,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 0.9949028934853557,
-     "pAncient": 0.76652070951368,
-     "eValue": 5734.0,
-     "bestOfferKey": "first+2"
+     "pRelic": 0.9724821711451519,
+     "pAncient": 0.5193308177144116,
+     "eValue": 4791.397981753657
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1648,10 +1615,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 5734.0,
-     "bestOfferKey": "first+2"
+     "eValue": 3742.0
     },
     "reroll": null,
     "reset": {
@@ -1693,10 +1659,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 5734.0,
-     "bestOfferKey": "first+2"
+     "eValue": 3742.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1743,10 +1708,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 5734.0,
-     "bestOfferKey": "first+2"
+     "eValue": 3742.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -1793,11 +1757,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.5570114650060692,
-     "pRelic": 0.3848490522242692,
-     "pAncient": 0.03351593481965616,
-     "eValue": 2530.943028891625,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.37126635502509936,
+     "pRelic": 0.20224442933857117,
+     "pAncient": 0.012401248134051213,
+     "eValue": 1486.3156039182825
     },
     "reroll": null,
     "reset": {
@@ -1839,11 +1802,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.6640115525879777,
-     "pRelic": 0.5933887828104845,
-     "pAncient": 0.0778684765968115,
-     "eValue": 2530.943028891625,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.4735883831453666,
+     "pRelic": 0.3442187298392691,
+     "pAncient": 0.030296884637114434,
+     "eValue": 1486.3156039182825
     },
     "reroll": {
      "pGoal": 0.27193913887627663,
@@ -1890,11 +1852,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 0.7375832223621187,
-     "pRelic": 0.7416034437215464,
-     "pAncient": 0.13425321379856262,
-     "eValue": 2530.943028891625,
-     "bestOfferKey": "will+3"
+     "pGoal": 0.5530604827651654,
+     "pRelic": 0.4666946358220957,
+     "pAncient": 0.054293525230214766,
+     "eValue": 1486.3156039182825
     },
     "reroll": {
      "pGoal": 0.3822406271279926,
@@ -1944,8 +1905,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": null,
     "reset": {
@@ -1990,8 +1950,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": {
      "pGoal": 0.0,
@@ -2041,8 +2000,7 @@
      "pGoal": 0.0,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 0.0,
-     "bestOfferKey": "will+1"
+     "eValue": 0.0
     },
     "reroll": {
      "pGoal": 0.0,
@@ -2089,11 +2047,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.836647744666597,
-     "pAncient": 0.2550821796199231,
-     "eValue": 6424.933685857135,
-     "bestOfferKey": "will+1"
+     "pGoal": 0.8661879927076739,
+     "pRelic": 0.736359021322003,
+     "pAncient": 0.1683195252616861,
+     "eValue": 5333.945449787915
     },
     "reroll": null,
     "reset": {
@@ -2135,11 +2092,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9347205485117001,
-     "pAncient": 0.4429570551344839,
-     "eValue": 6424.933685857135,
-     "bestOfferKey": "will+1"
+     "pGoal": 0.9181497163220032,
+     "pRelic": 0.8799296127745466,
+     "pAncient": 0.31218381596769146,
+     "eValue": 5333.945449787915
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2186,11 +2142,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
-     "pRelic": 0.9755421986006626,
-     "pAncient": 0.6052484570557428,
-     "eValue": 6424.933685857135,
-     "bestOfferKey": "will+1"
+     "pGoal": 0.9444017487493883,
+     "pRelic": 0.9494674999612827,
+     "pAncient": 0.45155372094798585,
+     "eValue": 5333.945449787915
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2237,11 +2192,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.5,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 3200.0,
-     "bestOfferKey": "will+1"
+     "eValue": 1600.0
     },
     "reroll": null,
     "reset": {
@@ -2283,11 +2237,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.5,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 3200.0,
-     "bestOfferKey": "will+1"
+     "eValue": 1600.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2334,11 +2287,10 @@
    },
    "expected": {
     "process": {
-     "pGoal": 1.0,
+     "pGoal": 0.5,
      "pRelic": 0.0,
      "pAncient": 0.0,
-     "eValue": 3200.0,
-     "bestOfferKey": "will+1"
+     "eValue": 1600.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2386,10 +2338,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 0.9612428440667388,
-     "pAncient": 0.5489121486780109,
-     "eValue": 7689.062134041184,
-     "bestOfferKey": "first+2"
+     "pRelic": 0.893079978780392,
+     "pAncient": 0.37982164859559814,
+     "eValue": 6970.882622871389
     },
     "reroll": null,
     "reset": {
@@ -2432,10 +2383,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 0.9877827860078195,
-     "pAncient": 0.722693215849497,
-     "eValue": 7689.062134041184,
-     "bestOfferKey": "first+2"
+     "pRelic": 0.959085409992121,
+     "pAncient": 0.5642983532537753,
+     "eValue": 6970.882622871389
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2483,10 +2433,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 0.9961820361428975,
-     "pAncient": 0.8329491122704816,
-     "eValue": 7689.062134041184,
-     "bestOfferKey": "first+2"
+     "pRelic": 0.9851066243769768,
+     "pAncient": 0.7059338688169016,
+     "eValue": 6970.882622871389
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2534,10 +2483,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 6844.0,
-     "bestOfferKey": "first+2"
+     "eValue": 4922.0
     },
     "reroll": null,
     "reset": {
@@ -2580,10 +2528,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 6844.0,
-     "bestOfferKey": "first+2"
+     "eValue": 4922.0
     },
     "reroll": {
      "pGoal": 1.0,
@@ -2631,10 +2578,9 @@
    "expected": {
     "process": {
      "pGoal": 1.0,
-     "pRelic": 1.0,
+     "pRelic": 0.5,
      "pAncient": 0.0,
-     "eValue": 6844.0,
-     "bestOfferKey": "first+2"
+     "eValue": 4922.0
     },
     "reroll": {
      "pGoal": 1.0,
