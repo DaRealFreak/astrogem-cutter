@@ -71,7 +71,7 @@ export interface AdvisorInput {
 }
 
 export interface AdvisorOutput {
-  action: string;
+  action: ActionKind;
   branch: string;
   reason: string;
   pGoal: number;
