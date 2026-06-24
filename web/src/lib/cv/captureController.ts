@@ -273,6 +273,12 @@ export class CaptureController {
     return this.drawDebug;
   }
 
+  /** Set the debug-overlay flag explicitly (lets the UI default it on). */
+  setDrawDebug(on: boolean) {
+    this.drawDebug = on;
+    return this.drawDebug;
+  }
+
   /** Ensure the worker is created and initialized (idempotent). */
   private async ensureWorkerReady(): Promise<void> {
     if (!this.worker) {

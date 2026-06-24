@@ -13,8 +13,8 @@
   let { supported = true }: { supported?: boolean } = $props();
 
   let controller: CaptureController | null = null;
-  let debugCanvas = $state<HTMLCanvasElement | null>(null);
-  let drawDebug = $state(false);
+  // Debug screen-mirror is shown by default so the user can see what's detected.
+  let drawDebug = $state(true);
   let debugImage = $state<ImageBitmap | null>(null);
   // Debounces live frames so the advice + turn log only update on a settled
   // reading (the game animates ~0.2-0.4s after a turn flips, misreading offers
@@ -34,7 +34,8 @@
 
   function ensure(): CaptureController {
     if (controller) return controller;
-    const c = new CaptureController(debugCanvas);
+    const c = new CaptureController();
+    c.setDrawDebug(drawDebug); // honor the default-on UI state
     c.onStatus = (s) => { advisor.status = s; };
     c.onError = (e) => { advisor.error = e; advisor.status = 'idle'; };
     c.onDetection = (det, source) => {
@@ -66,17 +67,24 @@
 </script>
 
 <div class="capture-controls">
-  {#if advisor.status === 'recording'}
-    <button onclick={stop}>Stop</button>
-  {:else}
-    <button onclick={start} disabled={!supported || advisor.status === 'loading'}>Share screen</button>
-  {/if}
-  <span class="status">Status: {advisor.status}</span>
-  <label><input type="checkbox" checked={drawDebug} onchange={toggleDebug} /> debug</label>
-  {#if advisor.error}<span class="error">{advisor.error}</span>{/if}
-  <canvas class="debug" bind:this={debugCanvas} hidden={!drawDebug}></canvas>
+  <div class="capture-bar">
+    {#if advisor.status === 'recording'}
+      <button onclick={stop}>Stop</button>
+    {:else}
+      <button onclick={start} disabled={!supported || advisor.status === 'loading'}>Share screen</button>
+    {/if}
+    <span class="status">Status: {advisor.status}</span>
+    <label class="debug-toggle"><input type="checkbox" checked={drawDebug} onchange={toggleDebug} /> debug view</label>
+    {#if advisor.error}<span class="error">{advisor.error}</span>{/if}
+  </div>
   {#if drawDebug}
-    <ScreenshotUpload onfile={(b) => ensure().analyzeImage(b)} />
-    <DebugView image={debugImage} />
+    <div class="debug-screen">
+      {#if debugImage}
+        <DebugView image={debugImage} />
+      {:else}
+        <p class="debug-hint">Share your screen (or upload a screenshot below) to see what's detected.</p>
+      {/if}
+      <ScreenshotUpload onfile={(b) => ensure().analyzeImage(b)} />
+    </div>
   {/if}
 </div>

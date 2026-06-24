@@ -50,6 +50,19 @@ body { margin: 0; }
   gap: var(--sp-4);
 }
 
+/* Two-column workspace: debug screen-mirror on the left, advice + tables on the right. */
+.main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-6);
+  align-items: start;
+}
+.main-left { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.main-right { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 720px) {
   .app-shell { grid-template-columns: 1fr; }
   .app-main { overflow-x: hidden; }
@@ -164,10 +177,32 @@ details.advanced { border-radius: var(--radius-md); }
 details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 
 /* ── CaptureControls ──────────────────────────────────────────────────── */
-.capture-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.capture-controls { display: flex; flex-direction: column; gap: var(--sp-3); }
+.capture-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .capture-controls .status { font-size: 0.85rem; color: var(--muted); }
 .capture-controls .error { color: var(--action-fail); font-size: 0.85rem; }
-canvas.debug { max-width: min(480px, 100%); height: auto; display: block; }
+.debug-toggle { font-size: 0.85rem; display: inline-flex; align-items: center; gap: var(--sp-1); }
+
+/* Debug screen-mirror — fills the left column so it reads clearly. */
+.debug-screen { display: flex; flex-direction: column; gap: var(--sp-2); }
+.debug-screen canvas {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+.debug-hint {
+  margin: 0;
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
 
 /* ── AdvisorPanel ─────────────────────────────────────────────────────── */
 .advisor.waiting { opacity: 0.6; }
@@ -267,11 +302,16 @@ p.turn-log.empty { font-size: 0.85rem; opacity: 0.6; margin: 0; }
 .detected dd { margin: 0; font-weight: 500; white-space: nowrap; }
 .detected .score { font-size: 0.75rem; opacity: 0.55; }
 
-/* ── ScreenshotUpload / DebugView canvas ──────────────────────────────── */
+/* ── ScreenshotUpload ─────────────────────────────────────────────────── */
 .screenshot-upload { display: flex; align-items: center; gap: var(--sp-2); font-size: 0.85rem; }
-.screenshot-upload canvas,
-.capture-controls canvas {
-  max-width: min(480px, 100%);
-  height: auto;
-  display: block;
+
+/* ── Slider field (percentage thresholds) ─────────────────────────────── */
+.slider-field { display: flex; align-items: center; gap: var(--sp-2); justify-self: end; }
+.slider-field input[type="range"] { width: 120px; accent-color: var(--action-process); }
+.slider-value {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  min-width: 3.5ch;
+  text-align: right;
 }

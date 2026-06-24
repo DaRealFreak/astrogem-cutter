@@ -33,30 +33,30 @@
 
     {#if c.current.goalMode !== 'combined'}
       <div class="field-row">
-        <label for="min-will">Min will</label>
+        <label for="min-will" title="Lowest willpower level (1–5) the finished gem must reach.">Min will</label>
         <input id="min-will" type="number" min="0" max="5" bind:value={c.current.minWill} />
       </div>
       <div class="field-row">
-        <label for="min-chaos">Min chaos</label>
+        <label for="min-chaos" title="Lowest chaos level (1–5) the finished gem must reach.">Min chaos</label>
         <input id="min-chaos" type="number" min="0" max="5" bind:value={c.current.minChaos} />
       </div>
     {:else}
       <div class="field-row">
-        <label for="min-will-chaos-total">Min will+chaos</label>
+        <label for="min-will-chaos-total" title="Lowest combined willpower + chaos the finished gem must reach (each caps at 5, so 10 max).">Min will+chaos</label>
         <input id="min-will-chaos-total" type="number" min="0" max="10" bind:value={c.current.minWillChaosTotal} />
       </div>
     {/if}
 
     <div class="field-row">
-      <label for="min-first">Min 1st node</label>
+      <label for="min-first" title="Lowest level for the 1st side-node effect (0 = no constraint).">Min 1st node</label>
       <input id="min-first" type="number" min="0" max="5" bind:value={c.current.minFirst} />
     </div>
     <div class="field-row">
-      <label for="min-second">Min 2nd node</label>
+      <label for="min-second" title="Lowest level for the 2nd side-node effect (0 = no constraint).">Min 2nd node</label>
       <input id="min-second" type="number" min="0" max="5" bind:value={c.current.minSecond} />
     </div>
     <div class="field-row">
-      <label for="min-side-coeff">Min side coeff</label>
+      <label for="min-side-coeff" title="Lowest coefficient-weighted side-node total (Σ effect coefficient × level). Use instead of per-node levels to value side nodes by worth.">Min side coeff</label>
       <input id="min-side-coeff" type="number" min="0" step="any" bind:value={c.current.minSideCoeff} />
     </div>
   </fieldset>
@@ -94,8 +94,11 @@
         value={c.current.endgameRisk ?? ''} oninput={(e) => c.current.endgameRisk = e.currentTarget.value === '' ? null : +e.currentTarget.value} />
     </div>
     <div class="field-row">
-      <label for="relic-reroll-threshold">Relic reroll threshold</label>
-      <input id="relic-reroll-threshold" type="number" min="0" max="1" step="any" bind:value={c.current.relicRerollThreshold} />
+      <label for="relic-reroll-threshold" title="Worthiness bar on P(relic+). Enables the extra reroll ticket once relic-grade odds cross it, and on a dead goal finishes the gem when odds fall below it. 0% disables both.">Relic reroll threshold</label>
+      <div class="slider-field">
+        <input id="relic-reroll-threshold" type="range" min="0" max="1" step="0.05" bind:value={c.current.relicRerollThreshold} />
+        <span class="slider-value">{Math.round((c.current.relicRerollThreshold ?? 0) * 100)}%</span>
+      </div>
     </div>
     <div class="field-row">
       <label for="force-reroll-no-progress">Force reroll no-progress</label>
