@@ -1,20 +1,20 @@
 import type { DetectionResult } from '../cv/types';
 import { detectionToEngineInputs } from '../cv/adapter';
 import { buildEngineContext, advise, type EngineContext, type AdvisorOutput } from '../engine';
-import { isCompleteDetection, inferResetAvailable } from './optimize';
+import { isCompleteDetection } from './optimize';
+import { inferResetFromLog } from './runTransition';
 import { effectiveConfig, type AdvisorStoredConfig } from '../state/config';
 
 let cache: { key: string; ctx: EngineContext } | null = null;
 export function resetAdviceCache(): void { cache = null; }
 
 export function computeAdvice(
-  det: DetectionResult, stored: AdvisorStoredConfig,
+  det: DetectionResult, stored: AdvisorStoredConfig, resetObserved = false,
 ): { ready: boolean; output: AdvisorOutput | null } {
   if (!isCompleteDetection(det)) return { ready: false, output: null };
 
   const eff = effectiveConfig(stored, det);
-  const turn = (det.totalSteps ?? 0) - (det.currentStep ?? 0) + 1;
-  const resetAvailable = inferResetAvailable(turn, eff.resetOverride);
+  const resetAvailable = inferResetFromLog(resetObserved, eff.resetOverride);
 
   const inputs = detectionToEngineInputs(det, {
     optimize: eff.optimize,

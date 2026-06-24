@@ -42,4 +42,26 @@ describe('computeAdvice', () => {
     expect(b.action).toBe(a.action);
     expect(b.pGoal).toBeCloseTo(a.pGoal, 12);
   });
+
+  it('resetObserved=false (default) makes reset available under auto override', () => {
+    // With resetOverride='auto' and resetObserved=false, reset should be available
+    const { output } = computeAdvice(complete, DEFAULT_CONFIG);
+    expect(output!.actions.reset).not.toBeNull();
+  });
+
+  it('resetObserved=true makes reset unavailable under auto override', () => {
+    // With resetOverride='auto' and resetObserved=true, reset ticket is spent
+    const { output } = computeAdvice(complete, DEFAULT_CONFIG, true);
+    expect(output!.actions.reset).toBeNull();
+  });
+
+  it('resetOverride=always forces reset available even when resetObserved=true', () => {
+    const { output } = computeAdvice(complete, { ...DEFAULT_CONFIG, resetOverride: 'always' }, true);
+    expect(output!.actions.reset).not.toBeNull();
+  });
+
+  it('resetOverride=never forces reset unavailable even when resetObserved=false', () => {
+    const { output } = computeAdvice(complete, { ...DEFAULT_CONFIG, resetOverride: 'never' }, false);
+    expect(output!.actions.reset).toBeNull();
+  });
 });
