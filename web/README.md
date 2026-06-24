@@ -5,16 +5,13 @@ Pages. It will watch your shared game screen and show — read-only, like `arkgr
 --dry-run` — the recommended action plus goal / relic+ / ancient probabilities and the
 expected end coefficient. It never controls the game; you do the clicking.
 
-> **Status: engine only.** This folder currently contains just the **decision engine** (a
-> TypeScript port of the Python `arkgrid` "brains") and its parity test harness. There is
-> **no UI, screen capture, or dev server yet** — those arrive in later plans. Today the only
-> way to exercise `web/` is to run its tests.
+> **Status: engine + UI + capture complete.** Plans 1, 2, and 3 are now implemented. The advisor is a fully functional Svelte app with live screen capture, OpenCV.js vision, and automatic decision recommendations. It publishes to GitHub Pages on merge to `master`.
 
 Built across three plans (see `../docs/superpowers/`):
 
-- **Plan 1 — decision engine + parity harness** ✅ *(this folder; done)*
-- **Plan 2 — vision recognizer** (OpenCV.js screen detection) — not started
-- **Plan 3 — Svelte app shell + screen capture + UI + GitHub Pages deploy** — not started
+- **Plan 1 — decision engine + parity harness** ✅ *(done)*
+- **Plan 2 — vision recognizer** (OpenCV.js screen detection) ✅ *(done)*
+- **Plan 3 — Svelte app shell + screen capture + UI + GitHub Pages deploy** ✅ *(done)*
 
 ## Layout
 
@@ -37,10 +34,24 @@ Requires Node >= 20.
 
 ```bash
 cd web
-npm install
-npm test         # vitest — unit + golden-vector parity (16 tests)
-npm run check    # tsc --noEmit — type check
+npm install      # Install dependencies (one-time)
+npm run dev      # Run local dev server with Svelte app + live capture/advisor
+npm test         # vitest — unit + golden-vector parity + e2e (69 tests)
+npm run check    # tsc --noEmit — type check on src/ and browser-compatible globals
+npm run build    # Production build → dist/ with base path /AstrogemCutter/
 ```
+
+## Deployment
+
+The app deploys to GitHub Pages automatically on push to `master` (when the `feat/web-engine-port` branch is merged). A GitHub Actions workflow is path-filtered to rebuild only when `web/**`, `arkgrid/vision/templates/**`, or `.github/workflows/deploy-web.yml` change.
+
+**One-time setup (manual):** After the first merge to `master`, go to the repo's GitHub settings → Pages and set the source to "GitHub Actions" (instead of Branch).
+
+**Live site:** [`https://darealfreak.github.io/AstrogemCutter/`](https://darealfreak.github.io/AstrogemCutter/)
+
+**Triggering a deploy manually:** Push to `master` (or trigger `workflow_dispatch` from the Actions tab).
+
+The app is **read-only and advisory** — it never controls the game. It watches your shared screen, detects gem stats and offers via OpenCV template matching, runs the DP decision engine, and displays the recommended action and probabilities. You do the clicking in-game.
 
 ## The engine API
 
