@@ -40,3 +40,21 @@ describe('effectiveConfig', () => {
     expect(effectiveConfig(DEFAULT_CONFIG, det()).advisorConfig.endgameRisk).toBeUndefined();
   });
 });
+
+describe('goalMode', () => {
+  it("defaults to separate (today's behavior)", () => {
+    expect(DEFAULT_CONFIG.goalMode).toBe('separate');
+  });
+  it('separate sets minWill/minChaos and leaves minTotalWillChaos undefined', () => {
+    const ac = effectiveConfig({ ...DEFAULT_CONFIG, goalMode: 'separate', minWill: 4, minChaos: 5, minWillChaosTotal: 8 }, det()).advisorConfig;
+    expect(ac.minWill).toBe(4);
+    expect(ac.minChaos).toBe(5);
+    expect(ac.minTotalWillChaos).toBeUndefined();
+  });
+  it('combined sets minTotalWillChaos and leaves minWill/minChaos undefined', () => {
+    const ac = effectiveConfig({ ...DEFAULT_CONFIG, goalMode: 'combined', minWill: 4, minChaos: 5, minWillChaosTotal: 8 }, det()).advisorConfig;
+    expect(ac.minTotalWillChaos).toBe(8);
+    expect(ac.minWill).toBeUndefined();
+    expect(ac.minChaos).toBeUndefined();
+  });
+});

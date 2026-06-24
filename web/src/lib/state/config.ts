@@ -10,6 +10,9 @@ export interface AdvisorStoredConfig {
   minFirst?: number;
   minSecond?: number;
   minSideCoeff?: number;
+  // goal shape
+  goalMode: 'separate' | 'combined';
+  minWillChaosTotal?: number;
   // tier valuation (null → engine resolves the fusion default)
   relicCoeff: number | null;
   ancientCoeff: number | null;
@@ -27,6 +30,7 @@ export interface AdvisorStoredConfig {
 
 export const DEFAULT_CONFIG: AdvisorStoredConfig = {
   minWill: 4, minChaos: 4,
+  goalMode: 'separate',
   relicCoeff: null, ancientCoeff: null,
   relicRerollThreshold: 0, forceRerollNoProgress: 0, endgameRisk: null,
   ignoreSideNodeValues: false, extraTicket: null,
@@ -40,10 +44,12 @@ export function effectiveConfig(
     ? stored.rarityOverride
     : (RARITY_FROM_TOTAL_STEPS[det.totalSteps ?? 7] ?? 'rare') as 'common' | 'rare' | 'epic';
   const optimize = resolveOptimize(det.firstEffect ?? '', det.secondEffect ?? '', stored.optimizeOverride);
+  const separate = stored.goalMode !== 'combined';
   const advisorConfig: AdvisorConfig = {
     rarity,
-    minWill: stored.minWill,
-    minChaos: stored.minChaos,
+    minWill: separate ? stored.minWill : undefined,
+    minChaos: separate ? stored.minChaos : undefined,
+    minTotalWillChaos: separate ? undefined : stored.minWillChaosTotal,
     minFirst: stored.minFirst,
     minSecond: stored.minSecond,
     minSideCoeff: stored.minSideCoeff,
