@@ -461,67 +461,102 @@ git commit -m "feat(web): port vision matcher.py (findTemplate/findBestMatch)"
 ### Task 5: Port `templates.ts` (TemplateStore)
 
 **Files:**
-- Create: `web/src/lib/cv/templates.ts`
-- Test: `web/tests/vision/templates.test.ts`
+- Create: `web/src/lib/cv/templates.ts` (env-agnostic — NO fs/glob)
+- Create: `web/tests/helpers/loadTemplates.ts` (browser loader via `import.meta.glob` + `loadGrayMat`; reused by Tasks 7/8)
+- Test: `web/tests/vision/templates.test.ts` (browser project)
 
-**Source:** `template_recognizer._load` + `_strip_variant` + the template-dir layout. `TemplateStore` loads PNGs from a base dir into grayscale `Mat`s keyed by filename stem. Sets used by `detect`: `anchor`, `gem_type`, `willpower`, `chaos`, `rerolls`, `steps`, `rarity`, `side_nodes/names`, `side_nodes/deltas`, `options/names`, `options/deltas`.
+**Source:** `template_recognizer._load` + `_strip_variant` + the template-dir layout. In the browser there is no `readdirSync`, so `TemplateStore` holds **pre-decoded** sets and the enumeration/decoding lives in the test loader (`import.meta.glob` → `loadGrayMat`). This injected-loader shape is exactly what Plan 3's browser/atlas loader will reuse. Sets used by `detect`: `anchor`, `gem_type`, `willpower`, `chaos`, `rerolls`, `steps`, `rarity`, `side_nodes/names`, `side_nodes/deltas`, `options/names`, `options/deltas`.
 
 **Interfaces:**
-- Consumes: `getCv`, `decodeToBgrMat` (for Node load).
+- Consumes: nothing at runtime (env-agnostic). The loader helper consumes `getCv`/`loadGrayMat`.
 - Produces:
   ```ts
-  export class TemplateStore {
-    constructor(templatesRootAbsPath: string);   // e.g. <repo>/arkgrid/vision/templates
-    load(subdir: string): Map<string, any>;       // gray Mats keyed by filename stem; cached per subdir
-  }
+  // templates.ts (env-agnostic)
   export function stripVariant(key: string): string;  // 'additional_damage_01' -> 'additional_damage'
+  // group flat [relPath-without-ext, grayMat] entries into sets by parent dir, keyed by filename stem
+  export function groupBySet(entries: Array<[string, any]>): Map<string, Map<string, any>>;
+  export class TemplateStore {
+    constructor(sets: Map<string, Map<string, any>>);  // pre-decoded sets
+    get(setName: string): Map<string, any>;            // throws if the set wasn't loaded
+    has(setName: string): boolean;
+    setNames(): string[];
+  }
+  // loadTemplates.ts (browser test helper)
+  export async function loadTemplateStore(): Promise<TemplateStore>;
   ```
-- Note: in Node, `load` enumerates PNGs via `fs.readdirSync` and decodes each via `decodeToBgrMat` → `cvtColor` to gray. (Plan 3 swaps the loader for a browser/atlas source; keep the file-system read isolated so that swap is local.)
+- `groupBySet`: for each `[rel, mat]` (rel e.g. `"willpower/1"` or `"side_nodes/names/attack_power"`), split at the LAST `/` → `setName` = everything before, `stem` = after. So `side_nodes/names/foo` → set `"side_nodes/names"`, stem `"foo"`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the browser loader helper**
+
+`web/tests/helpers/loadTemplates.ts`:
+
+```ts
+import { groupBySet, TemplateStore } from '../../src/lib/cv/templates';
+import { loadGrayMat } from './loadImage';
+
+// vite enumerates the PNGs at build time; keys are the matched paths, values are served URLs.
+const TEMPLATE_URLS = import.meta.glob(
+  '../../../arkgrid/vision/templates/**/*.png',
+  { eager: true, query: '?url', import: 'default' },
+) as Record<string, string>;
+
+export async function loadTemplateStore(): Promise<TemplateStore> {
+  const entries: Array<[string, any]> = [];
+  for (const [path, url] of Object.entries(TEMPLATE_URLS)) {
+    const rel = path.split('/templates/')[1].replace(/\.png$/, ''); // "willpower/1", "side_nodes/names/foo"
+    entries.push([rel, await loadGrayMat(url)]);
+  }
+  return new TemplateStore(groupBySet(entries));
+}
+```
+
+- [ ] **Step 2: Write the failing test**
 
 ```ts
 import { describe, it, expect, beforeAll } from 'vitest';
-import { resolve } from 'node:path';
 import { initOpenCv } from '../../src/lib/cv/cvRuntime';
-import { TemplateStore, stripVariant } from '../../src/lib/cv/templates';
-
-const ROOT = resolve(__dirname, '../../..', 'arkgrid/vision/templates');
+import { stripVariant, TemplateStore } from '../../src/lib/cv/templates';
+import { loadTemplateStore } from '../helpers/loadTemplates';
 
 describe('TemplateStore', () => {
-  beforeAll(async () => { await initOpenCv(); }, 60_000);
+  let store: TemplateStore;
+  beforeAll(async () => { await initOpenCv(); store = await loadTemplateStore(); }, 120_000);
 
   it('strips numeric variant suffixes', () => {
     expect(stripVariant('additional_damage_01')).toBe('additional_damage');
     expect(stripVariant('attack_power')).toBe('attack_power');
   });
 
-  it('loads grayscale templates for a set', () => {
-    const store = new TemplateStore(ROOT);
-    const wp = store.load('willpower');
-    expect(wp.size).toBeGreaterThan(0);
-    const first = wp.values().next().value;
-    expect(first.channels()).toBe(1);   // grayscale
+  it('loads grayscale templates for the willpower set (keys 1..5)', () => {
+    const wp = store.get('willpower');
+    expect(wp.size).toBe(5);
+    expect([...wp.keys()].sort()).toEqual(['1', '2', '3', '4', '5']);
+    expect(wp.get('1')!.channels()).toBe(1);   // grayscale
   });
 
-  it('caches: same Map instance on second load', () => {
-    const store = new TemplateStore(ROOT);
-    expect(store.load('gem_type')).toBe(store.load('gem_type'));
+  it('exposes every set detect() needs, each non-empty', () => {
+    for (const name of ['anchor', 'gem_type', 'willpower', 'chaos', 'rerolls', 'steps',
+                        'rarity', 'side_nodes/names', 'side_nodes/deltas',
+                        'options/names', 'options/deltas']) {
+      expect(store.has(name)).toBe(true);
+      expect(store.get(name).size).toBeGreaterThan(0);
+    }
   });
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails** — `cd web && npx vitest run tests/vision/templates.test.ts` → FAIL (module not found).
+- [ ] **Step 3: Run to verify it fails** — `cd web && npx vitest run --project browser tests/vision/templates.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Implement `templates.ts`** — transcribe `_load` (enumerate `*.png` sorted, decode → gray, key = filename stem, cache per subdir) and `_strip_variant` (regex `/_\d+$/` → ''). Support nested subdirs (`side_nodes/names`, `options/deltas`) via `path.join`.
+- [ ] **Step 4: Implement `templates.ts`** — `stripVariant` (regex `/_\d+$/` → ''), `groupBySet` (split at last `/`), and `TemplateStore` (wraps the pre-decoded `Map<setName, Map<stem, Mat>>`; `get` throws on a missing set, `has`, `setNames`). No `fs`, no `import.meta.glob` in `templates.ts` itself — keep it env-agnostic. Then write the loader helper from Step 1.
 
-- [ ] **Step 4: Run to verify it passes** — PASS (3 tests).
+- [ ] **Step 5: Run to verify it passes** — `cd web && npx vitest run --project browser tests/vision/templates.test.ts` → PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add web/src/lib/cv/templates.ts web/tests/vision/templates.test.ts
-git commit -m "feat(web): port TemplateStore (PNG template loading + variant strip)"
+cd web && npm run check
+git add web/src/lib/cv/templates.ts web/tests/helpers/loadTemplates.ts web/tests/vision/templates.test.ts
+git commit -m "feat(web): TemplateStore (pre-decoded sets) + browser glob loader"
 ```
 
 ---
