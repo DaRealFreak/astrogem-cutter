@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRerolls, parseDelta, determineOptionKind, sideNodeLevel } from '../../src/lib/cv/recognizer';
+import { parseRerolls, parseDelta, determineOptionKind, sideNodeLevel } from '../../src/lib/cv/parse';
 
 describe('parse helpers', () => {
   it('parseRerolls', () => {

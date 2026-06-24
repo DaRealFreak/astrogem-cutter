@@ -12,7 +12,7 @@ import {
   parseDelta,
   determineOptionKind,
   type DetectionResult,
-} from './recognizer';
+} from './parse';
 import { GEM_TYPE_TEMPLATE_TO_DOMAIN } from './constants';
 import { GemState, makeOption, type AstroGem, type Option } from '../engine/models';
 

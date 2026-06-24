@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { detectionToEngineInputs, parseViewDelta } from '../../src/lib/cv/adapter';
-import type { DetectionResult } from '../../src/lib/cv/recognizer';
+import type { DetectionResult } from '../../src/lib/cv/types';
 
 const baseDet = (over: Partial<DetectionResult> = {}): DetectionResult => ({
   found: true, gemType: 'chaos_distortion', gemTypeScore: 1,
