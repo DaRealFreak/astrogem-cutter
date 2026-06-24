@@ -116,9 +116,12 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
     if (data.drawDebug && result !== null && ctx !== null) {
       drawDetectionOverlay(ctx, result, 1);
       const bmp = canvas.transferToImageBitmap();
-      // Send debug first, then release backpressure lock.
+      // Send the annotated debug bitmap first, then the detection result.
       post({ type: 'debug', image: bmp, result }, [bmp]);
     }
-    post({ type: 'frame:done', result });
+    // Distinct from frame:done — image requests are one-shot (outside the frame
+    // loop), so the controller routes this to onDetection unconditionally and
+    // does not touch frame backpressure.
+    post({ type: 'image:done', result });
   }
 };

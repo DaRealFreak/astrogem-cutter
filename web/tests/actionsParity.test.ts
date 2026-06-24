@@ -63,8 +63,6 @@ describe('advise().actions parity', () => {
         resetAvailable: true,
       });
 
-      const TOLS = 1e-6;
-
       // process
       if (rec.expected.process !== null) {
         expect(out.actions.process).not.toBeNull();

@@ -89,6 +89,14 @@ export class CaptureController {
         }
         break;
 
+      case 'image:done':
+        // One-shot still-image detect (upload path). Runs outside the frame
+        // loop, so there is no awaitFrameCompletion to release and no
+        // 'recording' gate — route unconditionally to onDetection so uploads
+        // drive computeAdvice + turnLog.observe just like live frames.
+        this.onDetection?.(data.result ?? null);
+        break;
+
       case 'init:error':
         if (this.awaitWorkerInitialization) {
           this.awaitWorkerInitialization.reject('worker-init-failed');
@@ -98,16 +106,25 @@ export class CaptureController {
 
       case 'debug': {
         if (data.message) console.log(data.message);
-        // Call onDebug before closing — consumer may need to draw the bitmap.
-        this.onDebug?.(data.image ?? null, data.result ?? null);
-        if (data.image && this._debugCanvas) {
-          if (this.state === 'recording') {
+        // Legacy synchronous debug canvas draw (drawn before any handoff close).
+        if (data.image && this._debugCanvas && this.state === 'recording') {
+          try {
             this._debugCanvas.width = data.image.width;
             this._debugCanvas.height = data.image.height;
             this._debugCanvas.getContext('2d')?.drawImage(data.image, 0, 0);
+          } catch {
+            // A draw failure must not strand the bitmap or break the handler.
           }
         }
-        if (data.image) data.image.close();
+        // Ownership of the bitmap transfers to the onDebug consumer (DebugView),
+        // which draws it asynchronously and closes it. Only close here when no
+        // consumer exists, to avoid a leak. DebugView is the sole closer of
+        // handed-off bitmaps — never double-close.
+        if (this.onDebug) {
+          this.onDebug(data.image ?? null, data.result ?? null);
+        } else if (data.image) {
+          data.image.close();
+        }
         break;
       }
     }
