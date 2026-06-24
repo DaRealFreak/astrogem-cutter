@@ -12,7 +12,14 @@ const TEMPLATE_URLS = import.meta.glob('./_templates/**/*.png', {
 
 let store: TemplateStore | null = null;
 const canvas = new OffscreenCanvas(0, 0);
-const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+// Acquired during `init` (see acquireCtx). A null 2D context surfaces as a clean
+// init:error rather than a silent stream of frame:done {result: null}.
+let ctx: OffscreenCanvasRenderingContext2D | null = null;
+
+function acquireCtx(): void {
+  ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable');
+}
 
 async function loadStore(): Promise<TemplateStore> {
   const entries: Array<[string, any]> = [];
@@ -28,6 +35,7 @@ function post(msg: CaptureWorkerResponse, transfer?: Transferable[]) {
 }
 
 function processFrame(frame: VideoFrame): DetectionResultLike {
+  if (!ctx) throw new Error('canvas not initialized');
   const cv = getCv();
   const { scale } = adjustResolution(frame.displayHeight);
   canvas.width = Math.round(frame.displayWidth * scale);
@@ -36,11 +44,11 @@ function processFrame(frame: VideoFrame): DetectionResultLike {
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const rgba = cv.matFromImageData(data);
   const gray = new cv.Mat();
-  cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
-  rgba.delete();
   try {
+    cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
     return detect(gray, store!);
   } finally {
+    rgba.delete();
     gray.delete();
   }
 }
@@ -51,6 +59,7 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
   if (data.type === 'init') {
     try {
       await initOpenCv();
+      acquireCtx();
       store = await loadStore();
       if (!store.has('anchor')) throw new Error('no templates loaded');
       post({ type: 'init:done' });
