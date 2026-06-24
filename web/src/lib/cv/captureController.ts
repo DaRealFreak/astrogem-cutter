@@ -168,11 +168,23 @@ export class CaptureController {
       }
       value?.close();
 
-      // → recording; then start the frame loop
+      // → recording; then start the frame loop.
+      // loop() is fire-and-forget; guard its (unreachable-in-practice) defensive
+      // throws so they surface via onError instead of becoming unhandled rejections.
       this.setState('recording');
-      this.loop();
+      this.loop().catch((e) => {
+        this.onError?.(classifyCaptureError(e));
+      });
     } catch (err) {
       const classified = classifyCaptureError(err);
+      // Init-error teardown: requestDisplayMedia may have already acquired the
+      // track before waitForInit rejected. Stop it so the browser drops the
+      // "sharing your screen" indicator (stopCapture() can't — state is loading,
+      // not recording). On the success path the catch never runs and loop() owns
+      // the track, so this can't double-stop.
+      this.track?.stop();
+      this.track = null;
+      this.reader = null;
       this.onError?.(classified);
     } finally {
       // If something went wrong during loading, revert to idle
