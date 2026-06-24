@@ -3,10 +3,14 @@
   import { computeAdvice } from '../lib/app/computeAdvice';
   import { config } from '../lib/state/config.state.svelte';
   import { advisor } from '../lib/state/advisor.state.svelte';
+  import { turnLog } from '../lib/state/turnLog.state.svelte';
+  import ScreenshotUpload from './ScreenshotUpload.svelte';
+  import DebugView from './DebugView.svelte';
 
   let controller: CaptureController | null = null;
   let debugCanvas = $state<HTMLCanvasElement | null>(null);
   let drawDebug = $state(false);
+  let debugImage = $state<ImageBitmap | null>(null);
 
   function ensure(): CaptureController {
     if (controller) return controller;
@@ -17,10 +21,14 @@
       advisor.detection = det;
       advisor.error = null;
       if (!det) { advisor.waiting = true; return; }
-      const { ready, output } = computeAdvice(det, config.current);
+      const { ready, output } = computeAdvice(det, config.current, turnLog.resetObserved);
       advisor.waiting = !ready;
-      if (ready) advisor.output = output;
+      if (ready && output) {
+        advisor.output = output;
+        turnLog.observe(det, output.action, output.pGoal, output.eValue);
+      }
     };
+    c.onDebug = (img) => { debugImage = img; };
     controller = c;
     return c;
   }
@@ -39,4 +47,8 @@
   <label><input type="checkbox" checked={drawDebug} onchange={toggleDebug} /> debug</label>
   {#if advisor.error}<span class="error">{advisor.error}</span>{/if}
   <canvas class="debug" bind:this={debugCanvas} hidden={!drawDebug}></canvas>
+  {#if drawDebug}
+    <ScreenshotUpload onfile={(b) => ensure().analyzeImage(b)} />
+    <DebugView image={debugImage} />
+  {/if}
 </div>

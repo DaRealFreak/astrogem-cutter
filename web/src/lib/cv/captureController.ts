@@ -15,6 +15,8 @@ export class CaptureController {
 
   // web worker
   private worker: Worker | null = null;
+  // Stored init promise so analyzeImage can await it if init is already in flight
+  private _workerInitPromise: Promise<void> | null = null;
 
   // debug
   private drawDebug: boolean = false;
@@ -31,6 +33,7 @@ export class CaptureController {
   onDetection: ((result: DetectionResult | null) => void) | null = null;
   onStatus: ((s: 'idle' | 'loading' | 'recording') => void) | null = null;
   onError: ((e: StartCaptureErrorType) => void) | null = null;
+  onDebug: ((image: ImageBitmap | null, result: DetectionResult | null) => void) | null = null;
 
   constructor(debugCanvas?: HTMLCanvasElement | null) {
     if (debugCanvas) this._debugCanvas = debugCanvas;
@@ -93,20 +96,20 @@ export class CaptureController {
         }
         break;
 
-      case 'debug':
-        try {
-          if (data.message) console.log(data.message);
-          if (data.image && this._debugCanvas) {
-            if (this.state === 'recording') {
-              this._debugCanvas.width = data.image.width;
-              this._debugCanvas.height = data.image.height;
-              this._debugCanvas.getContext('2d')?.drawImage(data.image, 0, 0);
-            }
+      case 'debug': {
+        if (data.message) console.log(data.message);
+        // Call onDebug before closing — consumer may need to draw the bitmap.
+        this.onDebug?.(data.image ?? null, data.result ?? null);
+        if (data.image && this._debugCanvas) {
+          if (this.state === 'recording') {
+            this._debugCanvas.width = data.image.width;
+            this._debugCanvas.height = data.image.height;
+            this._debugCanvas.getContext('2d')?.drawImage(data.image, 0, 0);
           }
-        } finally {
-          if (data.image) data.image.close();
         }
+        if (data.image) data.image.close();
         break;
+      }
     }
   }
 
@@ -147,6 +150,7 @@ export class CaptureController {
       const waitForInit = new Promise<void>((resolve, reject) => {
         this.awaitWorkerInitialization = { resolve, reject };
       });
+      this._workerInitPromise = waitForInit;
       this.postMessage({ type: 'init' });
 
       if (deferDisplayRequest) {
@@ -248,5 +252,33 @@ export class CaptureController {
   toggleDrawDebug() {
     this.drawDebug = !this.drawDebug;
     return this.drawDebug;
+  }
+
+  /** Ensure the worker is created and initialized (idempotent). */
+  private async ensureWorkerReady(): Promise<void> {
+    if (!this.worker) {
+      this.worker = new Worker(new URL('./captureWorker.ts', import.meta.url), {
+        type: 'module',
+      });
+      this.worker.onmessage = this.handleWorkerMessage.bind(this);
+      const waitForInit = new Promise<void>((resolve, reject) => {
+        this.awaitWorkerInitialization = { resolve, reject };
+      });
+      this._workerInitPromise = waitForInit;
+      this.postMessage({ type: 'init' });
+    }
+    if (this._workerInitPromise) {
+      await this._workerInitPromise;
+    }
+  }
+
+  /** Analyze a still image (upload path). Initializes the worker on demand. */
+  async analyzeImage(bitmap: ImageBitmap): Promise<void> {
+    await this.ensureWorkerReady();
+    if (!this.worker) throw new Error('worker is not set');
+    this.worker.postMessage(
+      { type: 'image', bitmap, drawDebug: this.drawDebug } satisfies CaptureWorkerRequest,
+      [bitmap],
+    );
   }
 }

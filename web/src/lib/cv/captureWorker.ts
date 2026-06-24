@@ -89,4 +89,36 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
     }
     post({ type: 'frame:done', result });
   }
+  if (data.type === 'image') {
+    let result: DetectionResultLike | null = null;
+    try {
+      if (!ctx) throw new Error('canvas not initialized');
+      const cv = getCv();
+      const { scale } = adjustResolution(data.bitmap.height);
+      canvas.width = Math.round(data.bitmap.width * scale);
+      canvas.height = Math.round(data.bitmap.height * scale);
+      ctx.drawImage(data.bitmap, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const rgba = cv.matFromImageData(imgData);
+      const gray = new cv.Mat();
+      try {
+        cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
+        if (store) result = detect(gray, store);
+      } finally {
+        rgba.delete();
+        gray.delete();
+      }
+    } catch {
+      result = null;
+    } finally {
+      data.bitmap.close();
+    }
+    if (data.drawDebug && result !== null && ctx !== null) {
+      drawDetectionOverlay(ctx, result, 1);
+      const bmp = canvas.transferToImageBitmap();
+      // Send debug first, then release backpressure lock.
+      post({ type: 'debug', image: bmp, result }, [bmp]);
+    }
+    post({ type: 'frame:done', result });
+  }
 };
