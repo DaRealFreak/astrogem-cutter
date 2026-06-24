@@ -650,44 +650,51 @@ git commit -m "feat(web): port vision parse helpers (rerolls/delta/option-kind)"
 
 **Files:**
 - Modify: `web/src/lib/cv/recognizer.ts` (add `detect`, `_cropRoi`, `_match`)
-- Test: `web/tests/vision/recognizer.test.ts`
+- Test: `web/tests/vision/recognizer.test.ts` (browser project)
 
-**Source:** `template_recognizer.detect` (180-305) + `_crop_roi` (154-165) + `_match` (133-151). Uses constants (Task 3), matcher/`findBestMatch` for the anchor (Task 4), `TemplateStore` (Task 5), parse helpers (Task 6).
+**Source:** `template_recognizer.detect` (180-305) + `_crop_roi` (154-165) + `_match` (133-151). Uses constants (Task 3), matcher/`findBestMatch` for the anchor (Task 4), `TemplateStore` (Task 5; `store.get(name)`), parse helpers (Task 6).
 
 **Interfaces:**
 - Consumes: all of the above + `getCv`.
 - Produces:
   ```ts
-  // detect takes a BGR cv.Mat (like cv2 frame_bgr); resizes to FHD if needed, grayscales, matches.
-  export function detect(frameBgr: any, store: TemplateStore): DetectionResult;
+  // detect takes a FHD (1920x1080) GRAYSCALE cv.Mat. The browser caller decodes + grayscales
+  // via loadGrayMat (RGBA2GRAY == cv2 BGR2GRAY luminance); examples are already FHD so no resize
+  // is needed. (Resizing a non-FHD live capture is the caller's job in Plan 3.)
+  export function detect(gray: any, store: TemplateStore): DetectionResult;
   ```
-- Note: `_match(crop, templates, stripVariants?)` returns `[key|null, score]` — best `matchTemplate` score over the set (skip templates larger than the crop), optionally variant-stripped. This is the per-set best-match used for every ROI except the anchor (which uses `findBestMatch` with `ANCHOR_SEARCH_ROI`+threshold).
+- Note: `_match(crop, templates, stripVariants?)` returns `[key|null, score]` — best `matchTemplate` score over the set (skip templates larger than the crop), optionally variant-stripped. This is the per-set best-match used for every ROI except the anchor (which uses `findBestMatch` with `ANCHOR_SEARCH_ROI`+threshold). Reuse `findTemplate` from `matcher.ts` (Task 4) inside `_match` rather than re-deriving the matchTemplate call.
 
-- [ ] **Step 1: Write the golden parity test**
+- [ ] **Step 1: Write the golden parity test (browser)**
+
+`detection.json` loads via JSON import; examples load via `import.meta.glob` + `loadGrayMat`; templates via the Task 5 loader.
 
 ```ts
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { initOpenCv } from '../../src/lib/cv/cvRuntime';
-import { decodeToBgrMat } from '../helpers/decodeImage';
+import { loadGrayMat } from '../helpers/loadImage';
+import { loadTemplateStore } from '../helpers/loadTemplates';
 import { TemplateStore } from '../../src/lib/cv/templates';
 import { detect } from '../../src/lib/cv/recognizer';
+import detection from '../fixtures/detection.json';
 
-const REPO = resolve(__dirname, '../../..');
-const records = JSON.parse(readFileSync(resolve(__dirname, '../fixtures/detection.json'), 'utf8')).records;
+// map example basename -> served URL
+const EXAMPLE_URLS = import.meta.glob('../../../examples/*.jpg',
+  { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const urlByName: Record<string, string> = {};
+for (const [p, u] of Object.entries(EXAMPLE_URLS)) urlByName[p.split('/').pop()!] = u;
 
 describe('detect() golden parity', () => {
   let store: TemplateStore;
-  beforeAll(async () => { await initOpenCv(); store = new TemplateStore(resolve(REPO, 'arkgrid/vision/templates')); }, 60_000);
+  beforeAll(async () => { await initOpenCv(); store = await loadTemplateStore(); }, 120_000);
 
-  it('reproduces the Python detected values/keys for every example', () => {
+  it('reproduces the Python detected values/keys for every example', async () => {
     const mismatches: string[] = [];
-    for (const r of records) {
+    for (const r of (detection as any).records) {
       const e = r.expected;
-      const frame = decodeToBgrMat(resolve(REPO, 'examples', r.file));
-      const d = detect(frame, store);
-      frame.delete();
+      const gray = await loadGrayMat(urlByName[r.file]);
+      const d = detect(gray, store);
+      gray.delete();
       const got = {
         found: d.found, gem_type: d.gemType, willpower: d.willpower, chaos: d.chaos,
         first_effect: d.firstEffect, first_level: d.firstLevel,
@@ -706,25 +713,27 @@ describe('detect() golden parity', () => {
         mismatches.push(`${r.file}\n  got : ${JSON.stringify(got)}\n  want: ${JSON.stringify(want)}`);
       }
     }
-    if (mismatches.length) throw new Error(`${mismatches.length}/${records.length} mismatched:\n` + mismatches.join('\n'));
+    if (mismatches.length) throw new Error(`${mismatches.length}/${(detection as any).records.length} mismatched:\n` + mismatches.join('\n'));
   });
 });
 ```
+(Vite needs `resolveJsonModule` — already on via `esModuleInterop`/bundler in tsconfig; if the JSON import errors, add `"resolveJsonModule": true` to `web/tsconfig.json`.)
 
-- [ ] **Step 2: Run to verify it fails** — `cd web && npx vitest run tests/vision/recognizer.test.ts` → FAIL (`detect` not exported).
+- [ ] **Step 2: Run to verify it fails** — `cd web && npx vitest run --project browser tests/vision/recognizer.test.ts` → FAIL (`detect` not exported).
 
-- [ ] **Step 3: Implement `detect()` + `_cropRoi` + `_match`** — transcribe `template_recognizer.detect`: resize-if-needed → `cvtColor` BGR2GRAY → anchor via `findBestMatch(gray, store.load('anchor'), ANCHOR_SEARCH_ROI, THRESHOLD_ANCHOR)` (return `found=false` if null) → set `found=true`, `(ax,ay)=anchor.loc` → for each ROI, `_cropRoi(gray, ax, ay, roi)` then `_match` against the right set. Map gem_type/willpower/chaos/rerolls/steps/rarity, side nodes (first/second name+delta → `sideNodeLevel`), and the 4 option cards (`OPTION_CARD_POSITIONS`/`OPTION_CARD_Y_OFFSET`/`OPTION_CARD_HEIGHT`). `willpower`/`chaos`/`current_step` only set when the matched key is all-digits (`/^\d+$/`). Delete every intermediate `Mat`.
+- [ ] **Step 3: Implement `detect()` + `_cropRoi` + `_match`** — transcribe `template_recognizer.detect`, but the input is **already a FHD grayscale Mat**, so SKIP the resize and the `cvtColor` (the Python's first two steps; examples are FHD and `loadGrayMat` already grayscaled). Then: anchor via `findBestMatch(gray, store.get('anchor'), ANCHOR_SEARCH_ROI, THRESHOLD_ANCHOR)` (return `found=false` if null) → set `found=true`, `(ax,ay)=anchor.loc` → for each ROI, `_cropRoi(gray, ax, ay, roi)` then `_match` against the right set (`store.get(setName)`). Map gem_type/willpower/chaos/rerolls/steps/rarity, side nodes (first/second name+delta → `sideNodeLevel`), and the 4 option cards (`OPTION_CARD_POSITIONS`/`OPTION_CARD_Y_OFFSET`/`OPTION_CARD_HEIGHT`). `willpower`/`chaos`/`current_step` only set when the matched key is all-digits (`/^\d+$/`); `total_steps` from the rarity set via `RARITY_TOTAL_STEPS`. Delete every intermediate `Mat`.
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd web && npx vitest run tests/vision/recognizer.test.ts`
-Expected: PASS — 0 mismatches over all records.
+Run: `cd web && npx vitest run --project browser tests/vision/recognizer.test.ts`
+Expected: PASS — 0 mismatches over all 60 records.
 
-> If a small number of records mismatch on a borderline ROI (decoder/score flip), do NOT loosen the test. Investigate per the Global Constraints: confirm grayscale code, ROI numbers, and `_match` skip-if-larger logic match Python; verify the decoder path (Task 1). If a genuine cv2-vs-opencv.js ambiguity remains on a specific ROI after that, STOP and report it (file + ROI + both keys/scores) for the controller to adjudicate — it is a finding, not a tolerance to add.
+> If a small number of records mismatch on a borderline ROI (Chromium-decode vs cv2 score flip), do NOT loosen the test. Investigate per the Global Constraints: confirm the gray conversion (`loadGrayMat` RGBA2GRAY), the ROI numbers, and `_match`'s skip-if-larger + stripVariant logic match Python. If a genuine cv2-vs-Chromium ambiguity remains on a specific ROI after that, STOP and report it (file + ROI + both keys/scores) for the controller to adjudicate — it is a finding, not a tolerance to add.
 
 - [ ] **Step 5: Commit**
 
 ```bash
+cd web && npm run check
 git add web/src/lib/cv/recognizer.ts web/tests/vision/recognizer.test.ts
 git commit -m "feat(web): port detect() with Python golden-vector parity over examples/"
 ```
