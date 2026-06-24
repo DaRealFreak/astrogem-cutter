@@ -824,44 +824,48 @@ describe('adapter', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails** — FAIL (module not found).
+- [ ] **Step 2: Run to verify it fails** — `cd web && npx vitest run --project browser tests/vision/adapter.test.ts` → FAIL (module not found). (adapter.test.ts is pure logic but transitively imports recognizer→opencv, so it runs in the **browser** project — see the `BROWSER_TESTS` allowlist. It does NOT call initOpenCv; it just can't be in the node project.)
 
-- [ ] **Step 3: Implement `adapter.ts`** — transcribe the three Python pieces. `detectionToEngineInputs`: domain-map gemType (`GEM_TYPE_TEMPLATE_TO_DOMAIN`), build `AstroGem` (effects from det, optimize from opts), build `GemState` (`first/second = level ?? 1`, rerolls via `parseRerolls`), build `offers` per `_detected_to_options` (use `determineOptionKind` + `parseDelta` kind-hint; `view` delta via `parseViewDelta`; otherwise delta = `delta_val ?? 0`), compute turn fields, set `resetAvailable = opts.resetAvailable ?? false`.
+- [ ] **Step 3: Implement `adapter.ts`** — transcribe the three Python pieces. `detectionToEngineInputs`: domain-map gemType (`GEM_TYPE_TEMPLATE_TO_DOMAIN` from `constants.ts`), build `AstroGem` (effects from det, optimize from opts), build `GemState` (`first/second = level ?? 1`, rerolls via `parseRerolls`), build `offers` per `_detected_to_options` (use `determineOptionKind` + `parseDelta` kind-hint; `view` delta via `parseViewDelta`; otherwise delta = `delta_val ?? 0`), compute turn fields, set `resetAvailable = opts.resetAvailable ?? false`. Import the parse helpers + `DetectionResult` type from `./recognizer`, engine types from `../engine`/`../engine/...`.
 
-- [ ] **Step 4: Run to verify it passes** — PASS (5 tests).
+- [ ] **Step 4: Run to verify it passes** — `cd web && npx vitest run --project browser tests/vision/adapter.test.ts` → PASS (5 tests).
 
-- [ ] **Step 5: Write the end-to-end test**
+- [ ] **Step 5: Write the end-to-end test (browser)**
+
+Loads examples via `import.meta.glob`, templates via the Task 5 loader, `detection.json` via JSON import. `detect()` takes a gray Mat (Task 7).
 
 ```ts
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { initOpenCv } from '../../src/lib/cv/cvRuntime';
-import { decodeToBgrMat } from '../helpers/decodeImage';
+import { loadGrayMat } from '../helpers/loadImage';
+import { loadTemplateStore } from '../helpers/loadTemplates';
 import { TemplateStore } from '../../src/lib/cv/templates';
 import { detect } from '../../src/lib/cv/recognizer';
 import { detectionToEngineInputs } from '../../src/lib/cv/adapter';
 import { buildEngineContext, advise } from '../../src/lib/engine';
+import detection from '../fixtures/detection.json';
 
-const REPO = resolve(__dirname, '../../..');
-const records = JSON.parse(readFileSync(resolve(__dirname, '../fixtures/detection.json'), 'utf8')).records;
+const EXAMPLE_URLS = import.meta.glob('../../../examples/*.jpg',
+  { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const urlByName: Record<string, string> = {};
+for (const [p, u] of Object.entries(EXAMPLE_URLS)) urlByName[p.split('/').pop()!] = u;
 
 describe('e2e: screenshot -> detect -> adapt -> advise', () => {
   let store: TemplateStore;
-  beforeAll(async () => { await initOpenCv(); store = new TemplateStore(resolve(REPO, 'arkgrid/vision/templates')); }, 60_000);
+  beforeAll(async () => { await initOpenCv(); store = await loadTemplateStore(); }, 120_000);
 
-  it('produces a coherent recommendation for detected cutting frames', () => {
-    // pick the first few records the Python detected as a full cutting screen
-    const cutting = records.filter((r: any) => r.expected.found && r.expected.gem_type
-      && r.expected.total_steps && r.expected.current_step
+  it('produces a coherent recommendation for detected cutting frames', async () => {
+    // pick a few records the Python detected as a full cutting screen
+    const cutting = (detection as any).records.filter((r: any) => r.expected.found
+      && r.expected.gem_type && r.expected.total_steps && r.expected.current_step
       && r.expected.first_effect && r.expected.second_effect).slice(0, 5);
     expect(cutting.length).toBeGreaterThan(0);
 
     for (const r of cutting) {
-      const frame = decodeToBgrMat(resolve(REPO, 'examples', r.file));
-      const det = detect(frame, store); frame.delete();
+      const gray = await loadGrayMat(urlByName[r.file]!);
+      const det = detect(gray, store); gray.delete();
       const inputs = detectionToEngineInputs(det, { optimize: 'dps' });
-      const rarity = ({ 5: 'common', 7: 'rare', 9: 'epic' } as const)[inputs.turnsTotal as 5|7|9];
+      const rarity = ({ 5: 'common', 7: 'rare', 9: 'epic' } as const)[inputs.turnsTotal as 5 | 7 | 9];
       const ctx = buildEngineContext(inputs.gem, { rarity: rarity!, minWill: 4, minChaos: 5 });
       const out = advise(ctx, { state: inputs.state, offers: inputs.offers,
         turn: inputs.turn, turnsLeft: inputs.turnsLeft, rerolls: inputs.rerolls,
@@ -875,10 +879,9 @@ describe('e2e: screenshot -> detect -> adapt -> advise', () => {
 });
 ```
 
-- [ ] **Step 6: Run the full suite + typecheck**
+- [ ] **Step 6: Run the e2e, then the full suite + typecheck**
 
-Run: `cd web && npx vitest run tests/vision/e2e.test.ts && npm test && npm run check`
-Expected: e2e PASS; full suite (Plan 1 + Plan 2) green; tsc clean.
+Run: `cd web && npx vitest run --project browser tests/vision/e2e.test.ts` (e2e PASS), then `npm test` (both projects green — node + browser/Chromium), then `npm run check` (tsc clean).
 
 - [ ] **Step 7: Commit**
 
