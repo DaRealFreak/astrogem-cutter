@@ -405,55 +405,48 @@ git commit -m "feat(web): port vision constants.py (ROIs, thresholds, maps)"
 
 - [ ] **Step 1: Write the failing test**
 
+This is a **browser-project** test (in the `BROWSER_TESTS` allowlist). Use `loadGrayMat` (Task 1) + `?url` asset imports — NOT `node:fs`. `loadGrayMat` returns a grayscale Mat directly.
+
 ```ts
 import { describe, it, expect, beforeAll } from 'vitest';
-import { resolve } from 'node:path';
-import { initOpenCv, getCv } from '../../src/lib/cv/cvRuntime';
-import { decodeToBgrMat } from '../helpers/decodeImage';
+import { initOpenCv } from '../../src/lib/cv/cvRuntime';
+import { loadGrayMat } from '../helpers/loadImage';
 import { findBestMatch, findTemplate } from '../../src/lib/cv/matcher';
-
-const REPO = resolve(__dirname, '../../..');
-const tmplGray = (rel: string) => {
-  const cv = getCv(); const bgr = decodeToBgrMat(resolve(REPO, rel));
-  const g = new cv.Mat(); cv.cvtColor(bgr, g, cv.COLOR_BGR2GRAY); bgr.delete(); return g;
-};
+import exampleUrl from '../../../examples/20260401130608_1.jpg?url';
+import anchorUrl from '../../../arkgrid/vision/templates/anchor/processing.png?url';
 
 describe('matcher', () => {
   beforeAll(async () => { await initOpenCv(); }, 60_000);
 
-  it('finds the anchor in its example via findTemplate', () => {
-    const cv = getCv();
-    const frameBgr = decodeToBgrMat(resolve(REPO, 'examples/20260401130608_1.jpg'));
-    const frame = new cv.Mat(); cv.cvtColor(frameBgr, frame, cv.COLOR_BGR2GRAY);
-    const anchor = tmplGray('arkgrid/vision/templates/anchor/processing.png');
+  it('finds the anchor in its example via findTemplate', async () => {
+    const frame = await loadGrayMat(exampleUrl);
+    const anchor = await loadGrayMat(anchorUrl);
     const r = findTemplate(frame, anchor, [650, 20, 700, 80]);
     expect(r.score).toBeGreaterThan(0.7);
-    [frameBgr, frame, anchor].forEach((m) => m.delete());
+    [frame, anchor].forEach((m) => m.delete());
   });
 
-  it('findBestMatch returns null where the template is absent', () => {
-    const cv = getCv();
-    const frameBgr = decodeToBgrMat(resolve(REPO, 'examples/20260401130608_1.jpg'));
-    const frame = new cv.Mat(); cv.cvtColor(frameBgr, frame, cv.COLOR_BGR2GRAY);
-    const anchor = tmplGray('arkgrid/vision/templates/anchor/processing.png');
+  it('findBestMatch returns null where the template is absent', async () => {
+    const frame = await loadGrayMat(exampleUrl);
+    const anchor = await loadGrayMat(anchorUrl);
     // search a bottom-screen ROI where the "Processing" anchor text is not present
     const res = findBestMatch(frame, new Map([['anchor', anchor]]), [100, 900, 400, 120], 0.70);
     expect(res).toBeNull();
-    [frameBgr, frame, anchor].forEach((m) => m.delete());
+    [frame, anchor].forEach((m) => m.delete());
   });
 });
 ```
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd web && npx vitest run tests/vision/matcher.test.ts`
+Run: `cd web && npx vitest run --project browser tests/vision/matcher.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement `matcher.ts`** — transcribe `matcher.py`: `findTemplate` (ROI clamp via `frame.roi(rect)`, `cv.matchTemplate`+`cv.minMaxLoc`, add ROI offset back, return 0 if template larger than target), `findBestMatch` (iterate templates, keep best ≥ threshold). Delete intermediate `Mat`s (`result`, ROI sub-mat) to avoid WASM leaks.
+- [ ] **Step 3: Implement `matcher.ts`** — transcribe `matcher.py`: `findTemplate` (ROI clamp via `frame.roi(rect)`, `cv.matchTemplate`+`cv.minMaxLoc`, add ROI offset back, return 0 if template larger than target), `findBestMatch` (iterate templates, keep best ≥ threshold). Delete intermediate `Mat`s (`result`, ROI sub-mat) to avoid WASM leaks. `matcher.ts` imports `getCv` from `cvRuntime` and `Roi` from `constants` — it is environment-agnostic (no `node:fs`).
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd web && npx vitest run tests/vision/matcher.test.ts`
+Run: `cd web && npx vitest run --project browser tests/vision/matcher.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
