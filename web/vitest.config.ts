@@ -2,11 +2,17 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'node:path';
 
 // opencv-dependent test files run in a real browser; everything else in Node.
+// NOTE: parse.test.ts and adapter.test.ts are pure-logic, but they transitively
+// import recognizer.ts, which statically imports opencv (a 10 MB WASM bundle that
+// hangs under vitest's Node loader). So they must run in the browser project too,
+// where opencv loads fine. (They don't call initOpenCv — they just can't be in Node.)
 const BROWSER_TESTS = [
   'tests/cv/**/*.test.ts',
   'tests/vision/matcher.test.ts',
   'tests/vision/templates.test.ts',
   'tests/vision/recognizer.test.ts',
+  'tests/vision/parse.test.ts',
+  'tests/vision/adapter.test.ts',
   'tests/vision/e2e.test.ts',
 ];
 
@@ -14,7 +20,8 @@ export default defineConfig({
   test: {
     projects: [
       {
-        // NODE: Plan 1 engine + Plan 2 pure-logic (constants, parse, adapter-unit)
+        // NODE: Plan 1 engine + Plan 2 opencv-free pure-logic (constants only;
+        // parse/adapter moved to browser because they transitively import opencv)
         test: {
           name: 'node',
           globals: true,
