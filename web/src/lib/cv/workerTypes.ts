@@ -2,8 +2,8 @@ import type { DetectionResult } from './types';
 
 export type CaptureWorkerRequest =
   | { type: 'init' }
-  | { type: 'frame'; frame: VideoFrame; drawDebug: boolean }
-  | { type: 'image'; bitmap: ImageBitmap; drawDebug: boolean };
+  | { type: 'frame'; frame: VideoFrame; drawOverlays: boolean }
+  | { type: 'image'; bitmap: ImageBitmap; drawOverlays: boolean };
 
 export type CaptureWorkerResponse =
   | { type: 'init:done' }

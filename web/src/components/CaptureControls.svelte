@@ -13,8 +13,9 @@
   let { supported = true }: { supported?: boolean } = $props();
 
   let controller: CaptureController | null = null;
-  // Debug screen-mirror is shown by default so the user can see what's detected.
-  let drawDebug = $state(true);
+  // Detection ROI overlays on the screen mirror — on by default. The screen
+  // itself always streams; this only toggles the annotation boxes.
+  let drawOverlays = $state(true);
   let debugImage = $state<ImageBitmap | null>(null);
   // Debounces live frames so the advice + turn log only update on a settled
   // reading (the game animates ~0.2-0.4s after a turn flips, misreading offers
@@ -28,14 +29,14 @@
       advisor.detection = det;
       advisor.output = output;
       advisor.waiting = false;
-      turnLog.observe(det, output.action, output.pGoal, output.eValue);
+      turnLog.observe(det, output.action, output.pGoal, output.pRelic, output.pAncient, output.eValue);
     }
   }
 
   function ensure(): CaptureController {
     if (controller) return controller;
     const c = new CaptureController();
-    c.setDrawDebug(drawDebug); // honor the default-on UI state
+    c.setDrawOverlays(drawOverlays); // honor the default-on UI state
     c.onStatus = (s) => { advisor.status = s; };
     c.onError = (e) => { advisor.error = e; advisor.status = 'idle'; };
     c.onDetection = (det, source) => {
@@ -63,10 +64,17 @@
   }
   async function start() { advisor.error = null; await ensure().startCapture(); }
   function stop() { controller?.stopCapture(); }
-  function toggleDebug() { drawDebug = ensure().toggleDrawDebug(); }
+  function toggleOverlays() { drawOverlays = ensure().toggleOverlays(); }
 </script>
 
 <div class="capture-controls">
+  <div class="debug-screen">
+    {#if debugImage}
+      <DebugView image={debugImage} />
+    {:else}
+      <p class="debug-hint">Share your screen (or upload a screenshot below) to see what's detected.</p>
+    {/if}
+  </div>
   <div class="capture-bar">
     {#if advisor.status === 'recording'}
       <button onclick={stop}>Stop</button>
@@ -74,17 +82,8 @@
       <button onclick={start} disabled={!supported || advisor.status === 'loading'}>Share screen</button>
     {/if}
     <span class="status">Status: {advisor.status}</span>
-    <label class="debug-toggle"><input type="checkbox" checked={drawDebug} onchange={toggleDebug} /> debug view</label>
+    <label class="debug-toggle"><input type="checkbox" checked={drawOverlays} onchange={toggleOverlays} /> overlays</label>
     {#if advisor.error}<span class="error">{advisor.error}</span>{/if}
+    <ScreenshotUpload onfile={(b) => ensure().analyzeImage(b)} />
   </div>
-  {#if drawDebug}
-    <div class="debug-screen">
-      {#if debugImage}
-        <DebugView image={debugImage} />
-      {:else}
-        <p class="debug-hint">Share your screen (or upload a screenshot below) to see what's detected.</p>
-      {/if}
-      <ScreenshotUpload onfile={(b) => ensure().analyzeImage(b)} />
-    </div>
-  {/if}
 </div>

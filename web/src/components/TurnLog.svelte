@@ -6,10 +6,18 @@
 
 {#if entries.length > 0}
   <table class="turn-log">
-    <thead><tr><th>Turn</th><th>Will</th><th>Chaos</th><th>Action</th><th>P(goal)</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Turn</th><th>Will</th><th>Chaos</th><th>Side 1</th><th>Side 2</th>
+        <th>Action</th><th>P(goal)</th><th>P(relic+)</th><th>P(ancient)</th><th>E[coeff]</th>
+      </tr>
+    </thead>
     <tbody>
       {#each entries as e}
-        <tr><td>{e.turn}</td><td>{e.will}</td><td>{e.chaos}</td><td>{e.action}</td><td>{pct(e.pGoal)}</td></tr>
+        <tr>
+          <td>{e.turn}</td><td>{e.will}</td><td>{e.chaos}</td><td>{e.firstLevel}</td><td>{e.secondLevel}</td>
+          <td>{e.action}</td><td>{pct(e.pGoal)}</td><td>{pct(e.pRelic)}</td><td>{pct(e.pAncient)}</td><td>{e.eValue.toFixed(1)}</td>
+        </tr>
       {/each}
     </tbody>
   </table>

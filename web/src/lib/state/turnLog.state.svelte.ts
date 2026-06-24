@@ -4,7 +4,7 @@ import { classifyRunTransition, type RunIdentity } from '../app/runTransition';
 
 export interface TurnLogEntry {
   turn: number; will: number; chaos: number; firstLevel: number; secondLevel: number;
-  action: ActionKind; pGoal: number; eValue: number;
+  action: ActionKind; pGoal: number; pRelic: number; pAncient: number; eValue: number;
 }
 
 class TurnLog {
@@ -12,7 +12,10 @@ class TurnLog {
   resetObserved = $state(false);
   #prev: { turn: number; id: RunIdentity } | null = null;
 
-  observe(det: DetectionResult, action: ActionKind, pGoal: number, eValue: number): void {
+  observe(
+    det: DetectionResult, action: ActionKind,
+    pGoal: number, pRelic: number, pAncient: number, eValue: number,
+  ): void {
     const turn = (det.totalSteps ?? 0) - (det.currentStep ?? 0) + 1;
     const id: RunIdentity = { gemType: det.gemType, firstEffect: det.firstEffect, secondEffect: det.secondEffect };
     const transition = classifyRunTransition(this.#prev, { turn, id });
@@ -27,7 +30,7 @@ class TurnLog {
       this.entries = [...this.entries, {
         turn, will: det.willpower ?? 0, chaos: det.chaos ?? 0,
         firstLevel: det.firstLevel ?? 0, secondLevel: det.secondLevel ?? 0,
-        action, pGoal, eValue,
+        action, pGoal, pRelic, pAncient, eValue,
       }];
     }
   }

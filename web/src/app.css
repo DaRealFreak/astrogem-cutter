@@ -265,11 +265,11 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 .offers th, .offers td { padding: var(--sp-1) var(--sp-2); text-align: left; border-bottom: 1px solid var(--border-subtle); }
 .offers .favored { background: color-mix(in srgb, var(--action-process) 15%, transparent); font-weight: 600; }
 
-/* ── TurnLog ──────────────────────────────────────────────────────────── */
+/* ── TurnLog (full-width bottom row) ──────────────────────────────────── */
+.turn-log-section { display: flex; flex-direction: column; gap: var(--sp-2); overflow-x: auto; }
+.section-title { margin: 0; font-size: 0.9rem; font-weight: 600; opacity: 0.8; }
 .turn-log {
-  width: auto;
-  max-width: 100%;
-  align-self: start;
+  width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
 }

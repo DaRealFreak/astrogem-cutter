@@ -31,9 +31,12 @@
           <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} />
         {/if}
         {#if advisor.output}<OfferTable perOffer={advisor.output.perOffer} detection={advisor.detection} />{/if}
-        <TurnLog entries={turnLog.entries} />
         <DetectedState detection={advisor.detection} />
       </div>
     </div>
+    <section class="turn-log-section">
+      <h2 class="section-title">Turn log</h2>
+      <TurnLog entries={turnLog.entries} />
+    </section>
   </section>
 </main>

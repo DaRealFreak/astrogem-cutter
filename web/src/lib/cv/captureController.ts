@@ -18,8 +18,9 @@ export class CaptureController {
   // Stored init promise so analyzeImage can await it if init is already in flight
   private _workerInitPromise: Promise<void> | null = null;
 
-  // debug
-  private drawDebug: boolean = false;
+  // Detection-overlay annotations on the streamed screen mirror. The screen
+  // bitmap is posted every frame regardless; this only toggles the ROI boxes.
+  private drawOverlays: boolean = true;
   private _debugCanvas: HTMLCanvasElement | null = null;
 
   // pending promise resolvers
@@ -238,7 +239,7 @@ export class CaptureController {
 
         // Transfer the frame to the worker (ownership passes, no detectionMargin)
         this.worker.postMessage(
-          { type: 'frame', frame: value, drawDebug: this.drawDebug } satisfies CaptureWorkerRequest,
+          { type: 'frame', frame: value, drawOverlays: this.drawOverlays } satisfies CaptureWorkerRequest,
           [value]
         );
         value = undefined; // ownership transferred — do not touch
@@ -268,15 +269,15 @@ export class CaptureController {
     return this.state === 'recording';
   }
 
-  toggleDrawDebug() {
-    this.drawDebug = !this.drawDebug;
-    return this.drawDebug;
+  toggleOverlays() {
+    this.drawOverlays = !this.drawOverlays;
+    return this.drawOverlays;
   }
 
-  /** Set the debug-overlay flag explicitly (lets the UI default it on). */
-  setDrawDebug(on: boolean) {
-    this.drawDebug = on;
-    return this.drawDebug;
+  /** Set the detection-overlay flag explicitly (lets the UI default it on). */
+  setDrawOverlays(on: boolean) {
+    this.drawOverlays = on;
+    return this.drawOverlays;
   }
 
   /** Ensure the worker is created and initialized (idempotent). */
@@ -302,7 +303,7 @@ export class CaptureController {
     await this.ensureWorkerReady();
     if (!this.worker) throw new Error('worker is not set');
     this.worker.postMessage(
-      { type: 'image', bitmap, drawDebug: this.drawDebug } satisfies CaptureWorkerRequest,
+      { type: 'image', bitmap, drawOverlays: this.drawOverlays } satisfies CaptureWorkerRequest,
       [bitmap],
     );
   }

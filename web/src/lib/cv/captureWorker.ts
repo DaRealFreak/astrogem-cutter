@@ -78,13 +78,14 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
     } finally {
       data.frame.close();
     }
-    if (data.drawDebug && result !== null && ctx !== null) {
-      // The frame is already drawn on the OffscreenCanvas at scaled size.
-      // The canvas is FHD-normalised (adjustResolution scales to REF_WIDTH x REF_HEIGHT),
-      // so canvas pixels are 1:1 with the ROI coordinate space → scale = 1.
-      drawDetectionOverlay(ctx, result, 1);
+    // Always mirror the captured frame to the UI; the overlay annotations are
+    // optional. processFrame left the frame drawn on the OffscreenCanvas at
+    // FHD-normalised size (adjustResolution scales to REF_WIDTH x REF_HEIGHT),
+    // so canvas pixels are 1:1 with the ROI coordinate space → scale = 1.
+    if (result !== null && ctx !== null) {
+      if (data.drawOverlays) drawDetectionOverlay(ctx, result, 1);
       const bmp = canvas.transferToImageBitmap();
-      // Send the annotated bitmap first, then release the backpressure lock.
+      // Send the screen bitmap first, then release the backpressure lock.
       post({ type: 'debug', image: bmp, result }, [bmp]);
     }
     post({ type: 'frame:done', result });
@@ -113,10 +114,12 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
     } finally {
       data.bitmap.close();
     }
-    if (data.drawDebug && result !== null && ctx !== null) {
-      drawDetectionOverlay(ctx, result, 1);
+    // Mirror the uploaded image too (overlays optional), so it shows in the
+    // screen view just like a live frame.
+    if (result !== null && ctx !== null) {
+      if (data.drawOverlays) drawDetectionOverlay(ctx, result, 1);
       const bmp = canvas.transferToImageBitmap();
-      // Send the annotated debug bitmap first, then the detection result.
+      // Send the screen bitmap first, then the detection result.
       post({ type: 'debug', image: bmp, result }, [bmp]);
     }
     // Distinct from frame:done — image requests are one-shot (outside the frame
