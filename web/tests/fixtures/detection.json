@@ -1,0 +1,3029 @@
+{
+ "meta": {
+  "schema": 1,
+  "arkgrid_sha": "d1c5fc4",
+  "n": 60
+ },
+ "records": [
+  {
+   "file": "20260401130608_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9999996423721313,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999998211860657,
+    "first_level": 1,
+    "first_level_score": 0.9999993443489075,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9844098687171936,
+    "second_level": 1,
+    "second_level_score": 0.9943521022796631,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 1.0,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9882789850234985
+     },
+     {
+      "name_key": "will",
+      "name_score": 1.0,
+      "delta_key": "2_line_+4",
+      "delta_score": 0.9999998211860657
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9857733249664307,
+      "delta_key": "cost+100",
+      "delta_score": 0.9958559274673462
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9888399243354797,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9935553669929504
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130610_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9999996423721313,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999998211860657,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9911481738090515,
+    "second_level": 1,
+    "second_level_score": 0.994490921497345,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 1.0,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919821619987488
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999023079872131,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934547543525696
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.999853253364563,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9859234094619751
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9911284446716309,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9947617053985596
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130612_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9999996423721313,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9999999403953552,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938472509384155,
+    "second_level": 1,
+    "second_level_score": 0.9962617754936218,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9933850765228271,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9937046766281128
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9999998211860657,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9827885031700134
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9931954145431519,
+      "delta_key": "2_line_lvl+4",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9936972856521606,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9950923919677734
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130613_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_attack",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 0.9997263550758362,
+    "second_effect": "boss_damage",
+    "second_effect_score": 0.9893739819526672,
+    "second_level": 1,
+    "second_level_score": 0.9962630271911621,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 0.9999985098838806,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9948200583457947
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9948068261146545,
+      "delta_key": "cost-100",
+      "delta_score": 0.995320200920105
+     },
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9858980774879456,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9999995231628418
+     },
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9999998807907104,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9947768449783325
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130614_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_attack",
+    "first_effect_score": 0.9999992251396179,
+    "first_level": 1,
+    "first_level_score": 0.9997258186340332,
+    "second_effect": "boss_damage",
+    "second_effect_score": 0.989388644695282,
+    "second_level": 1,
+    "second_level_score": 0.9962627291679382,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.9966771006584167,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9862400889396667
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999889731407166,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934547543525696
+     },
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.9816364049911499,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9999998807907104
+     },
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9992506504058838,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9947195053100586
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130616_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999998807907104,
+    "first_level": 1,
+    "first_level_score": 0.9997263550758362,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938437342643738,
+    "second_level": 1,
+    "second_level_score": 0.9962617754936218,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.993385374546051,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9936057329177856
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9938174486160278,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9918774366378784
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9823104739189148,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9825373291969299,
+      "delta_key": "cost-100",
+      "delta_score": 0.9949343204498291
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130617_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "boss_damage",
+    "first_effect_score": 0.9999998807907104,
+    "first_level": 1,
+    "first_level_score": 0.9999778866767883,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938464164733887,
+    "second_level": 1,
+    "second_level_score": 0.9962617754936218,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "boss_damage",
+      "name_score": 1.0,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9935981035232544
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9999512434005737,
+      "delta_key": "1_line_lvl+4",
+      "delta_score": 0.994038462638855
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.988696813583374,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9999995827674866
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.991269052028656,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9825387597084045
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130619_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "attack_power",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 0.999975323677063,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9836894869804382,
+    "second_level": 1,
+    "second_level_score": 0.9943510293960571,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 1.0,
+      "delta_key": "2_line_lvl+3",
+      "delta_score": 0.995037853717804
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999484419822693,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934549331665039
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9883959889411926,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9923027753829956
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9816443920135498,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9908443689346313
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401130620_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9999996423721313,
+    "first_level": 1,
+    "first_level_score": 0.9999747276306152,
+    "second_effect": "ally_attack",
+    "second_effect_score": 0.9916383624076843,
+    "second_level": 1,
+    "second_level_score": 0.9943521022796631,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9882728457450867,
+      "delta_key": "1_line_lvl+3",
+      "delta_score": 0.9850226640701294
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.993912398815155,
+      "delta_key": "1_line_+2",
+      "delta_score": 0.9999996423721313
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9925137758255005,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9999997615814209
+     },
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9892218112945557,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.996597170829773
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401230720_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 5,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999955296516418,
+    "first_level": 5,
+    "first_level_score": 1.0,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9911234378814697,
+    "second_level": 2,
+    "second_level_score": 0.9955890774726868,
+    "rerolls": "1",
+    "rerolls_score": 0.9954491853713989,
+    "current_step": 1,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995588064193726,
+    "options": [
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9952879548072815,
+      "delta_key": "1_line_lvl-1",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9998682141304016,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934576749801636
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 1.0,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9858437180519104
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9879832863807678,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9933847784996033
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401230958_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 2,
+    "chaos_score": 0.9999990463256836,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999895095825195,
+    "first_level": 1,
+    "first_level_score": 0.9997263550758362,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9911527633666992,
+    "second_level": 1,
+    "second_level_score": 0.994490921497345,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 2,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9997036457061768,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 0.9999986886978149,
+      "delta_key": "1_line_+2",
+      "delta_score": 0.9943912625312805
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9942280054092407,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9918662905693054
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9990853071212769,
+      "delta_key": "2_line_lvl+3",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9892727732658386,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9961885809898376
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401231058_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 5,
+    "willpower_score": 1.0,
+    "chaos": 4,
+    "chaos_score": 1.0,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9999998211860657,
+    "first_level": 1,
+    "first_level_score": 0.9999740719795227,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9911442995071411,
+    "second_level": 1,
+    "second_level_score": 0.994491457939148,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 3,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9996681809425354,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 0.9999998211860657,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919821619987488
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9970719814300537,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9942660927772522
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 1.0,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9966741800308228
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9891916513442993,
+      "delta_key": "2_line_-1",
+      "delta_score": 0.9999992847442627
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401231303_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999960064888,
+    "first_level": 2,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938362240791321,
+    "second_level": 1,
+    "second_level_score": 0.9962611794471741,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 4,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9996952414512634,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 1.0,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919821619987488
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9902308583259583,
+      "delta_key": "2_line_lvl-1",
+      "delta_score": 0.9999998211860657
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9928438067436218,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9842544198036194
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9916168451309204,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9843194484710693
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260401232554_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 2,
+    "chaos_score": 0.9999990463256836,
+    "first_effect": "additional_damage",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 0.999999463558197,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938313364982605,
+    "second_level": 1,
+    "second_level_score": 0.9962617754936218,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 7,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9993792176246643,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 0.9999985098838806,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9948200583457947
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9998994469642639,
+      "delta_key": "2_line_+3",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.987584114074707,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9923144578933716
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.987332820892334,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9936656951904297
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402062828_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 0.9976139068603516,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999963045120239,
+    "first_level": 3,
+    "first_level_score": 0.9999995231628418,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938446879386902,
+    "second_level": 1,
+    "second_level_score": 0.9962617754936218,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 8,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995855093002319,
+    "options": [
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9952982664108276,
+      "delta_key": "1_line_lvl+3",
+      "delta_score": 0.9851162433624268
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9901049733161926,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9951004981994629
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9891443252563477,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9996880888938904
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9906853437423706,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.982314944267273
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402062958_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 0.9976139068603516,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999961256980896,
+    "first_level": 3,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.993845522403717,
+    "second_level": 2,
+    "second_level_score": 1.0,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 7,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9993792176246643,
+    "options": [
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9952990412712097,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9849957823753357
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999289512634277,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934545755386353
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9926174283027649,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9857010841369629
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9928229451179504,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919413328170776
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402063014_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 0.9976139068603516,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999909400939941,
+    "first_level": 3,
+    "first_level_score": 0.9999995231628418,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938398599624634,
+    "second_level": 3,
+    "second_level_score": 1.0,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 6,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.999497652053833,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9933838248252869,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9937045574188232
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9999443888664246,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9847103953361511
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 1.0,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9932461380958557
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9920483827590942,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919332265853882
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402063105_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 0.9976139068603516,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999960660934448,
+    "first_level": 4,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938408136367798,
+    "second_level": 5,
+    "second_level_score": 0.9954066872596741,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995588064193726,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.977715790271759,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9891289472579956
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9998658895492554,
+      "delta_key": "2_line_-1",
+      "delta_score": 0.9840344786643982
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9860773682594299,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9923211932182312
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9866308569908142,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9962688088417053
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402063149_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9913204312324524,
+    "willpower": 3,
+    "willpower_score": 0.9999995827674866,
+    "chaos": 3,
+    "chaos_score": 0.9986208081245422,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999909400939941,
+    "first_level": 5,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938417673110962,
+    "second_level": 1,
+    "second_level_score": 0.9962608218193054,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 4,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9996952414512634,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 0.9957829713821411,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9920125007629395
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999094605445862,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934547543525696
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9920763373374939,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9856200218200684
+     },
+     {
+      "name_key": "view",
+      "name_score": 0.9816523790359497,
+      "delta_key": "reroll+1",
+      "delta_score": 0.9946924448013306
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402064627_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9913204312324524,
+    "willpower": 3,
+    "willpower_score": 0.9999995827674866,
+    "chaos": 4,
+    "chaos_score": 0.9986902475357056,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9999997019767761,
+    "first_level": 5,
+    "first_level_score": 0.9999995231628418,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938434958457947,
+    "second_level": 3,
+    "second_level_score": 0.9999988675117493,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995588064193726,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 0.9957831501960754,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9920116066932678
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9998877048492432,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934576749801636
+     },
+     {
+      "name_key": "maintain",
+      "name_score": 0.9789896011352539,
+      "delta_key": "maintained",
+      "delta_score": 0.9956040382385254
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9869962930679321,
+      "delta_key": "2_line_-1",
+      "delta_score": 0.9998934268951416
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402064815_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970536231994629,
+    "willpower": 2,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "additional_damage",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "brand_power",
+    "second_effect_score": 0.9943921566009521,
+    "second_level": 1,
+    "second_level_score": 0.9962629079818726,
+    "rerolls": "1",
+    "rerolls_score": 0.999999463558197,
+    "current_step": 6,
+    "step_score": 0.9994751811027527,
+    "total_steps": 7,
+    "rarity_score": 0.9994676113128662,
+    "options": [
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9931840300559998,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9946033954620361
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999808073043823,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9939640760421753
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9861399531364441,
+      "delta_key": "cost+100",
+      "delta_score": 0.9958581328392029
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9932501912117004,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9843220114707947
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402070823_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 5,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999956488609314,
+    "first_level": 3,
+    "first_level_score": 0.9952717423439026,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9910917282104492,
+    "second_level": 2,
+    "second_level_score": 0.9955882430076599,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995588064193726,
+    "options": [
+     {
+      "name_key": "maintain",
+      "name_score": 0.9947625994682312,
+      "delta_key": "maintained",
+      "delta_score": 0.9966238141059875
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9896078705787659,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9872604012489319
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9883610010147095,
+      "delta_key": "1_line_lvl-1",
+      "delta_score": 0.9813278913497925
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9904548525810242,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.994731068611145
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402072804_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 0.9984887838363647,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9999999403953552,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.98403000831604,
+    "second_level": 1,
+    "second_level_score": 0.9943521022796631,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 5,
+    "step_score": 0.9993160367012024,
+    "total_steps": 5,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9999946355819702,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9882791042327881
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9835028648376465,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9955109357833862
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9938178062438965,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9995550513267517
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9916293025016785,
+      "delta_key": "1_line_+2",
+      "delta_score": 0.9948585033416748
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402072807_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_distortion",
+    "gem_type_score": 0.9999992847442627,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 0.9984887838363647,
+    "first_effect": "ally_attack",
+    "first_effect_score": 0.9999986886978149,
+    "first_level": 1,
+    "first_level_score": 0.9997263550758362,
+    "second_effect": "boss_damage",
+    "second_effect_score": 0.9893699288368225,
+    "second_level": 1,
+    "second_level_score": 0.9962627291679382,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 5,
+    "step_score": 0.9993160367012024,
+    "total_steps": 5,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 0.9957828521728516,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9920125007629395
+     },
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9819421768188477,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9943139553070068
+     },
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.9807735681533813,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9840222597122192
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9868344068527222,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9936811327934265
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402072808_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_immutability",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_attack",
+    "first_effect_score": 0.999998927116394,
+    "first_level": 1,
+    "first_level_score": 0.9997263550758362,
+    "second_effect": "brand_power",
+    "second_effect_score": 0.9943651556968689,
+    "second_level": 1,
+    "second_level_score": 0.9962629079818726,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 5,
+    "step_score": 0.9993160367012024,
+    "total_steps": 5,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9967779517173767,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9850319027900696
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9941189885139465,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9918662905693054
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9891682863235474,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9856637120246887
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9892358779907227,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9965429902076721
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402072810_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_destruction",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 0.9984887838363647,
+    "first_effect": "additional_damage",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 0.999999463558197,
+    "second_effect": "boss_damage",
+    "second_effect_score": 0.9893728494644165,
+    "second_level": 1,
+    "second_level_score": 0.9962624311447144,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 5,
+    "step_score": 0.9993160367012024,
+    "total_steps": 5,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.9966743588447571,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9849903583526611
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9824097156524658,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9951809644699097
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9860883355140686,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.992309033870697
+     },
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.9874056577682495,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.984106719493866
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402072813_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "boss_damage",
+    "first_effect_score": 0.9999960660934448,
+    "first_level": 1,
+    "first_level_score": 0.9999740719795227,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938423037528992,
+    "second_level": 1,
+    "second_level_score": 0.9962611794471741,
+    "rerolls": "2",
+    "rerolls_score": 0.9766071438789368,
+    "current_step": 9,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.9999998807907104,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9935983419418335
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9999088048934937,
+      "delta_key": "1_line_lvl+4",
+      "delta_score": 0.9940198659896851
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9870995283126831,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9999678730964661
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9899620413780212,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9823130369186401
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402072815_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9999996423721313,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "additional_damage",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938454031944275,
+    "second_level": 1,
+    "second_level_score": 0.9962621331214905,
+    "rerolls": "2",
+    "rerolls_score": 0.9766071438789368,
+    "current_step": 9,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9933837056159973,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9937045574188232
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9999334812164307,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9827607870101929
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9942965507507324,
+      "delta_key": "2_line_lvl+4",
+      "delta_score": 0.9996823668479919
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9927759766578674,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9950869679450989
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402074656_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 0.999971866607666,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "ally_attack",
+    "first_effect_score": 0.999998927116394,
+    "first_level": 1,
+    "first_level_score": 0.9997263550758362,
+    "second_effect": "boss_damage",
+    "second_effect_score": 0.9893888235092163,
+    "second_level": 1,
+    "second_level_score": 0.9962630271911621,
+    "rerolls": "1",
+    "rerolls_score": 0.9825732707977295,
+    "current_step": 7,
+    "step_score": 0.999372661113739,
+    "total_steps": 7,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 1.0,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919821619987488
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999403953552246,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934547543525696
+     },
+     {
+      "name_key": "ally_attack",
+      "name_score": 0.9791135787963867,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9936845302581787
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9835352301597595,
+      "delta_key": "cost-100",
+      "delta_score": 0.9949393272399902
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402074658_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 0.9984887838363647,
+    "first_effect": "additional_damage",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9829685091972351,
+    "second_level": 1,
+    "second_level_score": 0.9943526387214661,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 5,
+    "step_score": 0.9993160367012024,
+    "total_steps": 5,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9999943971633911,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9882789850234985
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9834644198417664,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9955175518989563
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.99493408203125,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9998471140861511
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9903204441070557,
+      "delta_key": "1_line_+2",
+      "delta_score": 0.9948692917823792
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402074700_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_solidity",
+    "gem_type_score": 1.0,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "boss_damage",
+    "first_effect_score": 0.9999954104423523,
+    "first_level": 1,
+    "first_level_score": 0.7656564712524414,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938454031944275,
+    "second_level": 1,
+    "second_level_score": 0.9962621331214905,
+    "rerolls": "2",
+    "rerolls_score": 0.9766071438789368,
+    "current_step": 9,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "boss_damage",
+      "name_score": 0.8263455629348755,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.6056900024414062
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.7185366749763489,
+      "delta_key": "1_line_lvl+4",
+      "delta_score": 0.7783603668212891
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9901423454284668,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.999964714050293
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9923771023750305,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9825572371482849
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402082739_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9999996423721313,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "additional_damage",
+    "first_effect_score": 1.0,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938398599624634,
+    "second_level": 1,
+    "second_level_score": 0.9962621331214905,
+    "rerolls": "2",
+    "rerolls_score": 1.0,
+    "current_step": 9,
+    "step_score": 0.9996667504310608,
+    "total_steps": 9,
+    "rarity_score": 0.9995006918907166,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9933838844299316,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9937045574188232
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9999213814735413,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9827638864517212
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9946898818016052,
+      "delta_key": "2_line_lvl+4",
+      "delta_score": 0.9996289014816284
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.992251992225647,
+      "delta_key": "1_line_+3",
+      "delta_score": 0.9950923919677734
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402084757_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 4,
+    "chaos_score": 1.0,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9999714493751526,
+    "first_level": 5,
+    "first_level_score": 0.999856173992157,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9938426613807678,
+    "second_level": 1,
+    "second_level_score": 0.996261477470398,
+    "rerolls": "2",
+    "rerolls_score": 0.9999997019767761,
+    "current_step": 7,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9993792176246643,
+    "options": [
+     {
+      "name_key": "cost",
+      "name_score": 0.989526629447937,
+      "delta_key": "cost-100",
+      "delta_score": 0.9953835010528564
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9998911619186401,
+      "delta_key": "1_line_lvl+3",
+      "delta_score": 0.9831007122993469
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9823305606842041,
+      "delta_key": "cost+100",
+      "delta_score": 0.9957363605499268
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.989741861820221,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9842177629470825
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260402205304_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_destruction",
+    "gem_type_score": 0.991645872592926,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 5,
+    "chaos_score": 0.99885493516922,
+    "first_effect": "boss_damage",
+    "first_effect_score": 0.9999973177909851,
+    "first_level": 1,
+    "first_level_score": 0.9999747276306152,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9911479949951172,
+    "second_level": 1,
+    "second_level_score": 0.994490921497345,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 0.9991559982299805,
+    "total_steps": 7,
+    "rarity_score": 0.9995940327644348,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.993383526802063,
+      "delta_key": "2_line_-1",
+      "delta_score": 0.9824339747428894
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9894762635231018,
+      "delta_key": "2_line_lvl+3",
+      "delta_score": 0.9956387877464294
+     },
+     {
+      "name_key": "maintain",
+      "name_score": 0.9821879863739014,
+      "delta_key": "maintained",
+      "delta_score": 0.9957778453826904
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9914370179176331,
+      "delta_key": "1_line_-1",
+      "delta_score": 0.979529857635498
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260403224002_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9913162589073181,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 3,
+    "chaos_score": 0.9986208081245422,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9999866485595703,
+    "first_level": 3,
+    "first_level_score": 0.9996389150619507,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9841428995132446,
+    "second_level": 1,
+    "second_level_score": 0.9943521022796631,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 0.9991559982299805,
+    "total_steps": 7,
+    "rarity_score": 0.9995940327644348,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9999948143959045,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9944009780883789
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9822636246681213,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9951840043067932
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9912980794906616,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9929038286209106
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.981216311454773,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9860188364982605
+     }
+    ]
+   }
+  },
+  {
+   "file": "20260403230454_1.jpg",
+   "expected": {
+    "found": false,
+    "gem_type": null,
+    "gem_type_score": 0.0,
+    "willpower": null,
+    "willpower_score": 0.0,
+    "chaos": null,
+    "chaos_score": 0.0,
+    "first_effect": null,
+    "first_effect_score": 0.0,
+    "first_level": null,
+    "first_level_score": 0.0,
+    "second_effect": null,
+    "second_effect_score": 0.0,
+    "second_level": null,
+    "second_level_score": 0.0,
+    "rerolls": null,
+    "rerolls_score": 0.0,
+    "current_step": null,
+    "step_score": 0.0,
+    "total_steps": null,
+    "rarity_score": 0.0,
+    "options": []
+   }
+  },
+  {
+   "file": "20260403232905_1.jpg",
+   "expected": {
+    "found": false,
+    "gem_type": null,
+    "gem_type_score": 0.0,
+    "willpower": null,
+    "willpower_score": 0.0,
+    "chaos": null,
+    "chaos_score": 0.0,
+    "first_effect": null,
+    "first_effect_score": 0.0,
+    "first_level": null,
+    "first_level_score": 0.0,
+    "second_effect": null,
+    "second_effect_score": 0.0,
+    "second_level": null,
+    "second_level_score": 0.0,
+    "rerolls": null,
+    "rerolls_score": 0.0,
+    "current_step": null,
+    "step_score": 0.0,
+    "total_steps": null,
+    "rarity_score": 0.0,
+    "options": []
+   }
+  },
+  {
+   "file": "20260403233522_1.jpg",
+   "expected": {
+    "found": false,
+    "gem_type": null,
+    "gem_type_score": 0.0,
+    "willpower": null,
+    "willpower_score": 0.0,
+    "chaos": null,
+    "chaos_score": 0.0,
+    "first_effect": null,
+    "first_effect_score": 0.0,
+    "first_level": null,
+    "first_level_score": 0.0,
+    "second_effect": null,
+    "second_effect_score": 0.0,
+    "second_level": null,
+    "second_level_score": 0.0,
+    "rerolls": null,
+    "rerolls_score": 0.0,
+    "current_step": null,
+    "step_score": 0.0,
+    "total_steps": null,
+    "rarity_score": 0.0,
+    "options": []
+   }
+  },
+  {
+   "file": "20260404114932_1.jpg",
+   "expected": {
+    "found": false,
+    "gem_type": null,
+    "gem_type_score": 0.0,
+    "willpower": null,
+    "willpower_score": 0.0,
+    "chaos": null,
+    "chaos_score": 0.0,
+    "first_effect": null,
+    "first_effect_score": 0.0,
+    "first_level": null,
+    "first_level_score": 0.0,
+    "second_effect": null,
+    "second_effect_score": 0.0,
+    "second_level": null,
+    "second_level_score": 0.0,
+    "rerolls": null,
+    "rerolls_score": 0.0,
+    "current_step": null,
+    "step_score": 0.0,
+    "total_steps": null,
+    "rarity_score": 0.0,
+    "options": []
+   }
+  },
+  {
+   "file": "reroll_3.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9842082262039185,
+    "willpower": 3,
+    "willpower_score": 0.9817850589752197,
+    "chaos": 4,
+    "chaos_score": 0.9798107147216797,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.994583249092102,
+    "first_level": 5,
+    "first_level_score": 0.991497278213501,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9904622435569763,
+    "second_level": 3,
+    "second_level_score": 0.9905830025672913,
+    "rerolls": "3",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 0.9920775294303894,
+    "total_steps": 9,
+    "rarity_score": 0.993480384349823,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 0.9967030882835388,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9873184561729431
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9952659606933594,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9903167486190796
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9837214350700378,
+      "delta_key": "1_line_-1",
+      "delta_score": 0.9732956290245056
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9843764901161194,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9943680763244629
+     }
+    ]
+   }
+  },
+  {
+   "file": "reroll_4.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9839562773704529,
+    "willpower": 3,
+    "willpower_score": 0.9833092093467712,
+    "chaos": 4,
+    "chaos_score": 0.9801955223083496,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9943556189537048,
+    "first_level": 5,
+    "first_level_score": 0.9900012612342834,
+    "second_effect": "attack_power",
+    "second_effect_score": 0.9901816844940186,
+    "second_level": 3,
+    "second_level_score": 0.9879969358444214,
+    "rerolls": "4",
+    "rerolls_score": 0.9999993443489075,
+    "current_step": 1,
+    "step_score": 0.9909822344779968,
+    "total_steps": 9,
+    "rarity_score": 0.9926924705505371,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9912206530570984,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9898259043693542
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9951339364051819,
+      "delta_key": "2_line_-1",
+      "delta_score": 0.9699121117591858
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9843277931213379,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9929807782173157
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9885868430137634,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9758912324905396
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_1_01.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9938670992851257,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9954755902290344,
+    "first_level": 1,
+    "first_level_score": 0.9910158514976501,
+    "second_effect": "brand_power",
+    "second_effect_score": 0.9912248849868774,
+    "second_level": 1,
+    "second_level_score": 0.9878774881362915,
+    "rerolls": "1",
+    "rerolls_score": 1.0,
+    "current_step": 7,
+    "step_score": 0.9944549202919006,
+    "total_steps": 7,
+    "rarity_score": 0.9948292970657349,
+    "options": [
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9999998807907104,
+      "delta_key": "1_line_lvl+4",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9999998807907104,
+      "delta_key": "cost+100",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9913198351860046,
+      "delta_key": "1_line_lvl+3",
+      "delta_score": 0.9999997615814209
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9809144139289856,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9889345765113831
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_1_02.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9938670992851257,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9946960806846619,
+    "first_level": 1,
+    "first_level_score": 0.9932028651237488,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9809136390686035,
+    "second_level": 1,
+    "second_level_score": 0.99015873670578,
+    "rerolls": "1",
+    "rerolls_score": 1.0,
+    "current_step": 7,
+    "step_score": 0.9944549202919006,
+    "total_steps": 7,
+    "rarity_score": 0.9948292970657349,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9965523481369019,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9870192408561707
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9912110567092896,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9896319508552551
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.988646388053894,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9999998211860657
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.984580934047699,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9914227724075317
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_1_03.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9938670992851257,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9954757690429688,
+    "first_level": 1,
+    "first_level_score": 0.9910158514976501,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9811610579490662,
+    "second_level": 1,
+    "second_level_score": 0.990159809589386,
+    "rerolls": "1",
+    "rerolls_score": 1.0,
+    "current_step": 7,
+    "step_score": 0.9944549202919006,
+    "total_steps": 7,
+    "rarity_score": 0.9948292970657349,
+    "options": [
+     {
+      "name_key": "maintain",
+      "name_score": 1.0,
+      "delta_key": "maintained",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9960981607437134,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9915997385978699
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9842730164527893,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9999995827674866
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9818703532218933,
+      "delta_key": "cost-100",
+      "delta_score": 0.9930810332298279
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_1_04.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9938670992851257,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9954757690429688,
+    "first_level": 1,
+    "first_level_score": 0.9910158514976501,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.987616240978241,
+    "second_level": 1,
+    "second_level_score": 0.9902844429016113,
+    "rerolls": "1",
+    "rerolls_score": 1.0,
+    "current_step": 7,
+    "step_score": 0.9944549202919006,
+    "total_steps": 7,
+    "rarity_score": 0.9948292970657349,
+    "options": [
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9851207137107849,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.987082302570343
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9882343411445618,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9999997615814209
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9915391802787781,
+      "delta_key": "1_line_lvl+3",
+      "delta_score": 0.999967634677887
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9873672127723694,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9999998211860657
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_2_01.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9860043525695801,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9954836964607239,
+    "first_level": 4,
+    "first_level_score": 0.9999995231628418,
+    "second_effect": "brand_power",
+    "second_effect_score": 0.99122554063797,
+    "second_level": 1,
+    "second_level_score": 0.9878768920898438,
+    "rerolls": "1",
+    "rerolls_score": 0.9999995827674866,
+    "current_step": 6,
+    "step_score": 0.9939257502555847,
+    "total_steps": 7,
+    "rarity_score": 0.9944832921028137,
+    "options": [
+     {
+      "name_key": "cost",
+      "name_score": 0.9883806705474854,
+      "delta_key": "cost-100",
+      "delta_score": 0.9999997019767761
+     },
+     {
+      "name_key": "view",
+      "name_score": 1.0,
+      "delta_key": "reroll+1",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "view",
+      "name_score": 0.9804914593696594,
+      "delta_key": "reroll+2",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9798964858055115,
+      "delta_key": "2_line_effect_changed",
+      "delta_score": 0.9891446232795715
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_2_02.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9860043525695801,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 2,
+    "chaos_score": 0.9844411611557007,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9946957230567932,
+    "first_level": 1,
+    "first_level_score": 0.9932023882865906,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9804643392562866,
+    "second_level": 1,
+    "second_level_score": 0.990159809589386,
+    "rerolls": "1",
+    "rerolls_score": 0.9999995827674866,
+    "current_step": 6,
+    "step_score": 0.9939257502555847,
+    "total_steps": 7,
+    "rarity_score": 0.9944832921028137,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 1.0,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9887356162071228
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9904933571815491,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9999839663505554
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9880242943763733,
+      "delta_key": "2_line_+3",
+      "delta_score": 0.9936865568161011
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9873373508453369,
+      "delta_key": "2_line_lvl+3",
+      "delta_score": 0.9942263960838318
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_2_03.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9860043525695801,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.995483934879303,
+    "first_level": 4,
+    "first_level_score": 0.9999995231628418,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9876312017440796,
+    "second_level": 1,
+    "second_level_score": 0.9902844429016113,
+    "rerolls": "1",
+    "rerolls_score": 0.9999995827674866,
+    "current_step": 6,
+    "step_score": 0.9939257502555847,
+    "total_steps": 7,
+    "rarity_score": 0.9944832921028137,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 1.0,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9887356162071228
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9882451295852661,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9852429628372192
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9953575730323792,
+      "delta_key": "1_line_effect_changed",
+      "delta_score": 0.9999997615814209
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9885554909706116,
+      "delta_key": "1_line_lvl-1",
+      "delta_score": 0.9796404242515564
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_2_04.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9860043525695801,
+    "willpower": 1,
+    "willpower_score": 0.9873408079147339,
+    "chaos": 1,
+    "chaos_score": 0.9850451350212097,
+    "first_effect": "attack_power",
+    "first_effect_score": 0.9954760074615479,
+    "first_level": 1,
+    "first_level_score": 0.9910158514976501,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.980046808719635,
+    "second_level": 1,
+    "second_level_score": 0.990159273147583,
+    "rerolls": "1",
+    "rerolls_score": 0.9999995827674866,
+    "current_step": 6,
+    "step_score": 0.9939257502555847,
+    "total_steps": 7,
+    "rarity_score": 0.9944832921028137,
+    "options": [
+     {
+      "name_key": "chaos",
+      "name_score": 0.9999998211860657,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9887356162071228
+     },
+     {
+      "name_key": "attack_power",
+      "name_score": 0.9948765635490417,
+      "delta_key": "1_line_lvl+1",
+      "delta_score": 0.9913338422775269
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9744282364845276,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.982947587966919
+     },
+     {
+      "name_key": "view",
+      "name_score": 0.9791304469108582,
+      "delta_key": "reroll+1",
+      "delta_score": 0.993357241153717
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_3_01.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "chaos_corrosion",
+    "gem_type_score": 0.9860043525695801,
+    "willpower": 4,
+    "willpower_score": 0.9866735339164734,
+    "chaos": 2,
+    "chaos_score": 0.9844411611557007,
+    "first_effect": "additional_damage",
+    "first_effect_score": 0.9946958422660828,
+    "first_level": 1,
+    "first_level_score": 0.9932023882865906,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9818780422210693,
+    "second_level": 1,
+    "second_level_score": 0.990159809589386,
+    "rerolls": "1",
+    "rerolls_score": 0.9999995827674866,
+    "current_step": 5,
+    "step_score": 0.9935946464538574,
+    "total_steps": 7,
+    "rarity_score": 0.9941225051879883,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9965523481369019,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9870192408561707
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9911109209060669,
+      "delta_key": "2_line_lvl+3",
+      "delta_score": 0.9933764934539795
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9817521572113037,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9915528893470764
+     },
+     {
+      "name_key": "chaos",
+      "name_score": 0.9904518723487854,
+      "delta_key": "1_line_-1",
+      "delta_score": 1.0
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 4,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 5,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999956488609314,
+    "first_level": 3,
+    "first_level_score": 0.9952717423439026,
+    "second_effect": "additional_damage",
+    "second_effect_score": 0.9910917282104492,
+    "second_level": 2,
+    "second_level_score": 0.9955882430076599,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 1,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995588064193726,
+    "options": [
+     {
+      "name_key": "maintain",
+      "name_score": 0.9947625994682312,
+      "delta_key": "maintained",
+      "delta_score": 0.9966238141059875
+     },
+     {
+      "name_key": "additional_damage",
+      "name_score": 0.9896078705787659,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9872604012489319
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9883610010147095,
+      "delta_key": "1_line_lvl-1",
+      "delta_score": 0.9813278913497925
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9904548525810242,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.994731068611145
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_2.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 2,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999953508377075,
+    "first_level": 3,
+    "first_level_score": 0.9952717423439026,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.982729434967041,
+    "second_level": 5,
+    "second_level_score": 0.9960235953330994,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 2,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9997036457061768,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9933836460113525,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9936057329177856
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9998664259910583,
+      "delta_key": "2_line_-1",
+      "delta_score": 0.9840341806411743
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9866424798965454,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9922893047332764
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.986630916595459,
+      "delta_key": "2_line_+3",
+      "delta_score": 0.9958309531211853
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_3.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 2,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999960064888,
+    "first_level": 3,
+    "first_level_score": 0.9952722787857056,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.98443603515625,
+    "second_level": 3,
+    "second_level_score": 0.9953787326812744,
+    "rerolls": "0_ticket_not_available",
+    "rerolls_score": 1.0,
+    "current_step": 3,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9996681809425354,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9999946355819702,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9943846464157104
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9942241907119751,
+      "delta_key": "1_line_-1",
+      "delta_score": 0.9806836247444153
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9908608794212341,
+      "delta_key": "1_line_lvl-1",
+      "delta_score": 0.9828594923019409
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9911922812461853,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.985869288444519
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_4.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 2,
+    "willpower_score": 0.9999996423721313,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999956488609314,
+    "first_level": 3,
+    "first_level_score": 0.9952717423439026,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9845231771469116,
+    "second_level": 1,
+    "second_level_score": 0.9943515658378601,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 4,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9996952414512634,
+    "options": [
+     {
+      "name_key": "will",
+      "name_score": 0.9933837652206421,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9936060905456543
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.992400586605072,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.994776725769043
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.991777241230011,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9940456748008728
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9914311766624451,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9858691692352295
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_5.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999956488609314,
+    "first_level": 3,
+    "first_level_score": 0.9952717423439026,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9846091866493225,
+    "second_level": 1,
+    "second_level_score": 0.9943521022796631,
+    "rerolls": "0_ticket_available",
+    "rerolls_score": 1.0,
+    "current_step": 5,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995899200439453,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9999946355819702,
+      "delta_key": "2_line_lvl+2",
+      "delta_score": 0.9943846464157104
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999796152114868,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9934547543525696
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.985228419303894,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9859176874160767
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9928774833679199,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9946754574775696
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_6.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999956488609314,
+    "first_level": 3,
+    "first_level_score": 0.9952717423439026,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9839743971824646,
+    "second_level": 2,
+    "second_level_score": 0.995804488658905,
+    "rerolls": "2",
+    "rerolls_score": 0.9688552021980286,
+    "current_step": 6,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.999497652053833,
+    "options": [
+     {
+      "name_key": "maintain",
+      "name_score": 0.9947625994682312,
+      "delta_key": "maintained",
+      "delta_score": 0.9966239929199219
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9948570728302002,
+      "delta_key": "cost-100",
+      "delta_score": 0.995320200920105
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9889062643051147,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.992313802242279
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9903193712234497,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9858184456825256
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_7.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 3,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999995231628418,
+    "first_level": 1,
+    "first_level_score": 0.9999993443489075,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9843050837516785,
+    "second_level": 2,
+    "second_level_score": 0.995804488658905,
+    "rerolls": "2",
+    "rerolls_score": 0.9688552021980286,
+    "current_step": 7,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9993792176246643,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 0.9999986886978149,
+      "delta_key": "1_line_+2",
+      "delta_score": 0.9943912625312805
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9922633767127991,
+      "delta_key": "2_line_lvl-1",
+      "delta_score": 0.9579357504844666
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9906935095787048,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.9997950792312622
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.993655800819397,
+      "delta_key": "1_line_-1",
+      "delta_score": 0.9794639945030212
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_8.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9970471262931824,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999998211860657,
+    "first_level": 1,
+    "first_level_score": 1.0,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9827535152435303,
+    "second_level": 2,
+    "second_level_score": 0.9958049058914185,
+    "rerolls": "2",
+    "rerolls_score": 0.9688552021980286,
+    "current_step": 8,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 0.9995855093002319,
+    "options": [
+     {
+      "name_key": "order",
+      "name_score": 0.9999998211860657,
+      "delta_key": "1_line_+1",
+      "delta_score": 0.9919821619987488
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9936560988426208,
+      "delta_key": "1_line_+2",
+      "delta_score": 0.999996542930603
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9774078726768494,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.985896110534668
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.986691415309906,
+      "delta_key": "2_line_+1",
+      "delta_score": 0.9936813712120056
+     }
+    ]
+   }
+  },
+  {
+   "file": "turn_test_9.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9999996423721313,
+    "willpower": 1,
+    "willpower_score": 1.0,
+    "chaos": 1,
+    "chaos_score": 1.0,
+    "first_effect": "brand_power",
+    "first_effect_score": 0.9999998211860657,
+    "first_level": 1,
+    "first_level_score": 0.9999993443489075,
+    "second_effect": "ally_damage",
+    "second_effect_score": 0.9836261868476868,
+    "second_level": 1,
+    "second_level_score": 0.9943521022796631,
+    "rerolls": "2",
+    "rerolls_score": 0.9999996423721313,
+    "current_step": 9,
+    "step_score": 1.0,
+    "total_steps": 9,
+    "rarity_score": 1.0,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9999946355819702,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.98826003074646
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.9999279379844666,
+      "delta_key": "2_line_+4",
+      "delta_score": 1.0
+     },
+     {
+      "name_key": "cost",
+      "name_score": 0.9841961860656738,
+      "delta_key": "cost+100",
+      "delta_score": 0.995800256729126
+     },
+     {
+      "name_key": "will",
+      "name_score": 0.987775444984436,
+      "delta_key": "2_line_+2",
+      "delta_score": 0.9935681223869324
+     }
+    ]
+   }
+  },
+  {
+   "file": "wrong_1.jpg",
+   "expected": {
+    "found": true,
+    "gem_type": "order_stability",
+    "gem_type_score": 0.9920983910560608,
+    "willpower": 1,
+    "willpower_score": 0.985110342502594,
+    "chaos": 1,
+    "chaos_score": 0.980759859085083,
+    "first_effect": "ally_damage",
+    "first_effect_score": 0.9944645166397095,
+    "first_level": 2,
+    "first_level_score": 0.9905156493186951,
+    "second_effect": "brand_power",
+    "second_effect_score": 0.9908407926559448,
+    "second_level": 1,
+    "second_level_score": 0.9862117767333984,
+    "rerolls": "2",
+    "rerolls_score": 0.9943905472755432,
+    "current_step": 7,
+    "step_score": 0.9933611154556274,
+    "total_steps": 9,
+    "rarity_score": 0.993340790271759,
+    "options": [
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9904816150665283,
+      "delta_key": "2_line_lvl-1",
+      "delta_score": 0.9747474789619446
+     },
+     {
+      "name_key": "brand_power",
+      "name_score": 0.9916671514511108,
+      "delta_key": "1_line_lvl+2",
+      "delta_score": 0.980002760887146
+     },
+     {
+      "name_key": "order",
+      "name_score": 0.9876373410224915,
+      "delta_key": "1_line_+4",
+      "delta_score": 0.9999991655349731
+     },
+     {
+      "name_key": "ally_damage",
+      "name_score": 0.9865205883979797,
+      "delta_key": "2_line_lvl+1",
+      "delta_score": 0.9934273362159729
+     }
+    ]
+   }
+  }
+ ]
+}
