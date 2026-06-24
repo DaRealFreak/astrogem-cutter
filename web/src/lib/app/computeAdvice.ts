@@ -14,11 +14,13 @@ export function computeAdvice(
   if (!isCompleteDetection(det)) return { ready: false, output: null };
 
   const eff = effectiveConfig(stored, det);
-  const resetAvailable = resolveResetAvailable(det.resetEnabled, resetObserved, eff.resetOverride);
+  // Detected/overridden availability, then gated by the reset coeff + rarity policy.
+  const resetAvailable =
+    resolveResetAvailable(det.resetEnabled, resetObserved, eff.resetOverride) && eff.resetPolicyAllowed;
 
   const inputs = detectionToEngineInputs(det, {
     optimize: eff.optimize,
-    extraTicket: stored.extraTicket === true,
+    extraTicket: eff.advisorConfig.extraTicket === true,
     resetAvailable,
   });
 

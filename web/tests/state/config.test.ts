@@ -39,6 +39,36 @@ describe('effectiveConfig', () => {
   it('maps null endgameRisk to undefined (engine auto-gate)', () => {
     expect(effectiveConfig(DEFAULT_CONFIG, det()).advisorConfig.endgameRisk).toBeUndefined();
   });
+  it('computes the gem coefficient sum from the detected effects', () => {
+    // attack_power(400) + boss_damage(1000) at dps
+    expect(effectiveConfig(DEFAULT_CONFIG, det()).coeffSum).toBe(1400);
+  });
+});
+
+describe('coefficient / rarity gates', () => {
+  it('reroll-min-coeff arms the extra ticket when coeff clears the bar, denies it otherwise', () => {
+    // coeffSum = 1400
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 700 }, det()).advisorConfig.extraTicket).toBe(true);
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 2000 }, det()).advisorConfig.extraTicket).toBe(false);
+  });
+  it('reroll-min-coeff off leaves the tri-state extraTicket untouched', () => {
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 0, extraTicket: null }, det()).advisorConfig.extraTicket).toBeNull();
+  });
+  it('reset-min-coeff allows reset only when coeff clears the bar', () => {
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, resetMinCoeff: 1000 }, det()).resetPolicyAllowed).toBe(true);
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, resetMinCoeff: 2000 }, det()).resetPolicyAllowed).toBe(false);
+  });
+  it('reset-ticket rarity gate requires the gem rarity to clear the bar', () => {
+    // rare gem (totalSteps 7)
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, resetTicketRarity: 'rare' }, det({ totalSteps: 7 })).resetPolicyAllowed).toBe(true);
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, resetTicketRarity: 'epic' }, det({ totalSteps: 7 })).resetPolicyAllowed).toBe(false);
+    expect(effectiveConfig({ ...DEFAULT_CONFIG, resetTicketRarity: 'epic' }, det({ totalSteps: 9 })).resetPolicyAllowed).toBe(true);
+  });
+  it('defaults (0 / off) allow reset and leave the ticket armed', () => {
+    const e = effectiveConfig(DEFAULT_CONFIG, det());
+    expect(e.resetPolicyAllowed).toBe(true);
+    expect(e.advisorConfig.extraTicket).toBeNull();
+  });
 });
 
 describe('goalMode', () => {

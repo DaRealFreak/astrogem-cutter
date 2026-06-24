@@ -1,5 +1,5 @@
 import type { DetectionResult } from '../cv/types';
-import { DPS_EFFECTS, SUPPORT_EFFECTS } from '../engine/constants';
+import { DPS_EFFECTS, SUPPORT_EFFECTS, DPS_COEFF, SUPPORT_COEFF } from '../engine/constants';
 import { THRESHOLD_GEM_INFO, THRESHOLD_OPTION_NAME } from '../cv/constants';
 
 export function resolveOptimize(
@@ -12,6 +12,21 @@ export function resolveOptimize(
   if (anyDps) return 'dps';
   if (anySup) return 'support';
   return 'dps';
+}
+
+/**
+ * Sum of the gem's target-effect coefficients (mirrors engine `sideCoeffs`).
+ * This is the "starting coefficient" Python's --reroll-min-coeff /
+ * --reset-min-coeff compare against. Off-target effects contribute 0.
+ */
+export function gemCoeffSum(
+  firstEffect: string, secondEffect: string, optimize: 'dps' | 'support',
+): number {
+  const coeff = optimize === 'dps' ? DPS_COEFF : SUPPORT_COEFF;
+  const set = optimize === 'dps' ? DPS_EFFECTS : SUPPORT_EFFECTS;
+  const f = set.has(firstEffect) ? (coeff[firstEffect] ?? 0) : 0;
+  const s = set.has(secondEffect) ? (coeff[secondEffect] ?? 0) : 0;
+  return f + s;
 }
 
 export function inferResetAvailable(turn: number, override: 'auto' | 'always' | 'never' = 'auto'): boolean {

@@ -176,6 +176,31 @@ body { margin: 0; }
 details.advanced { border-radius: var(--radius-md); }
 details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 
+/* Presets */
+.preset-bar { display: flex; flex-direction: column; gap: var(--sp-2); }
+.preset-bar .preset-name {
+  width: 100%;
+  font-size: 0.875rem;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+}
+.preset-actions { display: flex; gap: var(--sp-2); }
+.preset-actions button {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.preset-actions button:hover:not(:disabled) { background: color-mix(in srgb, currentColor 10%, transparent); }
+.preset-actions button:disabled { opacity: 0.4; cursor: default; }
+
 /* ── CaptureControls ──────────────────────────────────────────────────── */
 .capture-controls { display: flex; flex-direction: column; gap: var(--sp-3); }
 .capture-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
@@ -205,6 +230,8 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 }
 
 /* ── AdvisorPanel ─────────────────────────────────────────────────────── */
+/* Size to content like the matrix/offer tables, rather than stretching the column. */
+.advisor { align-self: start; width: fit-content; max-width: min(32rem, 100%); }
 .advisor.waiting { opacity: 0.6; }
 
 /* badge */

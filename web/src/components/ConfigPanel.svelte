@@ -1,5 +1,6 @@
 <script lang="ts">
   import { config } from '../lib/state/config.state.svelte';
+  import PresetBar from './PresetBar.svelte';
   const c = config;   // c.current is the reactive, bindable store value
 
   // When switching to combined mode, seed minWillChaosTotal from separate values if blank
@@ -12,6 +13,8 @@
 </script>
 
 <section class="config">
+  <PresetBar />
+
   <fieldset class="config-section">
     <legend>Goal</legend>
 
@@ -89,7 +92,7 @@
     <summary>Advanced</summary>
 
     <div class="field-row">
-      <label for="endgame-risk">Endgame risk</label>
+      <label for="endgame-risk" title="On a goal-met gem, once free rerolls are gone: finish when the stop value ≥ best continue value + this margin (a coefficient amount). Blank = auto-gate by grade (protect a relic/ancient gem whose side coeff is below the fusion benchmark). Higher = stop sooner; negative = keep cutting longer.">Endgame risk</label>
       <input id="endgame-risk" type="number" step="any" placeholder="auto-gate"
         value={c.current.endgameRisk ?? ''} oninput={(e) => c.current.endgameRisk = e.currentTarget.value === '' ? null : +e.currentTarget.value} />
     </div>
@@ -101,8 +104,25 @@
       </div>
     </div>
     <div class="field-row">
-      <label for="force-reroll-no-progress">Force reroll no-progress</label>
+      <label for="force-reroll-no-progress" title="If the gem's starting target-effect coefficient is ≥ this, force a reroll on any turn where no offer makes progress. 0 = off.">Force reroll no-progress</label>
       <input id="force-reroll-no-progress" type="number" min="0" step="any" bind:value={c.current.forceRerollNoProgress} />
+    </div>
+    <div class="field-row">
+      <label for="reroll-min-coeff" title="Arm the extra reroll ticket only when the gem's starting target-effect coefficient is ≥ this. 0 = off (use the Extra ticket setting). Port of --reroll-min-coeff.">Reroll min coeff</label>
+      <input id="reroll-min-coeff" type="number" min="0" step="any" bind:value={c.current.rerollMinCoeff} />
+    </div>
+    <div class="field-row">
+      <label for="reset-min-coeff" title="Allow a reset only when the gem's starting target-effect coefficient is ≥ this. 0 = off. Port of --reset-min-coeff.">Reset min coeff</label>
+      <input id="reset-min-coeff" type="number" min="0" step="any" bind:value={c.current.resetMinCoeff} />
+    </div>
+    <div class="field-row">
+      <label for="reset-ticket-rarity" title="Allow a reset only at this gem rarity or higher. 'Off' = no rarity gate. Port of --reset-ticket <rarity>.">Reset rarity gate</label>
+      <select id="reset-ticket-rarity" bind:value={c.current.resetTicketRarity}>
+        <option value="off">Off (any rarity)</option>
+        <option value="common">Common+ (5)</option>
+        <option value="rare">Rare+ (7)</option>
+        <option value="epic">Epic only (9)</option>
+      </select>
     </div>
     <div class="field-row">
       <label for="extra-ticket">Extra ticket</label>

@@ -78,4 +78,17 @@ describe('computeAdvice', () => {
     const { output } = computeAdvice(det, DEFAULT_CONFIG, true);
     expect(output!.actions.reset).not.toBeNull();
   });
+
+  it('reset coeff gate suppresses reset when the gem is below the bar', () => {
+    // complete gem coeff = attack_power(400)+boss_damage(1000) = 1400
+    const det = { ...complete, resetEnabled: true };
+    expect(computeAdvice(det, { ...DEFAULT_CONFIG, resetMinCoeff: 1000 }, false).output!.actions.reset).not.toBeNull();
+    expect(computeAdvice(det, { ...DEFAULT_CONFIG, resetMinCoeff: 5000 }, false).output!.actions.reset).toBeNull();
+  });
+
+  it('reset rarity gate suppresses reset below the rarity bar', () => {
+    // complete is a rare gem (totalSteps 7)
+    const det = { ...complete, resetEnabled: true };
+    expect(computeAdvice(det, { ...DEFAULT_CONFIG, resetTicketRarity: 'epic' }, false).output!.actions.reset).toBeNull();
+  });
 });
