@@ -24,9 +24,11 @@ Same as Plan 1. This is a **faithful port of existing, working code**:
 - **Reference resolution:** `REF_WIDTH=1920`, `REF_HEIGHT=1080`. ROI offsets are anchor-relative `(dx,dy,w,h)`; anchor is found in `ANCHOR_SEARCH_ROI=(650,20,700,80)` with `THRESHOLD_ANCHOR=0.70`.
 - **Matching:** `cv.matchTemplate(crop, tmpl, cv.TM_CCOEFF_NORMED)` then `cv.minMaxLoc`; best score over a template set wins; skip a template larger than the crop. `_match` with `strip_variants` collapses `additional_damage_01` → `additional_damage`.
 - **Adapter conventions (verbatim from `automation.py`):** `turnsLeft = det.currentStep`; `turnsTotal = det.totalSteps`; `turn = turnsTotal − turnsLeft + 1`. Offer keys built per `_detected_to_options` (`will`/`chaos`/`first`/`second` → `` `${kind}${delta:+d}` ``; cost → `deltaKey`; effect_changed → `change_${slot}_effect`; maintained → `maintain`; else `nameKey`). `Option(key, weight=1.0, kind, delta)`.
-- **opencv.js init:** `initOpenCv()`/`getCv()` singleton (import `@techstark/opencv-js` directly — works in Node). Tests `await initOpenCv()` in `beforeAll`.
-- **Decoder:** prefer `cv.imdecode` (OpenCV's own decoder — matches cv2 closely). Only if unavailable in the `@techstark` build, fall back to pure-JS `jpeg-js` (JPEG) / `pngjs` (PNG). **Task 1 decides and records which.**
-- **No duplication:** tests read `examples/` and `arkgrid/vision/templates/` via relative paths from `web/`. Do not copy images into `web/`.
+- **Test runtime = vitest BROWSER mode** (`@vitest/browser` + `playwright`, Chromium, headless). DECIDED after the Task 1 spike showed opencv.js 4.12's WASM init crashes/hangs under vitest's Node/vite-node loader on Node v26.3.0 (it works only in plain Node). opencv.js is browser-native, so the browser is the correct runtime and it aligns with Plan 3's browser worker. Tests run IN Chromium.
+- **opencv.js init:** `initOpenCv()`/`getCv()` singleton (import `@techstark/opencv-js`; in the browser the module resolves to a `cv` handle, init via `onRuntimeInitialized` or the module Promise). Tests `await initOpenCv()` in `beforeAll`.
+- **Decoder = browser-native (no jpeg-js/pngjs).** `cv.imdecode` is absent from the @techstark build; in the browser, decode images by loading them onto an `ImageBitmap`/`<canvas>` and reading them with `cv.imread(canvas)` (or `cv.matFromImageData`) → a BGR/RGBA Mat → `cv.cvtColor` to gray. Chromium's decoder may differ slightly from cv2's libjpeg; parity asserts detected values/keys (not scores), so small pixel drift is tolerated and only a value/key flip is a finding.
+- **Asset loading:** `examples/` JPEGs and `arkgrid/vision/templates/` PNGs are loaded as **vite-served assets** — enumerate via `import.meta.glob('<relpath>/**/*.{jpg,png}', { eager: true, query: '?url', import: 'default' })` and `fetch` each URL → `createImageBitmap` → canvas → Mat. The golden fixture `detection.json` is loaded via a normal JSON `import`. Configure vite so `examples/` and `arkgrid/vision/templates/` are reachable (e.g. `server.fs.allow` includes the repo root). Do NOT copy images into `web/` and do NOT use `node:fs` in test code (it runs in the browser).
+- **TemplateStore takes an injected loader** (a `Map<string, Mat>` of already-decoded gray templates, or an async loader the test supplies) rather than reading the filesystem itself — so the same class is reused by Plan 3's browser/atlas loader. The test builds the template map from the `import.meta.glob` URLs.
 - **Do not modify Plan 1's engine** (`web/src/lib/engine/`); the adapter/e2e only import it.
 - **Out of scope (Plan 3):** `detect_finish`, live `getDisplayMedia` capture, Web Worker, anchor-ROI caching, sprite atlas, UI, deploy.
 
@@ -41,9 +43,10 @@ web/
     templates.ts     # <- template_recognizer._load/TemplateStore (PNG -> gray Mat)
     recognizer.ts    # <- template_recognizer.py (detect + parse helpers)
     adapter.ts       # <- automation.py builder (DetectionResult -> engine inputs)
+  vitest.workspace.ts          # two projects: node (pure logic) + browser (opencv)
   tests/
-    helpers/decodeImage.ts     # Node image file -> BGR cv.Mat (test-only)
-    cv/spike.test.ts           # Task 1 feasibility spike
+    helpers/loadImage.ts       # browser image URL -> gray cv.Mat (test-only)
+    cv/spike.test.ts           # Task 1 browser feasibility spike
     vision/parse.test.ts       # parse-helper unit/golden tests
     vision/recognizer.test.ts  # detect() golden parity over examples/
     vision/adapter.test.ts     # adapter unit tests
@@ -55,91 +58,121 @@ tools/
 
 ---
 
-### Task 1: Feasibility spike — opencv.js in Node, decoder decision
+### Task 1: Browser-mode spike — vitest + Playwright + opencv.js
+
+**Why this shape:** opencv.js 4.12 will not initialize under vitest's Node/vite-node loader in this environment (Node v26.3.0) — it crashes/hangs in every pool config, working only in plain Node. opencv.js is browser-native, so we run the opencv-dependent tests in a real headless Chromium via `@vitest/browser` + `playwright`. But Plan 1's engine tests use `node:fs` and must stay in Node — so the config is **two projects**: a `node` project (engine + pure-logic vision tests) and a `browser` project (opencv-dependent vision tests). This spike proves the browser project runs end-to-end in this env.
 
 **Files:**
-- Modify: `web/package.json` (add `@techstark/opencv-js`)
-- Create: `web/src/lib/cv/cvRuntime.ts`
-- Create: `web/tests/helpers/decodeImage.ts`
-- Create: `web/tests/cv/spike.test.ts`
+- Modify: `web/package.json` (add `@vitest/browser`, `playwright`; remove `jpeg-js`/`pngjs` if present)
+- Rewrite: `web/vitest.config.ts` → **`web/vitest.workspace.ts`** (two projects: node + browser)
+- Keep/verify: `web/src/lib/cv/cvRuntime.ts` (browser-compatible init)
+- Replace `web/tests/helpers/decodeImage.ts` with: `web/tests/helpers/loadImage.ts` (browser image → gray Mat)
+- Rewrite: `web/tests/cv/spike.test.ts` (browser spike)
 
 **Interfaces:**
 - Produces:
   ```ts
-  // cvRuntime.ts
+  // cvRuntime.ts (unchanged from the first attempt if it still works in-browser)
   export async function initOpenCv(): Promise<void>;
-  export function getCv(): any;   // @techstark/opencv-js CV handle (typed as any to avoid deep type wiring this plan)
-  // decodeImage.ts (Node test-only)
-  export function decodeToBgrMat(absPath: string): any;  // returns a cv.Mat in BGR order (3-channel)
+  export function getCv(): any;
+  // loadImage.ts (browser test util)
+  export async function loadGrayMat(url: string): Promise<any>;  // fetch -> ImageBitmap -> canvas -> cv.imread -> RGBA2GRAY gray Mat
   ```
 
-- [ ] **Step 1: Add the dependency and install**
+- [ ] **Step 1: Install browser-mode deps + Chromium**
 
 ```bash
-cd web && npm install @techstark/opencv-js@^4.12.0-release.1
+cd web && npm install -D @vitest/browser playwright && npx playwright install chromium && (npm uninstall jpeg-js pngjs 2>/dev/null || true)
 ```
+If `npx playwright install chromium` cannot download the browser (network), report BLOCKED with the exact error — browser mode needs it.
 
-- [ ] **Step 2: Write `cvRuntime.ts`**
+- [ ] **Step 2: Rewrite as `web/vitest.workspace.ts` (two projects)**
 
-Adapt locator-v2's pattern (`lostark-arkgrid-gem-locator-v2/src/lib/cv/cvRuntime.ts`):
+Delete the old `web/vitest.config.ts` (or leave it minimal); add `web/vitest.workspace.ts`:
 
 ```ts
-import cvModule from '@techstark/opencv-js';
+import { defineWorkspace } from 'vitest/config';
+import { resolve } from 'node:path';
 
-let cvInstance: any = null;
+// opencv-dependent test files run in a real browser; everything else in Node.
+const BROWSER_TESTS = [
+  'tests/cv/**/*.test.ts',
+  'tests/vision/matcher.test.ts',
+  'tests/vision/templates.test.ts',
+  'tests/vision/recognizer.test.ts',
+  'tests/vision/e2e.test.ts',
+];
 
-export async function initOpenCv(): Promise<void> {
-  if (cvInstance) return;
-  const mod: any = cvModule;
-  if (mod instanceof Promise) {
-    cvInstance = await mod;
-  } else {
-    await new Promise<void>((resolve) => { mod.onRuntimeInitialized = () => resolve(); });
-    cvInstance = mod;
-  }
-}
-
-export function getCv(): any {
-  if (!cvInstance) throw new Error('OpenCV not initialized. Call initOpenCv() first.');
-  return cvInstance;
-}
+export default defineWorkspace([
+  {
+    // NODE: Plan 1 engine + Plan 2 pure-logic (constants, parse, adapter-unit)
+    test: {
+      name: 'node',
+      globals: true,
+      environment: 'node',
+      include: ['tests/**/*.test.ts'],
+      exclude: [...BROWSER_TESTS, '**/node_modules/**'],
+    },
+  },
+  {
+    // BROWSER: opencv-dependent vision tests, in headless Chromium
+    optimizeDeps: { exclude: ['@techstark/opencv-js'] },
+    server: { fs: { allow: [resolve(__dirname, '..')] } }, // serve repo root: examples/, arkgrid/vision/templates/
+    test: {
+      name: 'browser',
+      globals: true,
+      include: BROWSER_TESTS,
+      browser: {
+        enabled: true,
+        provider: 'playwright',
+        headless: true,
+        instances: [{ browser: 'chromium' }],
+      },
+    },
+  },
+]);
 ```
+Update `package.json` scripts if needed so `npm test` runs `vitest run` (it auto-discovers the workspace). `npm run check` (tsc) is unchanged.
 
-- [ ] **Step 3: Write `decodeToBgrMat` (probe `cv.imdecode` first)**
+- [ ] **Step 3: Verify `cvRuntime.ts` works in-browser**
 
-`decodeImage.ts` returns a 3-channel BGR `cv.Mat`. Prefer `cv.imdecode` (OpenCV's own decoder, matches cv2). The implementer determines availability empirically in Step 5; write it to try `imdecode` and throw a clear error if absent so Step 5 reveals the truth:
+The first-attempt `cvRuntime.ts` (`import cvModule from '@techstark/opencv-js'`; init via `onRuntimeInitialized`/Promise; `getCv()` singleton) should work in the browser. Keep it; only adjust if browser init needs it.
+
+- [ ] **Step 4: Write `loadGrayMat` (browser canvas decode)**
 
 ```ts
-import { readFileSync } from 'node:fs';
 import { getCv } from '../../src/lib/cv/cvRuntime';
 
-export function decodeToBgrMat(absPath: string): any {
+// Browser-only: fetch an image URL, decode via canvas, return a grayscale cv.Mat.
+export async function loadGrayMat(url: string): Promise<any> {
   const cv = getCv();
-  const buf = readFileSync(absPath);
-  if (typeof cv.imdecode === 'function') {
-    const bytes = new cv.Mat(1, buf.length, cv.CV_8UC1);
-    bytes.data.set(buf);
-    const bgr = cv.imdecode(bytes, cv.IMREAD_COLOR); // BGR, like cv2.imread
-    bytes.delete();
-    return bgr;
-  }
-  throw new Error('cv.imdecode unavailable — fall back to jpeg-js/pngjs (see Task 1 Step 6)');
+  const blob = await (await fetch(url)).blob();
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  canvas.getContext('2d')!.drawImage(bmp, 0, 0);
+  const rgba = cv.imread(canvas);            // 4-channel RGBA Mat
+  const gray = new cv.Mat();
+  cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY); // same luminance as cv2 BGR2GRAY
+  rgba.delete();
+  return gray;
 }
 ```
 
-- [ ] **Step 4: Write the spike test**
+- [ ] **Step 5: Write the browser spike test**
+
+Load one example + the anchor template as vite assets (`?url` imports — vite serves them via the `server.fs.allow` repo-root grant), and confirm opencv inits, decodes, and matches:
 
 ```ts
 import { describe, it, expect, beforeAll } from 'vitest';
-import { resolve } from 'node:path';
 import { initOpenCv, getCv } from '../../src/lib/cv/cvRuntime';
-import { decodeToBgrMat } from '../helpers/decodeImage';
+import { loadGrayMat } from '../helpers/loadImage';
+// vite asset URLs (served from repo root via server.fs.allow):
+import exampleUrl from '../../../examples/20260401130608_1.jpg?url';
+import anchorUrl from '../../../arkgrid/vision/templates/anchor/processing.png?url';
 
-const REPO = resolve(__dirname, '../../..');           // web/tests/cv -> repo root
-const EXAMPLE = resolve(REPO, 'examples');
-const TEMPLATES = resolve(REPO, 'arkgrid/vision/templates');
-
-describe('opencv.js spike', () => {
+describe('opencv.js browser spike', () => {
   beforeAll(async () => { await initOpenCv(); }, 60_000);
 
   it('initializes and exposes matchTemplate + minMaxLoc', () => {
@@ -148,54 +181,47 @@ describe('opencv.js spike', () => {
     expect(typeof cv.minMaxLoc).toBe('function');
   });
 
-  it('decodes an example to a 1920x1080 BGR Mat', () => {
-    const m = decodeToBgrMat(resolve(EXAMPLE, '20260401130608_1.jpg'));
+  it('decodes an example to a 1920x1080 gray Mat', async () => {
+    const m = await loadGrayMat(exampleUrl);
     expect(m.cols).toBe(1920);
     expect(m.rows).toBe(1080);
     m.delete();
   });
 
-  it('matches the anchor template inside its example with a high score', () => {
+  it('matches the anchor template inside its example with a high score', async () => {
     const cv = getCv();
-    const frame = decodeToBgrMat(resolve(EXAMPLE, '20260401130608_1.jpg'));
-    const gray = new cv.Mat();
-    cv.cvtColor(frame, gray, cv.COLOR_BGR2GRAY);
-    const tmplBgr = decodeToBgrMat(resolve(TEMPLATES, 'anchor/processing.png'));
-    const tmpl = new cv.Mat();
-    cv.cvtColor(tmplBgr, tmpl, cv.COLOR_BGR2GRAY);
+    const gray = await loadGrayMat(exampleUrl);
+    const tmpl = await loadGrayMat(anchorUrl);
     const res = new cv.Mat();
     cv.matchTemplate(gray, tmpl, res, cv.TM_CCOEFF_NORMED);
     const mm = cv.minMaxLoc(res);
     expect(mm.maxVal).toBeGreaterThan(0.7);
-    [frame, gray, tmplBgr, tmpl, res].forEach((m) => m.delete());
+    [gray, tmpl, res].forEach((m) => m.delete());
   });
 });
 ```
 
-(If `anchor/processing.png` is not the exact filename, list `arkgrid/vision/templates/anchor/` and use the actual PNG.)
+- [ ] **Step 6: Run the spike (browser project only)**
 
-- [ ] **Step 5: Run the spike**
+Run: `cd web && npx vitest run --project browser tests/cv/spike.test.ts`
+Expected: Chromium launches headless; all 3 pass (maxVal > 0.7 — the standalone Node check earlier saw 0.9963).
+If the asset `?url` imports 404, confirm `server.fs.allow` includes the repo root and the relative paths resolve from `web/tests/cv/`.
 
-Run: `cd web && npx vitest run tests/cv/spike.test.ts`
-Expected: all 3 pass. If the decode/imdecode test throws "cv.imdecode unavailable", go to Step 6; otherwise skip Step 6.
+- [ ] **Step 7: Confirm the node project (Plan 1) still passes**
 
-- [ ] **Step 6 (only if `cv.imdecode` is unavailable): pure-JS decoder fallback**
+Run: `cd web && npx vitest run --project node`
+Expected: Plan 1's engine suites (16 tests) green in Node, untouched by the browser config.
 
-```bash
-cd web && npm install -D jpeg-js pngjs
-```
-
-Rewrite `decodeToBgrMat` to decode by extension — `jpeg-js` for `.jpg/.jpeg`, `pngjs` for `.png` — into RGBA, build a `cv.Mat` via `cv.matFromImageData({data, width, height})`, then `cv.cvtColor(rgba, bgr, cv.COLOR_RGBA2BGR)`. Re-run Step 5 until green.
-
-- [ ] **Step 7: Commit and record the decoder decision**
-
-In the commit body, state which decoder path was used (`cv.imdecode` or `jpeg-js`/`pngjs`) — Task 7's parity depends on knowing this.
+- [ ] **Step 8: Commit**
 
 ```bash
-cd web && npm test    # confirm Plan 1 suites still green alongside the spike
-git add web/package.json web/package-lock.json web/src/lib/cv/cvRuntime.ts web/tests/helpers/decodeImage.ts web/tests/cv/spike.test.ts
-git commit -m "feat(web): opencv.js Node spike — cvRuntime + image decode (decoder: <imdecode|jpeg-js>)"
+cd web && npm run check   # tsc clean
+git add web/package.json web/package-lock.json web/vitest.workspace.ts web/src/lib/cv/cvRuntime.ts web/tests/helpers/loadImage.ts web/tests/cv/spike.test.ts
+git rm -f web/vitest.config.ts web/tests/helpers/decodeImage.ts 2>/dev/null || true
+git commit -m "feat(web): browser-mode vitest (node+browser projects) + opencv.js spike"
 ```
+
+> **If browser mode cannot run in this environment** (Playwright won't install/launch, or opencv.js fails to init in Chromium) after genuine effort, STOP and report BLOCKED with the exact failure — do not silently fall back to a different runtime; that is a plan-level decision for the controller/human.
 
 ---
 
