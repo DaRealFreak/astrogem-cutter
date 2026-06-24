@@ -9,6 +9,7 @@ export async function loadGrayMat(url: string): Promise<any> {
   canvas.width = bmp.width;
   canvas.height = bmp.height;
   canvas.getContext('2d')!.drawImage(bmp, 0, 0);
+  bmp.close();                               // release the decoded ImageBitmap (GPU memory)
   const rgba = cv.imread(canvas);            // 4-channel RGBA Mat
   const gray = new cv.Mat();
   cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY); // same luminance as cv2 BGR2GRAY
