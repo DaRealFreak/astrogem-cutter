@@ -13,6 +13,7 @@ const BROWSER_TESTS = [
   'tests/vision/recognizer.test.ts',
   'tests/vision/e2e.test.ts',
   'tests/components/**/*.test.ts',
+  'tests/state/configPersist.test.ts',
 ];
 
 export default defineConfig({

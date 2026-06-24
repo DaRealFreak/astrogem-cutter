@@ -38,7 +38,7 @@ npm install      # Install dependencies (one-time)
 npm run dev      # Run local dev server with Svelte app + live capture/advisor
 npm test         # vitest — unit + golden-vector parity + e2e (69 tests)
 npm run check    # tsc --noEmit — type check on src/ and browser-compatible globals
-npm run build    # Production build → dist/ with base path /AstrogemCutter/
+npm run build    # Production build → dist/ with base path /astrogem-cutter/
 ```
 
 ## Deployment
@@ -47,7 +47,7 @@ The app deploys to GitHub Pages automatically on push to `master` (when the `fea
 
 **One-time setup (manual):** After the first merge to `master`, go to the repo's GitHub settings → Pages and set the source to "GitHub Actions" (instead of Branch).
 
-**Live site:** [`https://darealfreak.github.io/AstrogemCutter/`](https://darealfreak.github.io/AstrogemCutter/)
+**Live site:** [`https://darealfreak.github.io/astrogem-cutter/`](https://darealfreak.github.io/astrogem-cutter/)
 
 **Triggering a deploy manually:** Push to `master` (or trigger `workflow_dispatch` from the Actions tab).
 

@@ -9,7 +9,7 @@ const EFFECT_LABELS: Record<string, string> = {
   ally_attack: 'Ally Attack',
 };
 
-function effectLabel(effect: string | null | undefined): string {
+export function effectLabel(effect: string | null | undefined): string {
   if (!effect) return '';
   return EFFECT_LABELS[effect]
     ?? effect.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');

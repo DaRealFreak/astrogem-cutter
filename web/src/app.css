@@ -212,6 +212,7 @@ canvas.debug { max-width: min(480px, 100%); height: auto; display: block; }
 .action-matrix {
   width: auto;
   max-width: 100%;
+  align-self: start;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
@@ -225,7 +226,7 @@ canvas.debug { max-width: min(480px, 100%); height: auto; display: block; }
 .action-matrix tr.recommended td { font-weight: 600; }
 
 /* ── OfferTable ───────────────────────────────────────────────────────── */
-.offers { width: auto; max-width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.offers { width: auto; max-width: 100%; align-self: start; border-collapse: collapse; font-size: 0.9rem; }
 .offers th, .offers td { padding: var(--sp-1) var(--sp-2); text-align: left; border-bottom: 1px solid var(--border-subtle); }
 .offers .favored { background: color-mix(in srgb, var(--action-process) 15%, transparent); font-weight: 600; }
 
@@ -233,6 +234,7 @@ canvas.debug { max-width: min(480px, 100%); height: auto; display: block; }
 .turn-log {
   width: auto;
   max-width: 100%;
+  align-self: start;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
@@ -246,10 +248,23 @@ canvas.debug { max-width: min(480px, 100%); height: auto; display: block; }
 p.turn-log.empty { font-size: 0.85rem; opacity: 0.6; margin: 0; }
 
 /* ── DetectedState ────────────────────────────────────────────────────── */
-.detected { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.15rem var(--sp-4); margin: 0; font-size: 0.85rem; }
-.detected > div { display: contents; }
-.detected dt { opacity: 0.65; }
-.detected dd { margin: 0; }
+.detected {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  font-size: 0.85rem;
+  width: fit-content;
+  max-width: 100%;
+  align-self: start;
+}
+.detected > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.detected dt { opacity: 0.65; white-space: nowrap; }
+.detected dd { margin: 0; font-weight: 500; white-space: nowrap; }
 .detected .score { font-size: 0.75rem; opacity: 0.55; }
 
 /* ── ScreenshotUpload / DebugView canvas ──────────────────────────────── */

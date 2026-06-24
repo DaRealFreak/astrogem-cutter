@@ -132,7 +132,7 @@ export class CaptureController {
 
   private async requestDisplayMedia() {
     const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 30 },
+      video: { frameRate: 30, cursor: 'never' } as MediaTrackConstraints,
       audio: false,
     });
     if (!stream) {
