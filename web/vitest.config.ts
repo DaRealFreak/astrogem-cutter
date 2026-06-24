@@ -18,8 +18,8 @@ export default defineConfig({
   test: {
     projects: [
       {
-        // NODE: Plan 1 engine + Plan 2 opencv-free pure-logic (constants only;
-        // parse/adapter moved to browser because they transitively import opencv)
+        // NODE: Plan 1 engine + Plan 2 opencv-free pure-logic (parse/adapter now
+        // included here after the parse.ts/types.ts split severed their opencv dependency)
         test: {
           name: 'node',
           globals: true,
