@@ -31,7 +31,7 @@ body { margin: 0; }
 /* ── App shell ────────────────────────────────────────────────────────── */
 .app-shell {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: minmax(260px, 320px) 1fr;
   min-height: 100vh;
 }
 .app-config {
@@ -52,6 +52,7 @@ body { margin: 0; }
 
 @media (max-width: 720px) {
   .app-shell { grid-template-columns: 1fr; }
+  .app-main { overflow-x: hidden; }
 }
 
 /* ── BrowserGuard ─────────────────────────────────────────────────────── */
@@ -104,8 +105,7 @@ body { margin: 0; }
 .field-row .field-label {
   font-size: 0.875rem;
 }
-.field-row input[type="number"],
-.field-row select {
+.field-row input[type="number"] {
   width: 110px;
   font-size: 0.875rem;
   padding: var(--sp-1) var(--sp-2);
@@ -113,6 +113,21 @@ body { margin: 0; }
   border: 1px solid var(--border);
   background: transparent;
   color: inherit;
+}
+.field-row select {
+  width: auto;
+  min-width: 110px;
+  max-width: 100%;
+  font-size: 0.875rem;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: Canvas;
+  color: CanvasText;
+}
+.field-row select option {
+  background-color: Canvas;
+  color: CanvasText;
 }
 .field-row input[type="checkbox"] {
   width: auto;
@@ -152,7 +167,7 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 .capture-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .capture-controls .status { font-size: 0.85rem; color: var(--muted); }
 .capture-controls .error { color: var(--action-fail); font-size: 0.85rem; }
-canvas.debug { max-width: 100%; display: block; }
+canvas.debug { max-width: min(480px, 100%); height: auto; display: block; }
 
 /* ── AdvisorPanel ─────────────────────────────────────────────────────── */
 .advisor.waiting { opacity: 0.6; }
@@ -195,7 +210,8 @@ canvas.debug { max-width: 100%; display: block; }
 
 /* ── ActionMatrix ─────────────────────────────────────────────────────── */
 .action-matrix {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
@@ -209,13 +225,14 @@ canvas.debug { max-width: 100%; display: block; }
 .action-matrix tr.recommended td { font-weight: 600; }
 
 /* ── OfferTable ───────────────────────────────────────────────────────── */
-.offers { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.offers { width: auto; max-width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .offers th, .offers td { padding: var(--sp-1) var(--sp-2); text-align: left; border-bottom: 1px solid var(--border-subtle); }
 .offers .favored { background: color-mix(in srgb, var(--action-process) 15%, transparent); font-weight: 600; }
 
 /* ── TurnLog ──────────────────────────────────────────────────────────── */
 .turn-log {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
@@ -237,3 +254,9 @@ p.turn-log.empty { font-size: 0.85rem; opacity: 0.6; margin: 0; }
 
 /* ── ScreenshotUpload / DebugView canvas ──────────────────────────────── */
 .screenshot-upload { display: flex; align-items: center; gap: var(--sp-2); font-size: 0.85rem; }
+.screenshot-upload canvas,
+.capture-controls canvas {
+  max-width: min(480px, 100%);
+  height: auto;
+  display: block;
+}

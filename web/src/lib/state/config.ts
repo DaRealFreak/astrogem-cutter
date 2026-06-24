@@ -30,7 +30,8 @@ export interface AdvisorStoredConfig {
 
 export const DEFAULT_CONFIG: AdvisorStoredConfig = {
   minWill: 4, minChaos: 4,
-  goalMode: 'separate',
+  goalMode: 'combined',
+  minWillChaosTotal: 8,
   relicCoeff: null, ancientCoeff: null,
   relicRerollThreshold: 0, forceRerollNoProgress: 0, endgameRisk: null,
   ignoreSideNodeValues: false, extraTicket: null,

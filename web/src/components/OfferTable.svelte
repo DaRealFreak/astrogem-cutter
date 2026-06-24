@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { AdvisorOutput } from '../lib/engine';
-  let { perOffer }: { perOffer: AdvisorOutput['perOffer'] } = $props();
+  import type { DetectionResult } from '../lib/cv/types';
+  import { offerLabel } from '../lib/app/offerLabel';
+  let { perOffer, detection = null }: { perOffer: AdvisorOutput['perOffer']; detection?: DetectionResult | null } = $props();
   const favored = $derived(
     perOffer.length === 0 ? -1
       : perOffer.reduce((best, o, i, a) => (o.pGoalAfter > a[best].pGoalAfter ? i : best), 0),
@@ -13,7 +15,7 @@
   <tbody>
     {#each perOffer as o, i}
       <tr class:favored={i === favored}>
-        <td>{o.key}</td><td>{pct(o.pGoalAfter)}</td><td>{o.eValueAfter.toFixed(1)}</td>
+        <td>{offerLabel(o.key, detection)}</td><td>{pct(o.pGoalAfter)}</td><td>{o.eValueAfter.toFixed(1)}</td>
       </tr>
     {/each}
   </tbody>

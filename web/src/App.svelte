@@ -26,7 +26,7 @@
     {#if advisor.output}
       <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} />
     {/if}
-    {#if advisor.output}<OfferTable perOffer={advisor.output.perOffer} />{/if}
+    {#if advisor.output}<OfferTable perOffer={advisor.output.perOffer} detection={advisor.detection} />{/if}
     <TurnLog entries={turnLog.entries} />
     <DetectedState detection={advisor.detection} />
   </section>

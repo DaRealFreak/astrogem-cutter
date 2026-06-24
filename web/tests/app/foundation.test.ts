@@ -9,5 +9,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /share screen/i })).toBeTruthy();
     expect(screen.getByText(/waiting for cutting screen/i)).toBeTruthy();
     expect(screen.getAllByText(/goal/i).length).toBeGreaterThan(0); // ConfigPanel Goal section present
+    // combined mode is default — combined goal input is visible
+    expect(screen.getByLabelText(/min will\+chaos/i)).toBeTruthy();
   });
 });

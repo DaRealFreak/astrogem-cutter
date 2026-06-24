@@ -42,8 +42,9 @@ describe('effectiveConfig', () => {
 });
 
 describe('goalMode', () => {
-  it("defaults to separate (today's behavior)", () => {
-    expect(DEFAULT_CONFIG.goalMode).toBe('separate');
+  it('defaults to combined with a seeded minWillChaosTotal', () => {
+    expect(DEFAULT_CONFIG.goalMode).toBe('combined');
+    expect(DEFAULT_CONFIG.minWillChaosTotal).toBe(8);
   });
   it('separate sets minWill/minChaos and leaves minTotalWillChaos undefined', () => {
     const ac = effectiveConfig({ ...DEFAULT_CONFIG, goalMode: 'separate', minWill: 4, minChaos: 5, minWillChaosTotal: 8 }, det()).advisorConfig;
