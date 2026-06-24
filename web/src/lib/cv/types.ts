@@ -40,4 +40,6 @@ export interface DetectionResult {
   totalSteps: number | null;
   rarityScore: number;
   options: OptionDetection[];
+  /** Anchor top-left position in FHD-normalised pixels. Null when no anchor was found. */
+  anchor?: { x: number; y: number } | null;
 }

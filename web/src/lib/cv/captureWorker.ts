@@ -3,6 +3,7 @@ import { decodeGray } from './decodeGray';
 import { TemplateStore, groupBySet } from './templates';
 import { detect } from './recognizer';
 import { adjustResolution } from './adjustResolution';
+import { drawDetectionOverlay } from '../app/overlay';
 import type { CaptureWorkerRequest, CaptureWorkerResponse } from './workerTypes';
 
 // vite enumerates the synced PNGs at build time (predev/prebuild runs sync-templates).
@@ -76,6 +77,15 @@ self.onmessage = async (e: MessageEvent<CaptureWorkerRequest>) => {
       result = null;
     } finally {
       data.frame.close();
+    }
+    if (data.drawDebug && result !== null && ctx !== null) {
+      // The frame is already drawn on the OffscreenCanvas at scaled size.
+      // The canvas is FHD-normalised (adjustResolution scales to REF_WIDTH x REF_HEIGHT),
+      // so canvas pixels are 1:1 with the ROI coordinate space → scale = 1.
+      drawDetectionOverlay(ctx, result, 1);
+      const bmp = canvas.transferToImageBitmap();
+      // Send the annotated bitmap first, then release the backpressure lock.
+      post({ type: 'debug', image: bmp, result }, [bmp]);
     }
     post({ type: 'frame:done', result });
   }

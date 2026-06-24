@@ -123,6 +123,7 @@ function blankResult(): DetectionResult {
     totalSteps: null,
     rarityScore: 0.0,
     options: [],
+    anchor: null,
   };
 }
 
@@ -151,6 +152,7 @@ export function detect(gray: any, store: TemplateStore): DetectionResult {
   result.found = true;
   const ax = match.loc.x;
   const ay = match.loc.y;
+  result.anchor = { x: ax, y: ay };
 
   // --- Gem type ---
   let crop = _cropRoi(gray, ax, ay, ROI_GEM_TYPE);
