@@ -1,0 +1,2654 @@
+{
+ "meta": {
+  "schema": 1,
+  "arkgrid_sha": "7dc45b1"
+ },
+ "records": [
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.2983386332215613,
+     "pRelic": 0.3848490522242692,
+     "pAncient": 0.03351593481965616,
+     "eValue": 916.5796732697008,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.3899193220000119,
+     "pRelic": 0.5933887828104845,
+     "pAncient": 0.0778684765968115,
+     "eValue": 916.5796732697008,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": {
+     "pGoal": 0.14060103413775973,
+     "pRelic": 0.16229289203277192,
+     "pAncient": 0.007114562008444105,
+     "eValue": 347.78710919410065
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.4672922166737853,
+     "pRelic": 0.7416034437215464,
+     "pAncient": 0.13425321379856262,
+     "eValue": 916.5796732697008,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": {
+     "pGoal": 0.21474061945576864,
+     "pRelic": 0.30004070997573346,
+     "pAncient": 0.01894209537273621,
+     "eValue": 347.78710919410065
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.836647744666597,
+     "pAncient": 0.2550821796199231,
+     "eValue": 4004.809047491253,
+     "bestOfferKey": "chaos+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9347205485117001,
+     "pAncient": 0.4429570551344839,
+     "eValue": 4004.809047491253,
+     "bestOfferKey": "chaos+1"
+    },
+    "reroll": {
+     "pGoal": 0.69808194463297,
+     "pRelic": 0.8108462992069794,
+     "pAncient": 0.22950217634149117,
+     "eValue": 2946.8704297490376
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9755421986006626,
+     "pAncient": 0.6052484570557428,
+     "eValue": 4004.809047491253,
+     "bestOfferKey": "chaos+1"
+    },
+    "reroll": {
+     "pGoal": 0.8011324066532792,
+     "pRelic": 0.9203039726887111,
+     "pAncient": 0.40969674485550206,
+     "eValue": 2946.8704297490376
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 1200.0,
+     "bestOfferKey": "chaos+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 1200.0,
+     "bestOfferKey": "chaos+1"
+    },
+    "reroll": {
+     "pGoal": 0.15051679586563307,
+     "pRelic": 0.022609819121447026,
+     "pAncient": 0.0,
+     "eValue": 180.6201550387597
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 1200.0,
+     "bestOfferKey": "chaos+1"
+    },
+    "reroll": {
+     "pGoal": 0.27837828589360947,
+     "pRelic": 0.0447084343221895,
+     "pAncient": 0.0,
+     "eValue": 180.6201550387597
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9612428440667388,
+     "pAncient": 0.5489121486780109,
+     "eValue": 5120.460693675141,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9877827860078195,
+     "pAncient": 0.722693215849497,
+     "eValue": 5120.460693675141,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.9171875102703332,
+     "pAncient": 0.43044406717742517,
+     "eValue": 4577.316685835514
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9961820361428975,
+     "pAncient": 0.8329491122704816,
+     "eValue": 5120.460693675141,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.9692133002465313,
+     "pAncient": 0.6146233028009229,
+     "eValue": 4577.316685835514
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 4844.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 4844.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.6256931608133087,
+     "pAncient": 0.0,
+     "eValue": 3120.044362292052
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "ally_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 5
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 4844.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.8598943901380685,
+     "pAncient": 0.0,
+     "eValue": 3120.044362292052
+    },
+    "reset": {
+     "pGoal": 0.3044693181060226,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 302.3360920988399
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.6497200862045154,
+     "pRelic": 0.13091100026784497,
+     "pAncient": 0.0030505425758280418,
+     "eValue": 1410.151805700482,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.7659015935862233,
+     "pRelic": 0.2549615396676605,
+     "pAncient": 0.008654607005890757,
+     "eValue": 1410.151805700482,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": {
+     "pGoal": 0.22191994938274853,
+     "pRelic": 0.028089013391141265,
+     "pAncient": 0.000351927932839215,
+     "eValue": 419.12867497619567
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.8284449409404451,
+     "pRelic": 0.3734360376616871,
+     "pAncient": 0.01745198872310751,
+     "eValue": 1410.151805700482,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": {
+     "pGoal": 0.33342988722957845,
+     "pRelic": 0.06475562024058898,
+     "pAncient": 0.0011596931993977267,
+     "eValue": 419.12867497619567
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.7153458288791863,
+     "pAncient": 0.09296133694117337,
+     "eValue": 4158.650320124593,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.882761482609356,
+     "pAncient": 0.20216848647959798,
+     "eValue": 4158.650320124593,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.6683893123014255,
+     "pAncient": 0.07672404242572828,
+     "eValue": 3886.013251356743
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9527792306913896,
+     "pAncient": 0.31973815737693484,
+     "eValue": 4158.650320124593,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.8522171645259888,
+     "pAncient": 0.17516150730304805,
+     "eValue": 3886.013251356743
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 2100.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 2100.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.022609819121447026,
+     "pAncient": 0.0,
+     "eValue": 2100.0
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 2100.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.0447084343221895,
+     "pAncient": 0.0,
+     "eValue": 2100.0
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9474877299064126,
+     "pAncient": 0.4487651557083789,
+     "eValue": 5734.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9844336714371597,
+     "pAncient": 0.6408276748612398,
+     "eValue": 5734.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.8652237614348444,
+     "pAncient": 0.2865542284943265,
+     "eValue": 4694.741796257352
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 5,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9949028934853557,
+     "pAncient": 0.76652070951368,
+     "eValue": 5734.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.9487517161292055,
+     "pAncient": 0.4770152195114867,
+     "eValue": 4694.741796257352
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 5734.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 5734.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.6256931608133087,
+     "pAncient": 0.0,
+     "eValue": 3657.5027726432527
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "turns_total": 7,
+    "base_rerolls": 2,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 5734.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.8598943901380685,
+     "pAncient": 0.0,
+     "eValue": 3657.5027726432527
+    },
+    "reset": {
+     "pGoal": 0.3493888183780937,
+     "pRelic": 0.11478220072976594,
+     "pAncient": 0.004466756211786894,
+     "eValue": 314.8031492837007
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.5570114650060692,
+     "pRelic": 0.3848490522242692,
+     "pAncient": 0.03351593481965616,
+     "eValue": 2530.943028891625,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.6640115525879777,
+     "pRelic": 0.5933887828104845,
+     "pAncient": 0.0778684765968115,
+     "eValue": 2530.943028891625,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": {
+     "pGoal": 0.27193913887627663,
+     "pRelic": 0.16229289203277192,
+     "pAncient": 0.007114562008444105,
+     "eValue": 1041.8731911119553
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.7375832223621187,
+     "pRelic": 0.7416034437215464,
+     "pAncient": 0.13425321379856262,
+     "eValue": 2530.943028891625,
+     "bestOfferKey": "will+3"
+    },
+    "reroll": {
+     "pGoal": 0.3822406271279926,
+     "pRelic": 0.30004070997573346,
+     "pAncient": 0.01894209537273621,
+     "eValue": 1041.8731911119553
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     2,
+     2,
+     2,
+     1
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 0.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 0.0
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.836647744666597,
+     "pAncient": 0.2550821796199231,
+     "eValue": 6424.933685857135,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9347205485117001,
+     "pAncient": 0.4429570551344839,
+     "eValue": 6424.933685857135,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.8108462992069794,
+     "pAncient": 0.22950217634149117,
+     "eValue": 6146.839842556
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9755421986006626,
+     "pAncient": 0.6052484570557428,
+     "eValue": 6424.933685857135,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.9203039726887111,
+     "pAncient": 0.40969674485550206,
+     "eValue": 6146.839842556
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 3200.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 3200.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.022609819121447026,
+     "pAncient": 0.0,
+     "eValue": 3265.335917312662
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.0,
+     "pAncient": 0.0,
+     "eValue": 3200.0,
+     "bestOfferKey": "will+1"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.0447084343221895,
+     "pAncient": 0.0,
+     "eValue": 3265.335917312662
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9612428440667388,
+     "pAncient": 0.5489121486780109,
+     "eValue": 7689.062134041184,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9877827860078195,
+     "pAncient": 0.722693215849497,
+     "eValue": 7689.062134041184,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.9171875102703332,
+     "pAncient": 0.43044406717742517,
+     "eValue": 7095.842842085342
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 3,
+    "turns_left": 7,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 0.9961820361428975,
+     "pAncient": 0.8329491122704816,
+     "eValue": 7689.062134041184,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.9692133002465313,
+     "pAncient": 0.6146233028009229,
+     "eValue": 7095.842842085342
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 6844.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": null,
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 6844.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.6256931608133087,
+     "pAncient": 0.0,
+     "eValue": 5335.84842883549
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  },
+  {
+   "inputs": {
+    "gt": "chaos_distortion",
+    "fe": "attack_power",
+    "se": "boss_damage",
+    "opt": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "turns_total": 9,
+    "base_rerolls": 3,
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turn": 9,
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "process": {
+     "pGoal": 1.0,
+     "pRelic": 1.0,
+     "pAncient": 0.0,
+     "eValue": 6844.0,
+     "bestOfferKey": "first+2"
+    },
+    "reroll": {
+     "pGoal": 1.0,
+     "pRelic": 0.8598943901380685,
+     "pAncient": 0.0,
+     "eValue": 5335.84842883549
+    },
+    "reset": {
+     "pGoal": 0.4703100135827024,
+     "pRelic": 0.4965868325922791,
+     "pAncient": 0.06430535617492153,
+     "eValue": 894.3272469044701
+    }
+   }
+  }
+ ]
+}

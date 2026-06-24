@@ -55,11 +55,13 @@ export interface AdvisorConfig {
 export interface EngineContext {
   readonly turnsTotal: number;
   readonly dpMaxRerolls: number;
+  readonly baseRerolls: number;
   // Internal — accessed by advise(). Not part of the public interface contract.
   _decisionCtx: DecisionContext;
   _relicProbTable: GoalProbabilityTable;
   _ancientProbTable: GoalProbabilityTable;
   _sideValueTable: SideValueTable;
+  _freshState: GemState;
 }
 
 export interface AdvisorInput {
@@ -71,6 +73,8 @@ export interface AdvisorInput {
   resetAvailable: boolean;
 }
 
+export type ActionMetrics = { pGoal: number; pRelic: number; pAncient: number; eValue: number };
+
 export interface AdvisorOutput {
   action: ActionKind;
   branch: string;
@@ -80,6 +84,7 @@ export interface AdvisorOutput {
   pAncient: number;
   eValue: number;
   perOffer: Array<{ key: string; pGoalAfter: number; eValueAfter: number }>;
+  actions: { process: ActionMetrics | null; reroll: ActionMetrics | null; reset: ActionMetrics | null };
 }
 
 // ---------------------------------------------------------------------------
@@ -210,11 +215,11 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
       })
     : null;
 
+  // Fresh state (used for reset projection in advise() and pFresh below)
+  const freshState = new GemState({ firstEffect: gem.firstEffect, secondEffect: gem.secondEffect });
+
   // Fresh-start probability (mirrors build_ctx / simulator._decision_context)
-  const pFresh = resetProbTable.lookup(
-    new GemState({ firstEffect: gem.firstEffect, secondEffect: gem.secondEffect }),
-    turnsTotal
-  );
+  const pFresh = resetProbTable.lookup(freshState, turnsTotal);
 
   const decisionCtx: DecisionContext = {
     goal,
@@ -244,10 +249,12 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   return {
     turnsTotal,
     dpMaxRerolls,
+    baseRerolls,
     _decisionCtx: decisionCtx,
     _relicProbTable: relicProbTable,
     _ancientProbTable: ancientProbTable,
     _sideValueTable: sideValueTable,
+    _freshState: freshState,
   };
 }
 
@@ -275,6 +282,45 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     eValueAfter: ctx._sideValueTable.expectedValueAfterClick(state, [o], turnsLeftAfter),
   }));
 
+  // ---------------------------------------------------------------------------
+  // Actions projection: process / reroll / reset × { pGoal, pRelic, pAncient, eValue }
+  // ---------------------------------------------------------------------------
+  const probT = dc.probTable, relicT = ctx._relicProbTable, ancientT = ctx._ancientProbTable, sideT = ctx._sideValueTable;
+  const tlAfter = turnsLeft - 1;
+
+  // process = best offer (max goal-after, tie-break value-after)
+  let processM: ActionMetrics | null = null;
+  if (offers.length > 0) {
+    let best = offers[0]!, bestG = -1, bestV = -1;
+    for (const o of offers) {
+      const g = probT.expectedProbAfterClick(state, [o], tlAfter, rerolls);
+      const v = sideT.expectedValueAfterClick(state, [o], tlAfter);
+      if (g > bestG || (g === bestG && v > bestV)) { best = o; bestG = g; bestV = v; }
+    }
+    processM = {
+      pGoal: bestG,
+      pRelic: relicT.expectedProbAfterClick(state, [best], tlAfter, rerolls),
+      pAncient: ancientT.expectedProbAfterClick(state, [best], tlAfter, rerolls),
+      eValue: bestV,
+    };
+  }
+
+  // reroll = same state, one reroll spent (state/turnsLeft unchanged → side value unchanged)
+  const rerollM: ActionMetrics | null = rerolls > 0 ? {
+    pGoal: probT.lookup(state, turnsLeft, rerolls - 1),
+    pRelic: relicT.lookup(state, turnsLeft, rerolls - 1),
+    pAncient: ancientT.lookup(state, turnsLeft, rerolls - 1),
+    eValue: sideT.lookup(state, turnsLeft),
+  } : null;
+
+  // reset = fresh gem, full budget (reroll-aware tables for matrix consistency)
+  const resetM: ActionMetrics | null = resetAvailable ? {
+    pGoal: probT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
+    pRelic: relicT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
+    pAncient: ancientT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
+    eValue: sideT.lookup(ctx._freshState, ctx.turnsTotal),
+  } : null;
+
   return {
     action: decision.action,
     branch: decision.branch,
@@ -284,5 +330,6 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pAncient,
     eValue,
     perOffer,
+    actions: { process: processM, reroll: rerollM, reset: resetM },
   };
 }

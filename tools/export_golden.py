@@ -300,6 +300,111 @@ def export_decisions():
 
 
 # ---------------------------------------------------------------------------
+# Step 7: export_actions
+# ---------------------------------------------------------------------------
+
+def export_actions():
+    """Export per-action (process/reroll/reset) metrics for a handful of cases.
+
+    Mirrors the TS actions projection in advise():
+      - process: best offer (max expected_prob_after_click for goal); reports
+        pGoal/pRelic/pAncient/eValue for that best offer.
+      - reroll: lookup(state, turnsLeft, rerolls-1); eValue = lookup(state, turnsLeft)
+        (unchanged because reroll doesn't change state/turnsLeft).
+      - reset: lookup(fresh_state, turns_total, base_rerolls) across all tables.
+    """
+    pool = OptionPool()
+    recs = []
+    cases = [
+        dict(gt="chaos_distortion", fe="attack_power", se="ally_damage",
+             opt="dps", g={"min_will": 4, "min_chaos": 5}, rarity="epic"),
+        dict(gt="order_stability", fe="additional_damage", se="brand_power",
+             opt="dps", g={"min_total_will_chaos": 8}, rarity="rare"),
+        dict(gt="chaos_distortion", fe="attack_power", se="boss_damage",
+             opt="dps", g={"min_will": 4, "min_chaos": 4}, rarity="epic"),
+    ]
+    for cfg in cases:
+        gt, fe, se, opt, g, rarity = cfg["gt"], cfg["fe"], cfg["se"], cfg["opt"], cfg["g"], cfg["rarity"]
+        goal = LastTurnGoal(**g)
+        turns = RARITY_TURNS[rarity]
+        mr = dp_max_rerolls(rarity, None, 0.0, False)
+        base_rerolls = mr  # same as dp_max_rerolls when no relic_thr
+
+        roll = GoalProbabilityTable(goal, turns, pool, early_finish=True,
+            max_rerolls=mr, effect_aware=True, gem_type=gt, optimize=opt)
+        relic = GoalProbabilityTable(LastTurnGoal(min_total=16), turns, pool,
+            early_finish=False, max_rerolls=mr)
+        anc = GoalProbabilityTable(LastTurnGoal(min_total=19), turns, pool,
+            early_finish=False, max_rerolls=mr)
+        svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
+            min_side_coeff=0)
+        fresh = GemState(first_effect=fe, second_effect=se)
+
+        for w, c, f, s in [(2, 2, 2, 1), (4, 4, 3, 2), (5, 5, 3, 2)]:
+            st = GemState(will=w, chaos=c, first=f, second=s,
+                          first_effect=fe, second_effect=se)
+            for turn, tl in [(3, turns - 2), (turns, 1)]:
+                for r in (0, 1, min(mr, 2)):
+                    offers = _offers(pool, st, turn, tl)
+                    offer_keys = [o.key for o in offers]
+
+                    tl_after = max(0, tl - 1)
+
+                    # process = best offer by pGoal (tie-break eValue)
+                    best_g = -1.0
+                    best_v = -1.0
+                    best_offer = offers[0] if offers else None
+                    for o in offers:
+                        g_val = roll.expected_prob_after_click(st, [o], tl_after, rerolls=r)
+                        v_val = svt.expected_value_after_click(st, [o], tl_after)
+                        if g_val > best_g or (g_val == best_g and v_val > best_v):
+                            best_g = g_val
+                            best_v = v_val
+                            best_offer = o
+
+                    if offers and best_offer is not None:
+                        process_rec = {
+                            "pGoal": best_g,
+                            "pRelic": relic.expected_prob_after_click(st, [best_offer], tl_after, rerolls=r),
+                            "pAncient": anc.expected_prob_after_click(st, [best_offer], tl_after, rerolls=r),
+                            "eValue": best_v,
+                            "bestOfferKey": best_offer.key,
+                        }
+                    else:
+                        process_rec = None
+
+                    # reroll = lookup(state, turnsLeft, rerolls-1)
+                    if r > 0:
+                        reroll_rec = {
+                            "pGoal": roll.lookup(st, tl, rerolls=r - 1),
+                            "pRelic": relic.lookup(st, tl, rerolls=r - 1),
+                            "pAncient": anc.lookup(st, tl, rerolls=r - 1),
+                            "eValue": svt.lookup(st, tl),
+                        }
+                    else:
+                        reroll_rec = None
+
+                    # reset = lookup(fresh, turns_total, base_rerolls)
+                    reset_rec = {
+                        "pGoal": roll.lookup(fresh, turns, rerolls=base_rerolls),
+                        "pRelic": relic.lookup(fresh, turns, rerolls=base_rerolls),
+                        "pAncient": anc.lookup(fresh, turns, rerolls=base_rerolls),
+                        "eValue": svt.lookup(fresh, turns),
+                    }
+
+                    recs.append({"inputs": {
+                        "gt": gt, "fe": fe, "se": se, "opt": opt, "goal": g, "rarity": rarity,
+                        "turns_total": turns, "base_rerolls": base_rerolls,
+                        "state": [w, c, f, s], "turn": turn, "turns_left": tl,
+                        "rerolls": r, "offers": offer_keys},
+                      "expected": {
+                        "process": process_rec,
+                        "reroll": reroll_rec,
+                        "reset": reset_rec}})
+    dump("actions", recs)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -310,3 +415,4 @@ if __name__ == "__main__":
     export_dp_lookups()
     export_side_values()
     export_decisions()
+    export_actions()
