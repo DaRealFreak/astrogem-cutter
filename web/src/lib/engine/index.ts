@@ -1,0 +1,287 @@
+// Engine entry point: buildEngineContext + advise.
+//
+// Mirrors arkgrid/simulator.py:120-277,378-415 (table assembly) and
+// tools/export_golden.py build_ctx() — the same tables in the same order.
+// Adds an ANCIENT DP table (LastTurnGoal({minTotal:19})), which is the only
+// addition beyond the Python (Python tracks P(ancient) via Monte Carlo).
+
+import {
+  DPS_COEFF,
+  DPS_EFFECTS,
+  SUPPORT_COEFF,
+  SUPPORT_EFFECTS,
+} from './constants';
+import { AstroGem, GemState, LastTurnGoal } from './models';
+import { OptionPool } from './pool';
+import { GoalProbabilityTable, SideValueTable } from './probability';
+import type { DecisionContext } from './decision';
+import { ActionKind, decidePostRoll } from './decision';
+
+export { ActionKind };
+
+// ---------------------------------------------------------------------------
+// Constants: rarity → turns / base rerolls
+// ---------------------------------------------------------------------------
+
+const RARITY_TURNS: Record<string, number> = { common: 5, rare: 7, epic: 9 };
+const RARITY_REROLLS: Record<string, number> = { common: 0, rare: 1, epic: 2 };
+
+// ---------------------------------------------------------------------------
+// Public config / input / output types
+// ---------------------------------------------------------------------------
+
+export interface AdvisorConfig {
+  rarity: 'common' | 'rare' | 'epic';
+  minWill?: number;
+  minChaos?: number;
+  minFirst?: number;
+  minSecond?: number;
+  minTotalWillChaos?: number;
+  minTotal?: number;
+  minSideCoeff?: number;
+  relicCoeff?: number | null;
+  ancientCoeff?: number | null;
+  relicRerollThreshold?: number;
+  forceRerollNoProgress?: number;
+  endgameRisk?: number;
+  ignoreSideNodeValues?: boolean;
+  /** Tri-state: true = force-on, false = hard-off, null/undefined = off-but-armed */
+  extraTicket?: boolean | null;
+  optimize?: 'dps' | 'support';
+}
+
+/** Opaque context; exposes resolved build params for assertions. */
+export interface EngineContext {
+  readonly turnsTotal: number;
+  readonly dpMaxRerolls: number;
+  // Internal — accessed by advise(). Not part of the public interface contract.
+  _decisionCtx: DecisionContext;
+  _relicProbTable: GoalProbabilityTable;
+  _ancientProbTable: GoalProbabilityTable;
+  _sideValueTable: SideValueTable;
+}
+
+export interface AdvisorInput {
+  state: GemState;
+  offers: import('./models').Option[];
+  turn: number;
+  turnsLeft: number;
+  rerolls: number;
+  resetAvailable: boolean;
+}
+
+export interface AdvisorOutput {
+  action: string;
+  branch: string;
+  reason: string;
+  pGoal: number;
+  pRelic: number;
+  pAncient: number;
+  eValue: number;
+  perOffer: Array<{ key: string; pGoalAfter: number; eValueAfter: number }>;
+}
+
+// ---------------------------------------------------------------------------
+// Helper: side coefficients from gem + optimize
+// ---------------------------------------------------------------------------
+
+function sideCoeffs(gem: AstroGem, optimize: string): [number, number] {
+  const coeffMap = optimize === 'dps' ? DPS_COEFF : SUPPORT_COEFF;
+  const targetSet = optimize === 'dps' ? DPS_EFFECTS : SUPPORT_EFFECTS;
+  const f = targetSet.has(gem.firstEffect) ? coeffMap[gem.firstEffect] ?? 0 : 0;
+  const s = targetSet.has(gem.secondEffect) ? coeffMap[gem.secondEffect] ?? 0 : 0;
+  return [f, s];
+}
+
+// ---------------------------------------------------------------------------
+// buildEngineContext
+// ---------------------------------------------------------------------------
+
+export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): EngineContext {
+  const rarity = config.rarity;
+  const turnsTotal = RARITY_TURNS[rarity]!;
+
+  // Reroll budget formula (verbatim from task brief / simulator.py:86-100):
+  //   base = RARITY_REROLLS[rarity] + (extraTicket !== false ? 1 : 0)
+  //   dpMaxRerolls = base + ((relicRerollThreshold > 0 || goalRerollActive) ? 1 : 0)
+  // goalRerollActive is always false in Plan 1 (no --reroll-goal flag).
+  const extraTicket = config.extraTicket;
+  const baseRerolls = RARITY_REROLLS[rarity]! + (extraTicket !== false ? 1 : 0);
+  const relicRerollThreshold = config.relicRerollThreshold ?? 0;
+  const goalRerollActive = false; // Plan 1: no reroll-goal feature
+  const dpMaxRerolls = baseRerolls + ((relicRerollThreshold > 0 || goalRerollActive) ? 1 : 0);
+
+  const optimize = config.optimize ?? gem.optimize ?? 'dps';
+  const gemType = gem.gemType ?? '';
+
+  // Goal
+  const goal = new LastTurnGoal({
+    minWill: config.minWill,
+    minChaos: config.minChaos,
+    minFirst: config.minFirst,
+    minSecond: config.minSecond,
+    minTotalWillChaos: config.minTotalWillChaos,
+    minTotal: config.minTotal,
+  });
+
+  const minSideCoeff = config.minSideCoeff ?? 0;
+  const ignoreSide = config.ignoreSideNodeValues ?? false;
+  const relicCoeff = config.relicCoeff ?? null;
+  const ancientCoeff = config.ancientCoeff ?? null;
+  const forceReroll = config.forceRerollNoProgress ?? 0;
+  const endgameRisk = config.endgameRisk; // undefined → auto-gate
+
+  const pool = new OptionPool();
+
+  // Side coefficients from the gem's effects (mirrors simulator.py:108-117)
+  const [scf, scs] = sideCoeffs(gem, optimize);
+  // If both are 0 (gem type unknown / cross-type w/o coeff), don't pass
+  // min_side_coeff to the DP (it would think the goal is always infeasible).
+  const dpMinSideCoeff = scf > 0 || scs > 0 ? minSideCoeff : 0;
+
+  // 1. Reroll-aware goal table (effect-aware; for optimal reroll timing)
+  const probTable = new GoalProbabilityTable(goal, turnsTotal, pool, {
+    sideCoeffFirst: scf,
+    sideCoeffSecond: scs,
+    minSideCoeff: dpMinSideCoeff,
+    earlyFinish: true,
+    maxRerolls: dpMaxRerolls,
+    effectAware: true,
+    gemType,
+    optimize,
+  });
+
+  // 2. Standard goal table (no reroll dimension; for reset decisions / pFresh)
+  const resetProbTable = new GoalProbabilityTable(goal, turnsTotal, pool, {
+    sideCoeffFirst: scf,
+    sideCoeffSecond: scs,
+    minSideCoeff: dpMinSideCoeff,
+    earlyFinish: true,
+    effectAware: true,
+    gemType,
+    optimize,
+  });
+
+  // 3. Relic+ table: P(total_points >= 16), reroll-aware.
+  const relicProbTable = new GoalProbabilityTable(
+    new LastTurnGoal({ minTotal: 16 }),
+    turnsTotal,
+    pool,
+    { earlyFinish: false, maxRerolls: dpMaxRerolls }
+  );
+
+  // 4. Ancient table: P(total_points >= 19), reroll-aware.
+  //    This is the only addition beyond the Python (Python tracks P(ancient)
+  //    via Monte Carlo; the advisor needs a DP value).
+  const ancientProbTable = new GoalProbabilityTable(
+    new LastTurnGoal({ minTotal: 19 }),
+    turnsTotal,
+    pool,
+    { earlyFinish: false, maxRerolls: dpMaxRerolls }
+  );
+
+  // 5. Side-value table (goal-conditioned; finish/continue decisions)
+  const sideValueTable = new SideValueTable(goal, turnsTotal, pool, gemType, {
+    optimize,
+    minSideCoeff,
+    relicCoeff,
+    ancientCoeff,
+    valueMode: ignoreSide ? 'will_chaos' : 'side',
+  });
+
+  // 6. Grade-value table (goal-independent; dead-goal decisions)
+  const gradeValueTable = new SideValueTable(new LastTurnGoal(), turnsTotal, pool, gemType, {
+    optimize,
+    minSideCoeff: 0,
+    relicCoeff,
+    ancientCoeff,
+    valueMode: ignoreSide ? 'grade_only' : 'side',
+  });
+
+  // 7. Maxed-oracle (side-mode; only when ignoreSide is set, at will/chaos cap)
+  const maxedValueTable = ignoreSide
+    ? new SideValueTable(goal, turnsTotal, pool, gemType, {
+        optimize,
+        minSideCoeff,
+        relicCoeff,
+        ancientCoeff,
+        valueMode: 'side',
+      })
+    : null;
+
+  // Fresh-start probability (mirrors build_ctx / simulator._decision_context)
+  const pFresh = resetProbTable.lookup(
+    new GemState({ firstEffect: gem.firstEffect, secondEffect: gem.secondEffect }),
+    turnsTotal
+  );
+
+  const decisionCtx: DecisionContext = {
+    goal,
+    pool,
+    optimize,
+    bisOnly: false,
+    minSideCoeff,
+    probResetThreshold: 0.0,
+    relicRerollThreshold,
+    forceRerollNoProgress: forceReroll,
+    turnsTotal,
+    baseRerolls,
+    pFresh,
+    probTable,
+    resetProbTable,
+    relicProbTable,
+    gemType,
+    forceRerollActive: false,
+    confirmActive: false,
+    confirmMinCoeff: 0,
+    endgameRisk,
+    sideValueTable,
+    gradeValueTable,
+    maxedValueTable,
+  };
+
+  return {
+    turnsTotal,
+    dpMaxRerolls,
+    _decisionCtx: decisionCtx,
+    _relicProbTable: relicProbTable,
+    _ancientProbTable: ancientProbTable,
+    _sideValueTable: sideValueTable,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// advise
+// ---------------------------------------------------------------------------
+
+export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
+  const dc = ctx._decisionCtx;
+  const { state, offers, turn, turnsLeft, rerolls, resetAvailable } = input;
+
+  const decision = decidePostRoll(dc, { state, offers, turn, turnsLeft, rerolls, resetAvailable });
+
+  // Probability lookups (turnsLeft after a hypothetical click = turnsLeft - 1)
+  const pGoal = dc.probTable.lookup(state, turnsLeft, rerolls);
+  const pRelic = ctx._relicProbTable.lookup(state, turnsLeft, rerolls);
+  const pAncient = ctx._ancientProbTable.lookup(state, turnsLeft, rerolls);
+  const eValue = ctx._sideValueTable.lookup(state, turnsLeft);
+
+  // Per-offer breakdown
+  const turnsLeftAfter = turnsLeft - 1;
+  const perOffer = offers.map((o) => ({
+    key: o.key,
+    pGoalAfter: dc.probTable.expectedProbAfterClick(state, [o], turnsLeftAfter, rerolls),
+    eValueAfter: ctx._sideValueTable.expectedValueAfterClick(state, [o], turnsLeftAfter),
+  }));
+
+  return {
+    action: decision.action,
+    branch: decision.branch,
+    reason: decision.reason,
+    pGoal,
+    pRelic,
+    pAncient,
+    eValue,
+    perOffer,
+  };
+}
