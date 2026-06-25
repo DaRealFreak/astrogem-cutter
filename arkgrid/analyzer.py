@@ -114,5 +114,5 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
         print(f"  Relic+ rate (>=16): {result['p_relic_plus'] * 100:.2f}%")
         print(f"  Ancient rate (>=19): {result['p_ancient'] * 100:.2f}%")
         print(f"  Reset usage rate: {result['reset_rate'] * 100:.2f}%")
-        print(f"  Extra ticket available rate: {result['extra_ticket_available_rate'] * 100:.2f}%")
+        print(f"  Reroll ticket available rate: {result['extra_ticket_available_rate'] * 100:.2f}%")
     print("")

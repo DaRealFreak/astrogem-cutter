@@ -104,8 +104,8 @@ class DecisionContext:
     # `will_chaos` `side_value_table` is degenerate (every state scores 10).
     # Its presence is the flag signal — None unless the flag is set.
     maxed_value_table: Optional[SideValueTable] = None
-    # --- Extra-ticket per-turn enable gate (see `ticket_enabled`) ---
-    # The gold-costing extra reroll ticket is re-evaluated every turn (never
+    # --- Reroll-ticket per-turn enable gate (see `ticket_enabled`) ---
+    # The reroll ticket is re-evaluated every turn (never
     # banked): it is usable this turn if ANY enabler clears its bar. These
     # carry the enablers' tables/thresholds so the gate is a pure function of
     # the context. `extra_ticket_force_on` is `--extra-ticket` (always on).
@@ -186,21 +186,21 @@ def has_progress_offer(
 
 
 # ---------------------------------------------------------------------------
-# Extra-ticket per-turn enable gate
+# Reroll-ticket per-turn enable gate
 # ---------------------------------------------------------------------------
 
 
 def ticket_enabled(
     ctx: DecisionContext, state: GemState, turns_left: int, free_rerolls: int,
 ) -> bool:
-    """Whether the gold-costing extra reroll ticket may be used THIS turn.
+    """Whether the reroll ticket may be used THIS turn.
 
     Re-evaluated every turn (the ticket is never banked). Usable if ANY enabler
     clears its bar — OR'd together — each looking ahead as if the ticket were in
     hand (`free_rerolls + 1`), except the coefficient enabler, whose table is
     reroll-independent:
 
-    * ``--extra-ticket``           → always (the player opted out of gold worry).
+    * ``--extra-ticket``           → always (force-on, unconditional +1).
     * ``--reroll-min-coeff N``     → expected side-coefficient ≥ N. The table is
       goal-conditioned, so it reads ~0 once the goal is unreachable — a dead
       gem's side coefficient is worthless, so the ticket disables itself.
@@ -210,7 +210,7 @@ def ticket_enabled(
       the ticket ≥ F.
 
     Free rerolls are unaffected by this gate — they are always free to spend; it
-    governs only the extra ticket.
+    governs only the reroll ticket.
     """
     if ctx.extra_ticket_force_on:
         return True
@@ -757,11 +757,11 @@ def _reset_or_chase_relic(
     # Note: `--relic-reroll-threshold` does NOT force-finish a dead gem here.
     # Rerolls are free, so while a free reroll (or the current offers) can still
     # reach relic+, the grade-value chase below keeps working them. The
-    # threshold's sole job is gating the gold-costing extra ticket — handled at
+    # threshold's sole job is gating the reroll ticket — handled at
     # *arming* time in the simulator / `run_auto`, which only add the ticket to
     # the reroll budget when P(relic+) clears the threshold. (User directive:
     # use free rerolls to chase a reachable relic+; the threshold limits only
-    # the extra ticket's gold.)
+    # the reroll ticket's gold cost.)
 
     # Preferred path: value-aware grade chase via the goal-independent
     # grade-value table (present only when relic/ancient grade has a

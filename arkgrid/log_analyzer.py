@@ -472,7 +472,7 @@ def print_summary(args: argparse.Namespace, records: List[GemRecord]) -> None:
     print(f"  Relic+ rate (>=16): {summary['p_relic_plus'] * 100:.2f}%")
     print(f"  Ancient rate (>=19): {summary['p_ancient'] * 100:.2f}%")
     print(f"  Reset usage rate: {summary['reset_rate'] * 100:.2f}%")
-    print(f"  Extra ticket available rate: {summary['extra_ticket_available_rate'] * 100:.2f}%")
+    print(f"  Reroll ticket available rate: {summary['extra_ticket_available_rate'] * 100:.2f}%")
     print("")
 
     process_turns, stats = option_stats(records)

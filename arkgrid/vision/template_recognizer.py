@@ -80,7 +80,7 @@ class DetectionResult:
     reset_enabled: Optional[bool] = None   # None until anchor found
     reset_score: float = 0.0               # bright-pixel fraction in the ROI
 
-    # Charge (extra-reroll ticket) button availability — read from brightness
+    # Charge (reroll ticket) button availability — read from brightness
     charge_enabled: Optional[bool] = None  # None until anchor found
     charge_score: float = 0.0              # bright-pixel fraction in the ROI
 
@@ -259,7 +259,7 @@ def detect(frame_bgr: np.ndarray) -> DetectionResult:
         result.reset_score = frac
         result.reset_enabled = frac >= C.RESET_ENABLED_FRACTION
 
-    # --- Charge button (extra-reroll ticket, brightness) ---
+    # --- Charge button (reroll ticket, brightness) ---
     crop = _crop_roi(gray, ax, ay, C.ROI_CHARGE_BUTTON)
     if crop is not None:
         frac = float((crop > C.CHARGE_BRIGHT_LUMA).mean())

@@ -71,7 +71,7 @@ class GemSimulator:
         self._maxed_value_table_cache: Dict[str, SideValueTable] = {}
         self._maxed_value_table: Optional[SideValueTable] = None
         # Goal-conditioned expected side-coefficient table (no tier bonus) for
-        # the per-turn --reroll-min-coeff extra-ticket enabler.
+        # the per-turn --reroll-min-coeff reroll-ticket enabler.
         self._expected_coeff_table_cache: Dict[str, SideValueTable] = {}
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
@@ -633,7 +633,7 @@ class GemSimulator:
 
         _log_pt = self.prob_table if log else None
 
-        # Free (base/earned) rerolls only — the extra ticket is lent per turn.
+        # Free (base/earned) rerolls only — the reroll ticket is lent per turn.
         run_rerolls = self.RARITY_REROLLS[self.rarity]
 
         # Fresh-start probability — reset is better when current odds drop below this
@@ -661,14 +661,14 @@ class GemSimulator:
                 first_effect=run_gem.first_effect,
                 second_effect=run_gem.second_effect,
             )
-            # Renew the extra ticket for this cutting process: a reset (attempt
+            # Renew the reroll ticket for this cutting process: a reset (attempt
             # 2) re-grants it; for attempt 1 this is the initial arm.
             ticket_available = ownable
 
             for turn in range(1, self.turns_total + 1):
                 turns_left = self.turns_total - turn + 1
 
-                # Extra-ticket per-turn lend: if the ticket is still available
+                # Reroll-ticket per-turn lend: if the ticket is still available
                 # and an enabler clears its bar this turn, lend it (+1 reroll)
                 # for this turn. Reconciled after the reroll loop below — spent
                 # only if every free reroll AND the ticket were used; otherwise
@@ -734,9 +734,9 @@ class GemSimulator:
                             "reroll_reasons_history", []).append([decision.branch])
 
                 # Reconcile the lent ticket now that this turn's rerolls are
-                # done. If more rerolls were used than the free count, the ticket
-                # was spent (gold cost) — mark it consumed. Otherwise it went
-                # unused: return it so state.rerolls reflects only free rerolls.
+                # done. If more rerolls were used than the free count, the reroll
+                # ticket was spent — mark it consumed. Otherwise it went unused:
+                # return it so state.rerolls reflects only free rerolls.
                 if ticket_lent:
                     if rerolls_by_turn.get(turn, 0) > free_before:
                         ticket_available = False

@@ -77,7 +77,7 @@ def _build_parser() -> argparse.ArgumentParser:
                              "infeasible does it fall back to chasing grade. "
                              "Intended for new characters.")
         p.add_argument("--extra-ticket", action="store_true", default=None,
-                        help="Force the extra reroll ticket ON every turn "
+                        help="Force the reroll ticket ON every turn "
                              "(unconditional +1). Default (omitted): the ticket "
                              "is owned but lent only on turns where a per-turn "
                              "enabler clears its bar (--reroll-min-coeff, "
@@ -107,7 +107,7 @@ def _build_parser() -> argparse.ArgumentParser:
                              "400+700 = 1100 passes, 1051 skips brand_power alone for support). "
                              "0 = always use. Default: 0")
         p.add_argument("--reroll-min-coeff", type=int, default=0, metavar="N",
-                        help="Per-turn extra-ticket enabler: lend the extra reroll ticket on any "
+                        help="Per-turn reroll-ticket enabler: lend the reroll ticket on any "
                              "turn where the EXPECTED side-coefficient (goal-conditioned, so ~0 "
                              "once the goal is dead) meets N. Re-evaluated each turn, not a "
                              "one-time gate. 0 = off. Default: 0")
@@ -142,18 +142,18 @@ def _build_parser() -> argparse.ArgumentParser:
                              "average ancient gem coefficient for the gem type.")
         p.add_argument("--relic-reroll-threshold", type=float, default=0.0, metavar="F",
                         help="Relic worthiness bar (P(relic+ >=16 total) from the current "
-                             "state). Arms the gold-costing extra reroll ticket only when "
+                             "state). Arms the reroll ticket only when "
                              "P(relic+) exceeds it. It never force-finishes a dead gem: free "
                              "rerolls always keep chasing a still-reachable relic+. "
                              "0.0 = disabled. Try 0.1-0.3. Default: 0.0")
         p.add_argument("--reroll-goal", type=int, default=None, metavar="N",
                         help="Combined willpower+chaos total used only for the "
-                             "extra-reroll-ticket decision (independent of "
+                             "reroll-ticket decision (independent of "
                              "--min-total-will-chaos). Requires "
                              "--reroll-goal-threshold.")
         p.add_argument("--reroll-goal-threshold", type=float, default=0.0,
                         metavar="F",
-                        help="Re-enable the extra reroll ticket mid-run (even "
+                        help="Re-enable the reroll ticket mid-run (even "
                              "when --reroll-min-coeff disabled it) once "
                              "P(will+chaos >= --reroll-goal) >= F. Both flags "
                              "required. Always disabled by --no-extra-ticket. "
@@ -396,7 +396,7 @@ def _print_config(args: argparse.Namespace, goal: LastTurnGoal,
     else:
         extra_ticket_str = ("conditional (enabled by --reroll-min-coeff / "
                             "--relic-reroll-threshold / --reroll-goal)")
-    print(f"Extra ticket: {extra_ticket_str}")
+    print(f"Reroll ticket: {extra_ticket_str}")
     print(f"Side threshold: {args.side_threshold}")
     er = getattr(args, "endgame_risk", None)
     if er is None:

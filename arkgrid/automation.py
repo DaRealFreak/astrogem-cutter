@@ -682,13 +682,13 @@ def run_auto(
         # Resolved against the gem's rarity once detection succeeds; until
         # then we optimistically enable it (any truthy --reset-ticket value).
         reset_available = bool(reset_ticket)
-        # The extra reroll ticket is re-evaluated per turn (see
+        # The reroll ticket is re-evaluated per turn (see
         # decision.ticket_enabled) — never banked. `ownable` = the player has
         # it; `extra_ticket_force_on` = --extra-ticket (always lent).
         # `extra_ticket_available` is the per-cutting-process lend gate: it
         # flips False once the ticket is actually spent (the in-game Charge
         # confirm) and RENEWS on a reset (a reset starts a fresh cutting
-        # process). `extra_ticket_consumed` is the cumulative "was the gold
+        # process). `extra_ticket_consumed` is the cumulative "was the reroll
         # ticket ever spent this run" report (never reset). A NEW gem (--all)
         # re-inits both via the outer loop.
         extra_ticket_force_on = (extra_ticket is True)
@@ -856,7 +856,7 @@ def run_auto(
                 )
                 rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
                 base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
-                # The extra ticket is lent per turn (at most +1). Size the
+                # The reroll ticket is lent per turn (at most +1). Size the
                 # reroll-aware tables to cover free rerolls + the ticket whenever
                 # the player owns it, so GoalProbabilityTable.lookup never clamps
                 # the lent reroll (or the free+1 look-ahead in ticket_enabled).
@@ -1075,7 +1075,7 @@ def run_auto(
                     reroll_override = None
 
             # extra_ticket=False: analysis.reroll_count is now the FREE reroll
-            # count (the on-screen number). The extra ticket is lent per turn
+            # count (the on-screen number). The reroll ticket is lent per turn
             # below via decision.ticket_enabled — never folded into this count.
             analysis = _analyze_frame(
                 det, goal, False,
@@ -1083,7 +1083,7 @@ def run_auto(
                 override_reroll_count=reroll_override,
             )
 
-            # --- Extra-ticket per-turn lend ---
+            # --- Reroll-ticket per-turn lend ---
             # Re-evaluate the ticket every turn (never banked): lend +1 reroll to
             # the decision budget only when the ticket is still available and an
             # enabler clears its bar this turn. On a dead gem the enablers all go
@@ -1274,7 +1274,7 @@ def run_auto(
                     reset_used = True
                     reset_available = False
                     internal_rerolls = None
-                    # Reset starts a fresh cutting process — the extra ticket
+                    # Reset starts a fresh cutting process — the reroll ticket
                     # is granted again (renews; not persisted as spent).
                     extra_ticket_available = ownable
                     turn_history.append({
@@ -1314,7 +1314,7 @@ def run_auto(
 
             # Ticket confirmation for reset and ticket-based rerolls
             needs_confirm = False
-            _reroll_ticket_confirm = False  # track whether this is the extra-reroll ticket
+            _reroll_ticket_confirm = False  # track whether this is the reroll ticket
             if action == "reset" and reset_available:
                 needs_confirm = True
             elif action == "reroll" and ticket_lent and free_rerolls <= 0:
@@ -1429,7 +1429,7 @@ def run_auto(
                 reset_used = True
                 reset_available = False
                 internal_rerolls = None
-                # Reset starts a fresh cutting process — the extra ticket is
+                # Reset starts a fresh cutting process — the reroll ticket is
                 # granted again (renews; not persisted as spent).
                 extra_ticket_available = ownable
                 turn_history.append({

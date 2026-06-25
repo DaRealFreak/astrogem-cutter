@@ -92,8 +92,8 @@ RESET_ENABLED_FRACTION = 0.02  # bright-pixel fraction above which reset is enab
 
 # ---------------------------------------------------------------------------
 # Charge button – when free rerolls are exhausted the "View Other Options"
-# button becomes a yellow "Charge" button that spends the gold-costing extra
-# reroll ticket; it is greyed when the ticket is unavailable.  Like the reset
+# button becomes a yellow "Charge" button that spends the reroll ticket; it is
+# greyed when the ticket is unavailable.  Like the reset
 # button, availability is read from brightness: the enabled button has a bright
 # yellow fill (~0.08 of the ROI brighter than CHARGE_BRIGHT_LUMA) while the
 # disabled button is dark grey (~0.000).  Sits at the reroll-button position
