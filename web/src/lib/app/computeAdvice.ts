@@ -11,7 +11,7 @@ let cache: { key: string; ctx: EngineContext } | null = null;
 export function resetAdviceCache(): void { cache = null; }
 
 export function computeAdvice(
-  det: DetectionResult, stored: AdvisorStoredConfig, resetObserved = false,
+  det: DetectionResult, stored: AdvisorStoredConfig, resetObserved = false, ticketSpent = false,
 ): { ready: boolean; output: AdvisorOutput | null } {
   if (!isCompleteDetection(det)) return { ready: false, output: null };
 
@@ -41,7 +41,7 @@ export function computeAdvice(
   // bar this frame. On a dead gem the enablers go false, so it is not lent.
   const free = inputs.rerolls;
   const owned = eff.advisorConfig.extraTicket !== false;
-  const available = owned && ticketAvailableFromDetection(det, free);
+  const available = owned && !ticketSpent && ticketAvailableFromDetection(det, free);
   const lent = available
     && ticketEnabled(cache.ctx._decisionCtx, inputs.state, inputs.turnsLeft, free);
   const rerolls = free + (lent ? 1 : 0);
@@ -61,7 +61,7 @@ export function computeAdvice(
     const outFree = rerolls === free ? output : adviseAt(free);
     const outTicket = rerolls === free + 1 ? output : adviseAt(free + 1);
     output.ticket = {
-      owned: true, lent, free,
+      owned: true, lent, spent: ticketSpent, free,
       withoutTicket: snap(outFree), withTicket: snap(outTicket),
     };
   } else {

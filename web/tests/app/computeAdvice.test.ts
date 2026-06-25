@@ -91,4 +91,16 @@ describe('computeAdvice', () => {
     const det = { ...complete, resetEnabled: true };
     expect(computeAdvice(det, { ...DEFAULT_CONFIG, resetTicketRarity: 'epic' }, false).output!.actions.reset).toBeNull();
   });
+
+  it('ticketSpent=true suppresses lending and flags the ticket spent', () => {
+    // A low relic bar makes the per-turn enabler fire, so the ticket IS lent by default.
+    const cfg = { ...DEFAULT_CONFIG, relicRerollThreshold: 0.01 };
+    const lentByDefault = computeAdvice(complete, cfg).output!.ticket!;
+    expect(lentByDefault.lent).toBe(true);
+    expect(lentByDefault.spent).toBe(false);
+
+    const spent = computeAdvice(complete, cfg, false, true).output!.ticket!;
+    expect(spent.lent).toBe(false);
+    expect(spent.spent).toBe(true);
+  });
 });

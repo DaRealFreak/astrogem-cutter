@@ -91,7 +91,7 @@ export type ActionsSnapshot = {
  * uses free+1; `lent` is whether the recommendation actually used the ticket.
  */
 export type TicketComparison = {
-  owned: boolean; lent: boolean; free: number;
+  owned: boolean; lent: boolean; spent: boolean; free: number;
   withoutTicket: ActionsSnapshot; withTicket: ActionsSnapshot;
 };
 
