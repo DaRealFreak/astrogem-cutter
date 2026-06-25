@@ -319,11 +319,12 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
 
   const decision = decidePostRoll(dc, { state, offers, turn, turnsLeft, rerolls, resetAvailable });
 
-  // Probability lookups (turnsLeft after a hypothetical click = turnsLeft - 1)
-  const pGoal = dc.probTable.lookup(state, turnsLeft, rerolls);
-  const pRelic = ctx._relicProbTable.lookup(state, turnsLeft, rerolls);
-  const pAncient = ctx._ancientProbTable.lookup(state, turnsLeft, rerolls);
-  const eValue = ctx._sideValueTable.lookup(state, turnsLeft);
+  // Position value of the current state — the fallback headline for FINISH/FAIL,
+  // where there is no projected action row (stopping locks in the current gem).
+  const posPGoal = dc.probTable.lookup(state, turnsLeft, rerolls);
+  const posRelic = ctx._relicProbTable.lookup(state, turnsLeft, rerolls);
+  const posAncient = ctx._ancientProbTable.lookup(state, turnsLeft, rerolls);
+  const posEValue = ctx._sideValueTable.lookup(state, turnsLeft);
 
   // Per-offer breakdown
   const turnsLeftAfter = turnsLeft - 1;
@@ -366,6 +367,19 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pAncient: ancientT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
     eValue: sideT.lookup(ctx._freshState, ctx.turnsTotal),
   } : null;
+
+  // Headline = the recommended action's projected row, so the big P(click) block
+  // matches the advice (recommend Process → show the Process odds for THESE
+  // offers). Only PROCESS/REROLL/RESET have a row; FINISH/FAIL fall back to the
+  // position value.
+  const recRow =
+    decision.action === ActionKind.PROCESS ? processM :
+    decision.action === ActionKind.REROLL ? rerollM :
+    decision.action === ActionKind.RESET ? resetM : null;
+  const pGoal = recRow ? recRow.pGoal : posPGoal;
+  const pRelic = recRow ? recRow.pRelic : posRelic;
+  const pAncient = recRow ? recRow.pAncient : posAncient;
+  const eValue = recRow ? recRow.eValue : posEValue;
 
   return {
     action: decision.action,

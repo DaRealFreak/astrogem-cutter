@@ -30,4 +30,22 @@ describe('advise()', () => {
       turn: 9, turnsLeft: 1, rerolls: 0, resetAvailable: false });
     expect(out.pGoal).toBe(1);
   });
+
+  it('headline equals the recommended action row (process/reroll/reset)', () => {
+    const st = new GemState({ firstEffect: 'attack_power', secondEffect: 'ally_damage' });
+    const offers = ['will+1', 'chaos+1', 'first+1', 'second+1'].map(k => byKey.get(k)!);
+    const out = advise(ctx, { state: st, offers, turn: 1, turnsLeft: 9, rerolls: 1, resetAvailable: false });
+    const row = out.action === 'process' ? out.actions.process
+      : out.action === 'reroll' ? out.actions.reroll
+      : out.action === 'reset' ? out.actions.reset : null;
+    if (row) {
+      expect(out.pGoal).toBe(row.pGoal);
+      expect(out.pRelic).toBe(row.pRelic);
+      expect(out.pAncient).toBe(row.pAncient);
+      expect(out.eValue).toBe(row.eValue);
+    } else {
+      // FINISH/FAIL: headline falls back to the position value (>= 0)
+      expect(out.pGoal).toBeGreaterThanOrEqual(0);
+    }
+  });
 });
