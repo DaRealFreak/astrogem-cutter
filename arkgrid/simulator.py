@@ -605,13 +605,13 @@ class GemSimulator:
                 and run_gem.gem_type in GEM_TYPES) else None)
 
         reset_available = bool(self.use_reset_ticket)
-        # The extra reroll ticket is re-evaluated every turn (see
+        # The reroll ticket is re-evaluated every turn (see
         # `decision.ticket_enabled`), never armed once. `ownable` = the player
         # has the ticket; `ticket_available` flips False once it is actually
-        # spent (a gold-costing reroll). The ticket is once per CUTTING PROCESS
-        # and RENEWS on a reset (a reset starts a fresh cutting process), so
-        # `ticket_available` is re-armed at the top of each attempt below.
-        # `ticket_consumed` is the cumulative "was the gold ticket ever spent
+        # spent (one reroll ticket). The reroll ticket is once per CUTTING
+        # PROCESS and RENEWS on a reset (a reset starts a fresh cutting process),
+        # so `ticket_available` is re-armed at the top of each attempt below.
+        # `ticket_consumed` is the cumulative "was the reroll ticket ever spent
         # this run" report (never reset).
         ownable = (self.use_extra_ticket is not False)
         ticket_consumed = False

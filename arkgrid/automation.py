@@ -1385,7 +1385,7 @@ def run_auto(
                       end="", flush=True)
                 _click(*confirm_pos, monitor)
                 print(" done")
-                # Ticket spent (gold-costing Charge): close the per-cutting-
+                # Reroll ticket spent (the Charge button): close the per-cutting-
                 # process lend gate and record the cumulative consumption.
                 if _reroll_ticket_confirm:
                     extra_ticket_available = False
