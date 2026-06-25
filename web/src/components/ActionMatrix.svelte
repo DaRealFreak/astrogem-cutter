@@ -50,6 +50,8 @@
 {/if}
 
 <style>
-  .matrix-variant.spent { opacity: 0.5; }
+  /* De-emphasize a spent-ticket column via muted text (not opacity) so the
+     table grid stays readable / accessible. */
+  .matrix-variant.spent { color: var(--muted); }
   .matrix-variant.spent .matrix-caption { font-style: italic; }
 </style>

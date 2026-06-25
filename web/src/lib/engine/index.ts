@@ -88,7 +88,9 @@ export type ActionsSnapshot = {
 /**
  * With/without extra-ticket comparison, attached by computeAdvice when the
  * player owns the ticket. `withoutTicket` uses the free reroll count, `withTicket`
- * uses free+1; `lent` is whether the recommendation actually used the ticket.
+ * uses free+1; `lent` is whether the recommendation actually used the ticket;
+ * `spent` is whether the ticket is known already used this cutting process
+ * (suppresses lending — the With-extra column is shown greyed/informational).
  */
 export type TicketComparison = {
   owned: boolean; lent: boolean; spent: boolean; free: number;

@@ -14,11 +14,6 @@ class TicketRun {
     this.#latch = observeTicketLatch(this.#latch, det, freeRerolls);
     this.spent = this.#latch.spent;
   }
-
-  clear(): void {
-    this.#latch = initTicketLatch();
-    this.spent = false;
-  }
 }
 
 export const ticketRun = new TicketRun();
