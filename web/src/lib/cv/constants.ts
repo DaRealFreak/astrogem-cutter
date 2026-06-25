@@ -90,6 +90,20 @@ export const RESET_BRIGHT_LUMA = 140; // grayscale value separating white text f
 export const RESET_ENABLED_FRACTION = 0.02; // bright-pixel fraction above which reset is enabled
 
 // ---------------------------------------------------------------------------
+// Charge button – when free rerolls are exhausted the "View Other Options"
+// button becomes a yellow "Charge" button that spends the gold-costing extra
+// reroll ticket; greyed when the ticket is unavailable. Like reset, read from
+// brightness: enabled has a bright yellow fill (~0.08 of the ROI), disabled is
+// dark grey (~0.000). Sits at the reroll-button position (FHD ~1246,594).
+// This is a pure brightness sensor — when free rerolls remain the same ROI
+// covers the bright "View Other Options" text, so chargeEnabled may read true
+// there too; consumers only consult it when free rerolls are exhausted
+// (see lib/app/ticket.ts).
+export const ROI_CHARGE_BUTTON: Roi = [305, 538, 80, 28];
+export const CHARGE_BRIGHT_LUMA = 140; // grayscale value separating bright fill from dark
+export const CHARGE_ENABLED_FRACTION = 0.02; // bright-pixel fraction above which charge is enabled
+
+// ---------------------------------------------------------------------------
 // Option name → internal key mapping
 // Maps the display text (as recognized) to our domain option types.
 // ---------------------------------------------------------------------------

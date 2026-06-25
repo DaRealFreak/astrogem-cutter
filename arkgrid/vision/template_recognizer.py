@@ -80,6 +80,10 @@ class DetectionResult:
     reset_enabled: Optional[bool] = None   # None until anchor found
     reset_score: float = 0.0               # bright-pixel fraction in the ROI
 
+    # Charge (extra-reroll ticket) button availability — read from brightness
+    charge_enabled: Optional[bool] = None  # None until anchor found
+    charge_score: float = 0.0              # bright-pixel fraction in the ROI
+
     # Turn info
     current_step: Optional[int] = None     # 1-9
     step_score: float = 0.0
@@ -254,6 +258,13 @@ def detect(frame_bgr: np.ndarray) -> DetectionResult:
         frac = float((crop > C.RESET_BRIGHT_LUMA).mean())
         result.reset_score = frac
         result.reset_enabled = frac >= C.RESET_ENABLED_FRACTION
+
+    # --- Charge button (extra-reroll ticket, brightness) ---
+    crop = _crop_roi(gray, ax, ay, C.ROI_CHARGE_BUTTON)
+    if crop is not None:
+        frac = float((crop > C.CHARGE_BRIGHT_LUMA).mean())
+        result.charge_score = frac
+        result.charge_enabled = frac >= C.CHARGE_ENABLED_FRACTION
 
     # --- Steps + Rarity (both from same crop) ---
     crop = _crop_roi(gray, ax, ay, C.ROI_PROCESS_STEPS)

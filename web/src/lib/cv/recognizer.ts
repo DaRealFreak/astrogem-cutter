@@ -30,6 +30,9 @@ import {
   ROI_RESET_BUTTON,
   RESET_BRIGHT_LUMA,
   RESET_ENABLED_FRACTION,
+  ROI_CHARGE_BUTTON,
+  CHARGE_BRIGHT_LUMA,
+  CHARGE_ENABLED_FRACTION,
   ROI_PROCESS_STEPS,
   ROI_STAT_FIRST,
   ROI_STAT_SECOND,
@@ -123,6 +126,8 @@ function blankResult(): DetectionResult {
     rerollsScore: 0.0,
     resetEnabled: null,
     resetScore: 0.0,
+    chargeEnabled: null,
+    chargeScore: 0.0,
     currentStep: null,
     stepScore: 0.0,
     totalSteps: null,
@@ -210,6 +215,23 @@ export function detect(gray: any, store: TemplateStore): DetectionResult {
       const frac = cv.countNonZero(dst) / (crop.rows * crop.cols);
       result.resetScore = frac;
       result.resetEnabled = frac >= RESET_ENABLED_FRACTION;
+    } finally {
+      dst.delete();
+      crop.delete();
+    }
+  }
+
+  // --- Charge button (extra-reroll ticket, brightness) ---
+  // Same brightness read as reset: yellow "Charge" fill is bright (~0.08),
+  // greyed is near-zero.
+  crop = _cropRoi(gray, ax, ay, ROI_CHARGE_BUTTON);
+  if (crop !== null) {
+    const dst = new cv.Mat();
+    try {
+      cv.threshold(crop, dst, CHARGE_BRIGHT_LUMA, 255, cv.THRESH_BINARY);
+      const frac = cv.countNonZero(dst) / (crop.rows * crop.cols);
+      result.chargeScore = frac;
+      result.chargeEnabled = frac >= CHARGE_ENABLED_FRACTION;
     } finally {
       dst.delete();
       crop.delete();

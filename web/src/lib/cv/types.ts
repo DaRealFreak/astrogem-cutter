@@ -46,6 +46,8 @@ export interface DetectionResult {
    * available (stateless fallback). See lib/app/ticket.ts.
    */
   chargeEnabled?: boolean | null;
+  /** Bright-pixel fraction in the charge ROI (debug/score). */
+  chargeScore?: number;
   currentStep: number | null;
   stepScore: number;
   totalSteps: number | null;

@@ -35,6 +35,7 @@ def rec(file: str) -> dict:
             "second_level": d.second_level, "second_level_score": d.second_level_score,
             "rerolls": d.rerolls, "rerolls_score": d.rerolls_score,
             "reset_enabled": d.reset_enabled, "reset_score": d.reset_score,
+            "charge_enabled": d.charge_enabled, "charge_score": d.charge_score,
             "current_step": d.current_step, "step_score": d.step_score,
             "total_steps": d.total_steps, "rarity_score": d.rarity_score,
             "options": [

@@ -57,7 +57,7 @@ Requires `opencv-python`, `numpy`. Template-matching pipeline for recognizing th
 - **`constants.py`** — ROI offsets relative to anchor, match thresholds, domain mappings
 - **`matcher.py`** — `find_template`, `find_best_match` wrappers around `cv2.matchTemplate`
 - **`capture.py`** — `grab_screen`, `load_screenshot`, `normalize_to_fhd`
-- **`template_recognizer.py`** — Template-based recognizer used by `live` and `auto` commands. `detect()` returns `DetectionResult` with gem type, stats, effects, rerolls, turn/step, and 4 option cards with confidence scores. Helper functions `parse_rerolls()`, `determine_option_kind()`, `parse_delta()` for interpreting detection results.
+- **`template_recognizer.py`** — Template-based recognizer used by `live` and `auto` commands. `detect()` returns `DetectionResult` with gem type, stats, effects, rerolls, turn/step, and 4 option cards with confidence scores. Two button-availability fields are read from **brightness** (not template matching, since the enabled/disabled glyphs are identical under a brightness-normalised matcher): `reset_enabled` (bright "Reset" text vs greyed) and `charge_enabled` (the yellow extra-reroll "Charge" button — bright fill ~0.08 of `ROI_CHARGE_BUTTON` vs ~0.00 when greyed; the button only shows "Charge" when free rerolls are exhausted, and the web ticket heuristic only consults `charge_enabled` there). Helper functions `parse_rerolls()`, `determine_option_kind()`, `parse_delta()` for interpreting detection results.
 
 ## Key Domain Concepts
 
