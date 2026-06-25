@@ -28,7 +28,7 @@
       <div class="main-right">
         <AdvisorPanel output={advisor.output} waiting={advisor.waiting} recomputing={advisor.recomputing} />
         {#if advisor.output}
-          <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} />
+          <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} ticket={advisor.output.ticket} />
         {/if}
         {#if advisor.output}<OfferTable perOffer={advisor.output.perOffer} detection={advisor.detection} />{/if}
         <DetectedState detection={advisor.detection} />

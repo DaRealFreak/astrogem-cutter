@@ -314,6 +314,17 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 .action-matrix th { font-size: 0.78rem; font-weight: 600; opacity: 0.7; }
 .action-matrix tr.recommended td { font-weight: 600; }
 
+/* With/without extra-reroll comparison: two matrices side by side. */
+.matrix-pair { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-self: start; }
+.matrix-variant { display: flex; flex-direction: column; gap: var(--sp-1); }
+.matrix-caption {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
 /* ── OfferTable ───────────────────────────────────────────────────────── */
 .offers { width: auto; max-width: 100%; align-self: start; border-collapse: collapse; font-size: 0.9rem; }
 .offers th, .offers td { padding: var(--sp-1) var(--sp-2); text-align: left; border-bottom: 1px solid var(--border-subtle); }

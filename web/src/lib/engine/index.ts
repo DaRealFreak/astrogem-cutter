@@ -48,6 +48,10 @@ export interface AdvisorConfig {
   ignoreSideNodeValues?: boolean;
   /** Tri-state: true = force-on, false = hard-off, null/undefined = off-but-armed */
   extraTicket?: boolean | null;
+  /** Per-turn extra-ticket enablers (mirror the Python flags). */
+  rerollMinCoeff?: number;
+  rerollGoal?: number;
+  rerollGoalThreshold?: number;
   optimize?: 'dps' | 'support';
 }
 
@@ -74,6 +78,22 @@ export interface AdvisorInput {
 }
 
 export type ActionMetrics = { pGoal: number; pRelic: number; pAncient: number; eValue: number };
+export type ActionsMap = { process: ActionMetrics | null; reroll: ActionMetrics | null; reset: ActionMetrics | null };
+
+/** A full metric snapshot at a fixed reroll budget (for the ticket comparison). */
+export type ActionsSnapshot = {
+  pGoal: number; pRelic: number; pAncient: number; eValue: number; actions: ActionsMap;
+};
+
+/**
+ * With/without extra-ticket comparison, attached by computeAdvice when the
+ * player owns the ticket. `withoutTicket` uses the free reroll count, `withTicket`
+ * uses free+1; `lent` is whether the recommendation actually used the ticket.
+ */
+export type TicketComparison = {
+  owned: boolean; lent: boolean; free: number;
+  withoutTicket: ActionsSnapshot; withTicket: ActionsSnapshot;
+};
 
 export interface AdvisorOutput {
   action: ActionKind;
@@ -84,7 +104,9 @@ export interface AdvisorOutput {
   pAncient: number;
   eValue: number;
   perOffer: Array<{ key: string; pGoalAfter: number; eValueAfter: number }>;
-  actions: { process: ActionMetrics | null; reroll: ActionMetrics | null; reset: ActionMetrics | null };
+  actions: ActionsMap;
+  /** Set by computeAdvice when the extra ticket is owned; null otherwise. */
+  ticket?: TicketComparison | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,9 +134,17 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   //   dpMaxRerolls = base + ((relicRerollThreshold > 0 || goalRerollActive) ? 1 : 0)
   // goalRerollActive is always false in Plan 1 (no --reroll-goal flag).
   const extraTicket = config.extraTicket;
-  const baseRerolls = RARITY_REROLLS[rarity]! + (extraTicket !== false ? 1 : 0);
+  // baseRerolls / dpMaxRerolls keep the original budget sizing (covers free
+  // rerolls + the lent ticket + the look-ahead margin, so reroll-aware lookups
+  // never clamp). The ticket is no longer folded into the *current* budget —
+  // it is lent per frame in computeAdvice via ticketEnabled.
+  const ownable = extraTicket !== false;
+  const baseRerolls = RARITY_REROLLS[rarity]! + (ownable ? 1 : 0);
   const relicRerollThreshold = config.relicRerollThreshold ?? 0;
-  const goalRerollActive = false; // Plan 1: no reroll-goal feature
+  const rerollMinCoeff = config.rerollMinCoeff ?? 0;
+  const rerollGoal = config.rerollGoal;
+  const rerollGoalThreshold = config.rerollGoalThreshold ?? 0;
+  const goalRerollActive = rerollGoal !== undefined && rerollGoalThreshold > 0;
   const dpMaxRerolls = baseRerolls + ((relicRerollThreshold > 0 || goalRerollActive) ? 1 : 0);
 
   const optimize = config.optimize ?? gem.optimize ?? 'dps';
@@ -215,6 +245,22 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
       })
     : null;
 
+  // 8. Goal-conditioned expected side-coefficient table (grade coeffs 0 ->
+  //    value == E[side_coeff]) for the per-turn --reroll-min-coeff ticket
+  //    enabler. ~0 once the goal is unreachable.
+  const expectedCoeffTable = rerollMinCoeff > 0
+    ? new SideValueTable(goal, turnsTotal, pool, gemType, {
+        optimize, minSideCoeff, relicCoeff: 0, ancientCoeff: 0, valueMode: 'side',
+      })
+    : null;
+
+  // 9. Will/chaos-total table for the --reroll-goal ticket enabler.
+  const rerollGoalProbTable = goalRerollActive
+    ? new GoalProbabilityTable(
+        new LastTurnGoal({ minTotalWillChaos: rerollGoal }), turnsTotal, pool,
+        { earlyFinish: false, maxRerolls: dpMaxRerolls })
+    : null;
+
   // Fresh state (used for reset projection in advise() and pFresh below)
   const freshState = new GemState({ firstEffect: gem.firstEffect, secondEffect: gem.secondEffect });
 
@@ -244,6 +290,11 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     sideValueTable,
     gradeValueTable,
     maxedValueTable,
+    extraTicketForceOn: extraTicket === true,
+    rerollGoalProbTable,
+    rerollGoalThreshold,
+    rerollMinCoeff,
+    expectedCoeffTable,
   };
 
   return {

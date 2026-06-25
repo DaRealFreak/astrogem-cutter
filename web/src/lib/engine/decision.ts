@@ -90,6 +90,45 @@ export interface DecisionContext {
   // Side-mode value oracle consulted only at the will/chaos cap under
   // --ignore-side-node-values. null unless the flag is set.
   maxedValueTable: SideValueTable | null;
+  // --- Extra-ticket per-turn enable gate (see `ticketEnabled`) ---
+  // The gold-costing extra reroll ticket is re-evaluated every frame, OR-ing
+  // these enablers. `extraTicketForceOn` is `--extra-ticket` (always on).
+  extraTicketForceOn: boolean;
+  rerollGoalProbTable: GoalProbabilityTable | null;
+  rerollGoalThreshold: number;
+  rerollMinCoeff: number;
+  // Goal-conditioned expected side-coefficient table (relic/ancient coeff 0,
+  // so value == E[side_coeff]); ~0 when the goal is unreachable.
+  expectedCoeffTable: SideValueTable | null;
+}
+
+/**
+ * Whether the gold-costing extra reroll ticket may be used this turn/frame.
+ * Mirror of `arkgrid.decision.ticket_enabled`. Re-evaluated every frame (never
+ * banked). Usable if ANY enabler clears its bar, each looking ahead as if the
+ * ticket were in hand (`freeRerolls + 1`), except the reroll-independent coeff
+ * enabler. Free rerolls are unaffected — this governs only the extra ticket.
+ */
+export function ticketEnabled(
+  ctx: DecisionContext, state: GemState, turnsLeft: number, freeRerolls: number,
+): boolean {
+  if (ctx.extraTicketForceOn) return true;
+  if (ctx.rerollMinCoeff > 0 && ctx.expectedCoeffTable !== null
+      && ctx.expectedCoeffTable.lookup(state, turnsLeft) >= ctx.rerollMinCoeff) {
+    return true;
+  }
+  const lookAhead = freeRerolls + 1; // P "as if the ticket were used"
+  if (ctx.relicRerollThreshold > 0 && ctx.relicProbTable !== null
+      && ctx.relicProbTable.lookup(state, turnsLeft, lookAhead)
+         >= ctx.relicRerollThreshold) {
+    return true;
+  }
+  if (ctx.rerollGoalThreshold > 0 && ctx.rerollGoalProbTable !== null
+      && ctx.rerollGoalProbTable.lookup(state, turnsLeft, lookAhead)
+         >= ctx.rerollGoalThreshold) {
+    return true;
+  }
+  return false;
 }
 
 export interface TurnInput {

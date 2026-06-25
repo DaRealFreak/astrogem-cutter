@@ -77,12 +77,13 @@ def _build_parser() -> argparse.ArgumentParser:
                              "infeasible does it fall back to chasing grade. "
                              "Intended for new characters.")
         p.add_argument("--extra-ticket", action="store_true", default=None,
-                        help="Force the extra reroll ticket ON for every gem "
+                        help="Force the extra reroll ticket ON every turn "
                              "(unconditional +1). Default (omitted): the ticket "
-                             "is OFF unless enabled by --reroll-min-coeff, "
+                             "is owned but lent only on turns where a per-turn "
+                             "enabler clears its bar (--reroll-min-coeff, "
                              "--relic-reroll-threshold, or --reroll-goal + "
-                             "--reroll-goal-threshold. --no-extra-ticket is a "
-                             "hard off that disarms those enablers.")
+                             "--reroll-goal-threshold). --no-extra-ticket is a "
+                             "hard off that disables all enablers.")
         p.add_argument("--no-extra-ticket", action="store_false", dest="extra_ticket")
         p.add_argument("--reset-ticket", nargs="?", const=True, default=None,
                         type=_parse_reset_ticket, metavar="RARITY",
@@ -106,9 +107,10 @@ def _build_parser() -> argparse.ArgumentParser:
                              "400+700 = 1100 passes, 1051 skips brand_power alone for support). "
                              "0 = always use. Default: 0")
         p.add_argument("--reroll-min-coeff", type=int, default=0, metavar="N",
-                        help="Only use extra reroll ticket when the sum of starting target-effect "
-                             "coefficients meets this threshold. Same logic as --reset-min-coeff "
-                             "but for the extra reroll ticket. 0 = always use. Default: 0")
+                        help="Per-turn extra-ticket enabler: lend the extra reroll ticket on any "
+                             "turn where the EXPECTED side-coefficient (goal-conditioned, so ~0 "
+                             "once the goal is dead) meets N. Re-evaluated each turn, not a "
+                             "one-time gate. 0 = off. Default: 0")
         p.add_argument("--min-first", type=int, default=None, metavar="N",
                         help="Minimum level for first side node (1-5)")
         p.add_argument("--min-second", type=int, default=None, metavar="N",

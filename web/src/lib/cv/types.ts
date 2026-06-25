@@ -39,6 +39,13 @@ export interface DetectionResult {
   resetEnabled?: boolean | null;
   /** Bright-pixel fraction in the reset ROI (debug/score). */
   resetScore?: number;
+  /**
+   * Extra-reroll "Charge" button availability when free rerolls are exhausted
+   * (yellow = available, greyed = spent/none), read from brightness. Null/absent
+   * until detection supplies it; the ticket-availability heuristic then assumes
+   * available (stateless fallback). See lib/app/ticket.ts.
+   */
+  chargeEnabled?: boolean | null;
   currentStep: number | null;
   stepScore: number;
   totalSteps: number | null;

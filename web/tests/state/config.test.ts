@@ -46,10 +46,13 @@ describe('effectiveConfig', () => {
 });
 
 describe('coefficient / rarity gates', () => {
-  it('reroll-min-coeff arms the extra ticket when coeff clears the bar, denies it otherwise', () => {
-    // coeffSum = 1400
-    expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 700 }, det()).advisorConfig.extraTicket).toBe(true);
-    expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 2000 }, det()).advisorConfig.extraTicket).toBe(false);
+  it('reroll-min-coeff is forwarded to the engine, NOT used as a one-time ticket gate', () => {
+    // It is now a per-turn enabler (expected side-coeff vs the bar) evaluated in
+    // the engine; effectiveConfig just forwards the bar and leaves the tri-state
+    // extraTicket ownership untouched.
+    const eff = effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 700, extraTicket: null }, det());
+    expect(eff.advisorConfig.rerollMinCoeff).toBe(700);
+    expect(eff.advisorConfig.extraTicket).toBeNull();
   });
   it('reroll-min-coeff off leaves the tri-state extraTicket untouched', () => {
     expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 0, extraTicket: null }, det()).advisorConfig.extraTicket).toBeNull();

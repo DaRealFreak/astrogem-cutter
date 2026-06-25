@@ -62,13 +62,10 @@ export function effectiveConfig(
   const optimize = resolveOptimize(det.firstEffect ?? '', det.secondEffect ?? '', stored.optimizeOverride);
   const coeffSum = gemCoeffSum(det.firstEffect ?? '', det.secondEffect ?? '', optimize);
 
-  // --reroll-min-coeff: gate the extra reroll ticket by the gem's coefficient.
-  // When the threshold is set, the coeff decides on/off (overrides the tri-state);
-  // a separate relic-reroll-threshold can still grant a reroll in the DP budget.
-  let extraTicket = stored.extraTicket;
-  if ((stored.rerollMinCoeff ?? 0) > 0) {
-    extraTicket = coeffSum >= stored.rerollMinCoeff;
-  }
+  // --reroll-min-coeff is no longer a one-time on/off gate on the ticket: it is a
+  // per-turn enabler in the engine (expected side-coefficient vs the bar). We
+  // just forward the tri-state ownership and the bar to the engine.
+  const extraTicket = stored.extraTicket;
 
   // --reset-min-coeff / --reset-ticket <rarity>: only allow reset on a gem that
   // clears both bars (0 / 'off' = no gate).
@@ -93,6 +90,7 @@ export function effectiveConfig(
     endgameRisk: stored.endgameRisk ?? undefined,
     ignoreSideNodeValues: stored.ignoreSideNodeValues,
     extraTicket,
+    rerollMinCoeff: stored.rerollMinCoeff,
     optimize,
   };
   return { advisorConfig, optimize, resetOverride: stored.resetOverride, resetPolicyAllowed, coeffSum };
