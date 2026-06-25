@@ -684,11 +684,16 @@ def run_auto(
         reset_available = bool(reset_ticket)
         # The extra reroll ticket is re-evaluated per turn (see
         # decision.ticket_enabled) — never banked. `ownable` = the player has
-        # it; `extra_ticket_force_on` = --extra-ticket (always lent);
-        # `extra_ticket_consumed` flips once it is actually spent (the in-game
-        # Charge confirm), after which it is never lent again this run.
+        # it; `extra_ticket_force_on` = --extra-ticket (always lent).
+        # `extra_ticket_available` is the per-cutting-process lend gate: it
+        # flips False once the ticket is actually spent (the in-game Charge
+        # confirm) and RENEWS on a reset (a reset starts a fresh cutting
+        # process). `extra_ticket_consumed` is the cumulative "was the gold
+        # ticket ever spent this run" report (never reset). A NEW gem (--all)
+        # re-inits both via the outer loop.
         extra_ticket_force_on = (extra_ticket is True)
         ownable = (extra_ticket is not False)
+        extra_ticket_available = ownable
         extra_ticket_consumed = False
         force_reroll_active = False  # gated by starting coeff, set on first detection
         reset_used = False
@@ -1085,7 +1090,7 @@ def run_auto(
             # false, so the ticket is not lent (and not spent).
             free_rerolls = analysis.reroll_count
             ticket_lent = (
-                ownable and not extra_ticket_consumed
+                extra_ticket_available
                 and decision_ctx is not None
                 and ticket_enabled(decision_ctx, analysis.state,
                                    analysis.turns_left, free_rerolls))
@@ -1269,6 +1274,9 @@ def run_auto(
                     reset_used = True
                     reset_available = False
                     internal_rerolls = None
+                    # Reset starts a fresh cutting process — the extra ticket
+                    # is granted again (renews; not persisted as spent).
+                    extra_ticket_available = ownable
                     turn_history.append({
                         "turn": analysis.current_turn,
                         "rerolls_used": current_turn_rerolls,
@@ -1377,9 +1385,10 @@ def run_auto(
                       end="", flush=True)
                 _click(*confirm_pos, monitor)
                 print(" done")
-                # F3-B: mark ticket consumed so parse_rerolls no longer adds the
-                # phantom +1 if the game still shows the icon after spending.
+                # Ticket spent (gold-costing Charge): close the per-cutting-
+                # process lend gate and record the cumulative consumption.
                 if _reroll_ticket_confirm:
+                    extra_ticket_available = False
                     extra_ticket_consumed = True
 
             # Post-action tracking
@@ -1420,6 +1429,9 @@ def run_auto(
                 reset_used = True
                 reset_available = False
                 internal_rerolls = None
+                # Reset starts a fresh cutting process — the extra ticket is
+                # granted again (renews; not persisted as spent).
+                extra_ticket_available = ownable
                 turn_history.append({
                     "turn": analysis.current_turn,
                     "rerolls_used": current_turn_rerolls,

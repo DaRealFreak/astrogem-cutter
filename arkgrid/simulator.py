@@ -608,10 +608,12 @@ class GemSimulator:
         # The extra reroll ticket is re-evaluated every turn (see
         # `decision.ticket_enabled`), never armed once. `ownable` = the player
         # has the ticket; `ticket_available` flips False once it is actually
-        # spent (a gold-costing reroll) and persists across a reset-ticket
-        # restart — the consumable doesn't come back.
+        # spent (a gold-costing reroll). The ticket is once per CUTTING PROCESS
+        # and RENEWS on a reset (a reset starts a fresh cutting process), so
+        # `ticket_available` is re-armed at the top of each attempt below.
+        # `ticket_consumed` is the cumulative "was the gold ticket ever spent
+        # this run" report (never reset).
         ownable = (self.use_extra_ticket is not False)
-        ticket_available = ownable
         ticket_consumed = False
         coeff = (DPS_COEFF if run_gem.optimize == "dps"
                  else SUPPORT_COEFF)
@@ -659,6 +661,9 @@ class GemSimulator:
                 first_effect=run_gem.first_effect,
                 second_effect=run_gem.second_effect,
             )
+            # Renew the extra ticket for this cutting process: a reset (attempt
+            # 2) re-grants it; for attempt 1 this is the initial arm.
+            ticket_available = ownable
 
             for turn in range(1, self.turns_total + 1):
                 turns_left = self.turns_total - turn + 1

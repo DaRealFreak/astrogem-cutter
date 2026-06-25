@@ -143,6 +143,39 @@ class TestSimulator(unittest.TestCase):
         )
         self.assertGreater(reset_count, 0, "Reset should be used at least once in 100 trials")
 
+    def test_extra_ticket_renews_after_reset(self) -> None:
+        # The extra reroll ticket is once per CUTTING PROCESS, and a reset starts
+        # a NEW cutting process — so the ticket must be available again in the
+        # post-reset attempt. Regression: `ticket_available` used to persist
+        # across the reset (stuck False once consumed pre-reset), so a reset gem
+        # could never use its extra ticket again.
+        #
+        # On common (0 free rerolls) with a force-on ticket, `ticket_lent` per
+        # turn == "the ticket is currently available" (the force-on enabler is
+        # always true), so the post-reset lend flags expose the bug directly.
+        sim = GemSimulator(
+            rarity="common", use_extra_ticket=True, use_reset_ticket=True,
+            goal=LastTurnGoal(min_will=5, min_chaos=5),
+        )
+        r = sim.simulate_one(seed=0, log=True)
+        self.assertTrue(r.reset_used, "seed 0 should trigger a reset")
+        log = r.turn_log or []
+        reset_i = next(
+            (i for i, e in enumerate(log)
+             if str(e.get("action", "")).startswith("RESET")),
+            None,
+        )
+        self.assertIsNotNone(reset_i, "expected a RESET entry in the turn log")
+        pre, post = log[:reset_i + 1], log[reset_i + 1:]
+        # Sanity: the ticket was lent (and consumed) before the reset.
+        self.assertTrue(any(e.get("ticket_lent") for e in pre),
+                        "ticket should have been lent before the reset")
+        self.assertTrue(post, "the post-reset cutting process should have turns")
+        # The fix: the ticket renews for the new cutting process, so it is lent
+        # again post-reset. Pre-fix every post entry was False (gone for good).
+        self.assertTrue(any(e.get("ticket_lent") for e in post),
+                        "extra ticket must be available again after a reset")
+
     def test_common_has_5_turns(self) -> None:
         sim = GemSimulator(
             rarity="common", use_extra_ticket=False, use_reset_ticket=False,
