@@ -587,21 +587,12 @@ function resetOrChaseRelic(
     ? ctx.probTable.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1)
     : 0.0;
 
-  // Dead-gem finish gate.
-  if (pRerollGoal <= 0 && ctx.relicRerollThreshold > 0) {
-    const relicNow =
-      ctx.relicProbTable !== null
-        ? ctx.relicProbTable.lookup(ti.state, ti.turnsLeft, ti.rerolls)
-        : 0.0;
-    if (relicNow < ctx.relicRerollThreshold) {
-      return makeDecision({
-        action: ActionKind.FINISH,
-        branch,
-        reason: `${reason}, goal dead and P(relic+) < threshold — finishing dead gem`,
-        metrics: { ...baseMetrics, p_relic_now: relicNow },
-      });
-    }
-  }
+  // Note: `relicRerollThreshold` does NOT force-finish a dead gem here. Rerolls
+  // are free, so while a free reroll (or the current offers) can still reach
+  // relic+, the grade-value chase below keeps working them. The threshold's
+  // sole job is gating the gold-costing extra ticket (handled at arming time:
+  // the ticket only enters the reroll budget when P(relic+) clears the
+  // threshold). User directive: use free rerolls to chase a reachable relic+.
 
   // Preferred path: value-aware grade chase via the goal-independent table.
   const gvt = ctx.gradeValueTable;

@@ -695,30 +695,14 @@ def _reset_or_chase_relic(
         ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
         if can_reroll else 0.0)
 
-    # Dead-gem finish gate. When the goal can no longer be reached (not even a
-    # reroll helps) AND P(relic+) is below the configured worthiness threshold,
-    # neither a goal-reaching gem nor a relic-grade gem is achievable — the gem
-    # is unusable. Finish now rather than burn rerolls (above all the limited
-    # extra ticket) chasing residual side/grade value the player can't use.
-    # `relic_now` is the reroll-aware prior over the *current* reroll budget
-    # (ticket included), so a ticket that could still lift relic above the
-    # threshold keeps the gem alive. Armed only when the player set
-    # `--relic-reroll-threshold` (> 0); the default 0.0 leaves the grade-value
-    # chase below untouched. The caller wraps the result in `_maybe_confirm`,
-    # so a valuable dead gem still surfaces as an F1-F4 prompt.
-    if p_reroll_goal <= 0 and ctx.relic_reroll_threshold > 0:
-        relic_now = (ctx.relic_prob_table.lookup(
-            ti.state, ti.turns_left, rerolls=ti.rerolls)
-            if ctx.relic_prob_table is not None else 0.0)
-        if relic_now < ctx.relic_reroll_threshold:
-            return Decision(
-                action=ActionKind.FINISH,
-                branch=branch,
-                reason=(f"{reason}, goal dead and P(relic+)={relic_now:.1%} "
-                        f"< threshold {ctx.relic_reroll_threshold:.0%} — "
-                        f"finishing dead gem"),
-                metrics={**base_metrics, "p_relic_now": relic_now},
-            )
+    # Note: `--relic-reroll-threshold` does NOT force-finish a dead gem here.
+    # Rerolls are free, so while a free reroll (or the current offers) can still
+    # reach relic+, the grade-value chase below keeps working them. The
+    # threshold's sole job is gating the gold-costing extra ticket — handled at
+    # *arming* time in the simulator / `run_auto`, which only add the ticket to
+    # the reroll budget when P(relic+) clears the threshold. (User directive:
+    # use free rerolls to chase a reachable relic+; the threshold limits only
+    # the extra ticket's gold.)
 
     # Preferred path: value-aware grade chase via the goal-independent
     # grade-value table (present only when relic/ancient grade has a

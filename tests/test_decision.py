@@ -856,18 +856,17 @@ class TestDeadGoalGradeValue(unittest.TestCase):
         self.assertEqual(d.action, ActionKind.PROCESS)
 
 
-class TestDeadGemFinishGate(unittest.TestCase):
-    """Dead-gem finish gate: when the goal can no longer be reached (not even
-    via a reroll) AND P(relic+) is below `--relic-reroll-threshold`, the gem is
-    useless and worth nothing more, so FINISH immediately instead of spending
-    rerolls (especially the limited extra ticket) chasing residual gem value.
+class TestRelicRerollThresholdTicketOnly(unittest.TestCase):
+    """`--relic-reroll-threshold` gates only the gold-costing extra ticket
+    (its mid-run arming) — never free rerolls.
 
-    Reproduces the user's auto run 20260623_123342 turn 9: goal dead,
-    P(relic+)=2.6% < 10% threshold, yet the grade-value chase rerolled three
-    times (burning the extra ticket) before finishing.
-
-    Gate is armed only when `--relic-reroll-threshold > 0`; with the default
-    (0.0) the existing grade-value chase is preserved unchanged.
+    Earlier the threshold also force-finished a dead gem whenever P(relic+)
+    fell below it, even with free rerolls in hand that could still reach
+    relic+. Rerolls are free, so a dead gem now keeps chasing relic+ (and
+    residual grade/side value) with the rerolls it has; the threshold's only
+    job is deciding whether the extra ticket gets armed. (User directive: free
+    rerolls always chase a reachable relic+; the threshold limits extra-ticket
+    gold, and the ticket is gated separately at arming time.)
     """
 
     def _dead_ctx(self, **kw):
@@ -879,29 +878,46 @@ class TestDeadGemFinishGate(unittest.TestCase):
         kw.setdefault("ancient_coeff", 3334)
         return build_ctx(**kw)
 
-    def test_finishes_dead_gem_when_relic_below_threshold(self):
-        # The user's exact turn-9 shape: order_fortitude support nodes
-        # (ally_damage/ally_attack, side_coeff 0 under dps), will/chaos=6 with
-        # min_total_will_chaos=10 unreachable in one click, P(relic+)~2.6%<10%.
-        # Before the fix the grade-value chase REROLLs (reroll_val~221);
-        # after the fix the gate FINISHes the dead gem, preserving rerolls.
+    def test_does_not_finish_dead_gem_below_threshold_with_free_rerolls(self):
+        # User's auto run 20260623_123342 turn-9 shape: goal dead, P(relic+)
+        # ~2.6% < 10% threshold — but first=1 can still reach relic (first+4 ->
+        # total 16) with a free reroll. The threshold must NOT force a finish;
+        # the free rerolls keep chasing relic+/grade.
         ctx = self._dead_ctx(relic_reroll_threshold=0.1)
         st = GemState(will=3, chaos=3, first=1, second=5, rerolls=3,
                       first_effect="ally_damage", second_effect="ally_attack")
         offers = make_offers("chaos+2", "first+1", "will+1", "first+2")
         ti = build_ti(state=st, offers=offers, turn=9, turns_left=1,
                       rerolls=3, reset_available=False)
-        # Sanity: relic really is below the threshold from here.
-        relic_now = ctx.relic_prob_table.lookup(st, 1, rerolls=3)
-        self.assertLess(relic_now, 0.1)
+        # Sanity: P(relic+) is below the threshold from here ...
+        self.assertLess(ctx.relic_prob_table.lookup(st, 1, rerolls=3), 0.1)
+        # ... yet relic+ is still reachable via a free reroll.
+        m = compute_post_roll_metrics(ctx, ti)
+        self.assertGreater(m.p_reroll_relic, 0.0)
         d = decide_post_roll(ctx, ti)
-        self.assertEqual(d.action, ActionKind.FINISH,
-                         f"dead gem below relic threshold should FINISH, got {d}")
+        self.assertEqual(
+            d.action, ActionKind.REROLL,
+            f"free rerolls should keep chasing relic+, not finish: {d}")
+
+    def test_threshold_does_not_change_dead_gem_decision(self):
+        # The threshold no longer affects the dead-gem decision at all: the
+        # same scenario at threshold 0.1 and 0.0 (default) yields the same
+        # action. Previously 0.1 finished while 0.0 chased.
+        offers = make_offers("chaos+2", "first+1", "will+1", "first+2")
+
+        def decide(thr: float) -> ActionKind:
+            ctx = self._dead_ctx(relic_reroll_threshold=thr)
+            st = GemState(will=3, chaos=3, first=1, second=5, rerolls=3,
+                          first_effect="ally_damage", second_effect="ally_attack")
+            ti = build_ti(state=st, offers=offers, turn=9, turns_left=1,
+                          rerolls=3, reset_available=False)
+            return decide_post_roll(ctx, ti).action
+
+        self.assertEqual(decide(0.1), decide(0.0))
 
     def test_keeps_chasing_when_relic_above_threshold(self):
         # Goal dead (need will5 AND chaos5 in one click) but total=14 -> a
-        # single +2 click reaches relic (16), so P(relic+) >= threshold. The
-        # gate must NOT fire; the gem stays alive and chases relic.
+        # single +2 click reaches relic (16). The gem stays alive and chases.
         ctx = self._dead_ctx(goal=LastTurnGoal(min_will=5, min_chaos=5),
                              relic_reroll_threshold=0.1)
         st = GemState(will=2, chaos=2, first=5, second=5, rerolls=0,
@@ -915,24 +931,9 @@ class TestDeadGemFinishGate(unittest.TestCase):
         self.assertNotEqual(d.action, ActionKind.FINISH,
                             f"relic still live should keep chasing, got {d}")
 
-    def test_threshold_zero_preserves_grade_chase(self):
-        # Identical to the finish test but with the threshold disabled (0.0,
-        # the default). The gate is gated on threshold>0, so behaviour is the
-        # legacy grade-value chase: REROLL, not FINISH.
-        ctx = self._dead_ctx(relic_reroll_threshold=0.0)
-        st = GemState(will=3, chaos=3, first=1, second=5, rerolls=3,
-                      first_effect="ally_damage", second_effect="ally_attack")
-        offers = make_offers("chaos+2", "first+1", "will+1", "first+2")
-        ti = build_ti(state=st, offers=offers, turn=9, turns_left=1,
-                      rerolls=3, reset_available=False)
-        d = decide_post_roll(ctx, ti)
-        self.assertEqual(d.action, ActionKind.REROLL,
-                         f"threshold 0 must preserve the grade chase, got {d}")
-
     def test_rerolls_for_goal_when_goal_still_reachable(self):
         # Goal reachable via a reroll (this draw can't, a fresh one might).
-        # Even with relic below threshold, the gate must defer to the
-        # goal-reroll path — the goal is the primary objective.
+        # The goal-reroll path takes priority — the goal is the objective.
         ctx = self._dead_ctx(goal=LastTurnGoal(min_will=3, min_chaos=3),
                              turns_total=7, relic_reroll_threshold=0.1)
         st = GemState(will=4, chaos=1, first=2, second=1, rerolls=1,
@@ -949,29 +950,6 @@ class TestDeadGemFinishGate(unittest.TestCase):
         d = decide_post_roll(ctx, ti)
         self.assertEqual(d.action, ActionKind.REROLL,
                          f"goal still reachable via reroll should REROLL, got {d}")
-
-    def test_dead_gem_confirm_gate_prompts_on_finish(self):
-        # Dead gem whose side coefficient clears --confirm-min-coeff: the gate
-        # FINISH must be surfaced as an F1-F4 prompt, not auto-finished.
-        # boss_damage L3 (3000) side coeff; second=ally_attack L5 is a wasted
-        # high level the grade chase would REROLL to flip to DPS via a
-        # change-effect. total=12 -> relic unreachable (max +3 -> 15 < 16),
-        # goal min_total_will_chaos=10 dead. So without the gate this REROLLs
-        # (burning rerolls); with the gate it FINISHes and prompts.
-        ctx = self._dead_ctx(relic_reroll_threshold=0.1, confirm_min_coeff=3000)
-        st = GemState(will=2, chaos=2, first=3, second=5, rerolls=3,
-                      first_effect="boss_damage", second_effect="ally_attack")
-        offers = make_offers("will+1", "chaos+1", "first+1", "maintain")
-        ti = build_ti(state=st, offers=offers, turn=9, turns_left=1,
-                      rerolls=3, reset_available=False)
-        self.assertGreaterEqual(_side_coeff(ctx, st), 3000)
-        self.assertLess(ctx.relic_prob_table.lookup(st, 1, rerolls=3), 0.1)
-        d = decide_post_roll(ctx, ti)
-        self.assertEqual(d.action, ActionKind.FINISH,
-                         f"valuable dead gem should finish via the gate, got {d}")
-        self.assertTrue(d.needs_confirmation,
-                        f"valuable dead gem should prompt, got {d}")
-        self.assertIn(ActionKind.FINISH, d.confirm_choices)
 
 
 class TestEndgameGate(unittest.TestCase):

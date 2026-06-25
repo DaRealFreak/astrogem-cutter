@@ -140,10 +140,9 @@ def _build_parser() -> argparse.ArgumentParser:
                              "average ancient gem coefficient for the gem type.")
         p.add_argument("--relic-reroll-threshold", type=float, default=0.0, metavar="F",
                         help="Relic worthiness bar (P(relic+ >=16 total) from the current "
-                             "state). Grants the extra reroll ticket when P(relic+) exceeds "
-                             "it, AND finishes a dead gem (goal unreachable) the moment "
-                             "P(relic+) falls below it, so the ticket is never spent on a "
-                             "gem that can reach neither the goal nor relic grade. "
+                             "state). Arms the gold-costing extra reroll ticket only when "
+                             "P(relic+) exceeds it. It never force-finishes a dead gem: free "
+                             "rerolls always keep chasing a still-reachable relic+. "
                              "0.0 = disabled. Try 0.1-0.3. Default: 0.0")
         p.add_argument("--reroll-goal", type=int, default=None, metavar="N",
                         help="Combined willpower+chaos total used only for the "
