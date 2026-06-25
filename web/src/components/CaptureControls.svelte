@@ -7,6 +7,8 @@
   import { config } from '../lib/state/config.state.svelte';
   import { advisor } from '../lib/state/advisor.state.svelte';
   import { turnLog } from '../lib/state/turnLog.state.svelte';
+  import { ticketRun } from '../lib/state/ticketRun.state.svelte';
+  import { parseRerolls } from '../lib/cv/parse';
   import type { DetectionResult } from '../lib/cv/types';
   import ScreenshotUpload from './ScreenshotUpload.svelte';
   import DebugView from './DebugView.svelte';
@@ -37,7 +39,8 @@
 
   /** Update the advisor + turn log from a settled detection (a real turn). */
   function commit(det: DetectionResult) {
-    syncAdvice(det, config.current, turnLog.resetObserved, false, true, sink);
+    ticketRun.observe(det, parseRerolls(det.rerolls, false));
+    syncAdvice(det, config.current, turnLog.resetObserved, ticketRun.spent, true, sink);
   }
 
   // Re-score the last reading whenever the config changes (preset load, goal or
@@ -52,7 +55,7 @@
     advisor.recomputing = true;
     const id = setTimeout(() => {
       const det = advisor.detection;
-      if (det) syncAdvice(det, config.current, turnLog.resetObserved, false, false, sink);
+      if (det) syncAdvice(det, config.current, turnLog.resetObserved, ticketRun.spent, false, sink);
       advisor.recomputing = false;
     }, 0);
     return () => clearTimeout(id);
