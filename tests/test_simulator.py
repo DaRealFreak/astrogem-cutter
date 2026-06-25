@@ -579,26 +579,27 @@ class TestRerollGoalThreshold(unittest.TestCase):
         r = sim.simulate_one(seed=1)
         self.assertFalse(r.extra_ticket_used)
 
-    def test_both_triggers_armed_grants_single_ticket(self):
-        # Both override triggers armed and trivially crossable. Relic is
-        # checked first; exactly ONE ticket is granted (both pending flags
-        # clear atomically). Epic base rerolls (ticket gated off) = 2, so a
-        # single grant shows as 3 available on turn 1 — turn 1 excludes view
-        # options, so no other reroll source can inflate this count. A double
-        # grant would read 4.
+    def test_both_triggers_lend_one_ticket(self):
+        # Both enablers armed and trivially crossable -> the ticket is lent
+        # (logged separately from the free count). The ticket adds at most +1 a
+        # turn; the free reroll count on turn 1 stays at the epic base of 2.
         sim = self._sim(relic_reroll_threshold=0.0001,
                         reroll_goal=8, reroll_goal_threshold=0.0001)
         r = sim.simulate_one(seed=1, log=True)
         self.assertTrue(r.extra_ticket_used)
-        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+        self.assertTrue(r.turn_log[0]["ticket_lent"])
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
 
 
 class TestExtraTicketOffByDefault(unittest.TestCase):
-    """The extra reroll ticket is off by default (use_extra_ticket=None) and
-    granted only by an enabler (--reroll-min-coeff / threshold) or forced on
-    (use_extra_ticket=True). --no-extra-ticket (False) is a hard off that
-    disarms enablers. The gem here has DPS coeff boss_damage(1000) +
-    attack_power(400) = 1400; epic base rerolls = 2."""
+    """The extra reroll ticket is off by default (use_extra_ticket=None) and now
+    re-evaluated PER TURN (never banked): each turn it is "lent" (logged as
+    ticket_lent) only when an enabler clears its bar, and consumed
+    (extra_ticket_used) only when actually spent. The FREE reroll count
+    (rerolls_available in the log) is unaffected by the ticket — epic base = 2.
+    --no-extra-ticket (False) is a hard off. The coeff enabler now compares the
+    EXPECTED side coefficient (DP, goal-conditioned) against the bar, not the
+    gem's static effect-coeff sum."""
 
     def _sim(self, **kw):
         defaults = dict(
@@ -611,43 +612,48 @@ class TestExtraTicketOffByDefault(unittest.TestCase):
         defaults.update(kw)
         return GemSimulator(**defaults)
 
-    def test_default_none_no_enabler_holds_ticket(self):
-        # Reported-bug regression: no ticket flag, no enabler -> never granted.
+    def test_default_none_no_enabler_never_lends(self):
+        # No ticket flag, no enabler -> never lent, never consumed.
         sim = self._sim(use_extra_ticket=None)
         r = sim.simulate_one(seed=1, log=True)
         self.assertFalse(r.extra_ticket_used)
-        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
+        self.assertFalse(any(e.get("ticket_lent") for e in r.turn_log))
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)  # free count
 
-    def test_force_on_grants_without_enabler(self):
-        # Explicit --extra-ticket (True) = always on, no enabler needed.
+    def test_force_on_lends_every_turn_without_enabler(self):
+        # Explicit --extra-ticket (True) = always lent, no enabler needed; the
+        # free reroll count is unchanged (the ticket is separate).
         sim = self._sim(use_extra_ticket=True)
         r = sim.simulate_one(seed=1, log=True)
-        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+        self.assertTrue(r.turn_log[0]["ticket_lent"])
+        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
 
     def test_force_on_ignores_low_coeff(self):
-        # Force-on outranks --reroll-min-coeff: on even below the coeff floor.
+        # Force-on outranks --reroll-min-coeff: lent even below the coeff floor.
         sim = self._sim(use_extra_ticket=True, reroll_min_coeff=99999)
         r = sim.simulate_one(seed=1, log=True)
-        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+        self.assertTrue(r.turn_log[0]["ticket_lent"])
 
-    def test_coeff_enabler_at_or_above_grants_at_start(self):
-        # 1400 >= 1000 -> ticket enabled at run start.
-        sim = self._sim(use_extra_ticket=None, reroll_min_coeff=1000)
+    def test_coeff_enabler_lends_when_expected_coeff_clears_bar(self):
+        # Tiny bar -> the expected side coefficient clears it while the goal is
+        # live, so the ticket is lent.
+        sim = self._sim(use_extra_ticket=None, reroll_min_coeff=1)
         r = sim.simulate_one(seed=1, log=True)
-        self.assertEqual(r.turn_log[0]["rerolls_available"], 3)
+        self.assertTrue(r.turn_log[0]["ticket_lent"])
 
     def test_coeff_enabler_below_threshold_stays_off(self):
-        # 1400 < 2000 and no other enabler -> ticket stays off.
-        sim = self._sim(use_extra_ticket=None, reroll_min_coeff=2000)
+        # Unreachable bar -> the expected side coefficient never clears it.
+        sim = self._sim(use_extra_ticket=None, reroll_min_coeff=10**9)
         r = sim.simulate_one(seed=1, log=True)
         self.assertFalse(r.extra_ticket_used)
-        self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
+        self.assertFalse(any(e.get("ticket_lent") for e in r.turn_log))
 
     def test_hard_off_disarms_enablers(self):
         # --no-extra-ticket (False) overrides a trivially-crossable relic enabler.
         sim = self._sim(use_extra_ticket=False, relic_reroll_threshold=0.0001)
         r = sim.simulate_one(seed=1, log=True)
         self.assertFalse(r.extra_ticket_used)
+        self.assertFalse(any(e.get("ticket_lent") for e in r.turn_log))
         self.assertEqual(r.turn_log[0]["rerolls_available"], 2)
 
 

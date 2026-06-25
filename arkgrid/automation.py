@@ -34,7 +34,7 @@ from arkgrid.constants import (
     SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
 )
 from arkgrid.decision import (
-    ActionKind, DecisionContext, TurnInput, decide_post_roll,
+    ActionKind, DecisionContext, TurnInput, decide_post_roll, ticket_enabled,
     has_progress_offer,
 )
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
@@ -670,6 +670,11 @@ def run_auto(
         # --ignore-side-node-values — built on first detection, flag-gated.
         maxed_value_table: Optional[SideValueTable] = None
 
+        # Goal-conditioned expected side-coefficient table (no tier bonus) for
+        # the per-turn --reroll-min-coeff ticket enabler — built on first
+        # detection when the flag is set.
+        expected_coeff_table: Optional[SideValueTable] = None
+
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
 
@@ -677,11 +682,13 @@ def run_auto(
         # Resolved against the gem's rarity once detection succeeds; until
         # then we optimistically enable it (any truthy --reset-ticket value).
         reset_available = bool(reset_ticket)
-        extra_ticket_active = (extra_ticket is True)
+        # The extra reroll ticket is re-evaluated per turn (see
+        # decision.ticket_enabled) — never banked. `ownable` = the player has
+        # it; `extra_ticket_force_on` = --extra-ticket (always lent);
+        # `extra_ticket_consumed` flips once it is actually spent (the in-game
+        # Charge confirm), after which it is never lent again this run.
+        extra_ticket_force_on = (extra_ticket is True)
         ownable = (extra_ticket is not False)
-        # F3-B: once the extra-reroll ticket is actually spent, stop adding
-        # the phantom +1 in parse_rerolls even if the game still shows the
-        # ticket icon as "available".
         extra_ticket_consumed = False
         force_reroll_active = False  # gated by starting coeff, set on first detection
         reset_used = False
@@ -844,19 +851,11 @@ def run_auto(
                 )
                 rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
                 base_rerolls = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
-                total_rerolls = base_rerolls + (1 if extra_ticket_active else 0)
-                # The single ticket may still be granted after this table is
-                # built — by the coeff enabler (start of run) or the relic/goal
-                # threshold override (mid-run), each adding at most +1. Size for
-                # it whenever the ticket is ownable, not yet active, and some
-                # enabler could fire, so GoalProbabilityTable.lookup never clamps
-                # the granted reroll.
-                goal_reroll_active = (reroll_goal is not None
-                                      and reroll_goal_threshold > 0.0)
-                grant_possible = (ownable and not extra_ticket_active and (
-                    reroll_min_coeff > 0 or relic_reroll_threshold > 0.0
-                    or goal_reroll_active))
-                dp_max_rerolls = total_rerolls + (1 if grant_possible else 0)
+                # The extra ticket is lent per turn (at most +1). Size the
+                # reroll-aware tables to cover free rerolls + the ticket whenever
+                # the player owns it, so GoalProbabilityTable.lookup never clamps
+                # the lent reroll (or the free+1 look-ahead in ticket_enabled).
+                dp_max_rerolls = base_rerolls + (1 if ownable else 0)
                 prob_table, target_effects, side_coeff_first, side_coeff_second = (
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
@@ -939,6 +938,17 @@ def run_auto(
                         ancient_coeff=ancient_coeff,
                         value_mode="side",
                     )
+                # Goal-conditioned expected side-coefficient table (grade coeffs
+                # forced to 0 -> value == E[side_coeff]) for the per-turn
+                # --reroll-min-coeff ticket enabler. ~0 when the goal is dead.
+                if expected_coeff_table is None and reroll_min_coeff > 0:
+                    expected_coeff_table = SideValueTable(
+                        goal, det.total_steps, pool,
+                        gem_type=gem_type_domain, optimize=optimize,
+                        min_side_coeff=min_side_coeff,
+                        relic_coeff=0, ancient_coeff=0,
+                        value_mode="side",
+                    )
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just
                 # changed, and force_reroll_active is resolved below.
@@ -979,12 +989,9 @@ def run_auto(
                             reset_available = False
                             print(f"  [info] Reset ticket disabled "
                                   f"(coeff {total_coeff} < {reset_min_coeff})")
-                    if (ownable and not extra_ticket_active
-                            and reroll_min_coeff > 0
-                            and total_coeff >= reroll_min_coeff):
-                        extra_ticket_active = True
-                        print(f"  [info] Extra reroll ticket enabled "
-                              f"(coeff {total_coeff} >= {reroll_min_coeff})")
+                    # NOTE: --reroll-min-coeff no longer arms the ticket here. It
+                    # is one of the per-turn enablers in decision.ticket_enabled
+                    # (expected side-coeff vs the bar), evaluated each turn below.
                     force_reroll_active = (
                         force_reroll_no_progress > 0
                         and total_coeff >= force_reroll_no_progress)
@@ -1043,59 +1050,12 @@ def run_auto(
                     side_value_table=side_value_table,
                     grade_value_table=grade_value_table,
                     maxed_value_table=maxed_value_table,
+                    extra_ticket_force_on=extra_ticket_force_on,
+                    reroll_goal_prob_table=reroll_goal_table,
+                    reroll_goal_threshold=reroll_goal_threshold,
+                    reroll_min_coeff=reroll_min_coeff,
+                    expected_coeff_table=expected_coeff_table,
                 )
-
-            # --- Relic+ / will+chaos-goal reroll ticket override (per-turn check, F3-A) ---
-            # Must run BEFORE _analyze_frame so the granted reroll is visible
-            # to decide_post_roll on the very frame the override triggers.
-            # Mirrors simulator.simulate_one which applies the grant at the
-            # top of the per-turn loop, before TurnInput is built.
-            # The single extra-reroll ticket is granted from EITHER trigger
-            # (relic+ threshold OR will/chaos-goal threshold); --no-extra-ticket
-            # (extra_ticket=False) disables both absolutely.
-            relic_armed = (relic_reroll_threshold > 0.0 and relic_table is not None)
-            goal_armed = (reroll_goal is not None and reroll_goal_threshold > 0.0
-                          and reroll_goal_table is not None)
-            if not extra_ticket_active and ownable and (relic_armed or goal_armed):
-                # Build a minimal state from det for the table lookups.
-                # _pre_state is provisional: used ONLY to gate this override.
-                # It deliberately does not reuse _analyze_frame's GemState
-                # because the override must run before _analyze_frame is called.
-                _pre_state = GemState(
-                    will=det.willpower or 1,
-                    chaos=det.chaos or 1,
-                    first=det.first_level or 1,
-                    second=det.second_level or 1,
-                    first_effect=det.first_effect or "",
-                    second_effect=det.second_effect or "",
-                    rerolls=(internal_rerolls if internal_rerolls is not None else 0),
-                )
-                _pre_turns_left = det.current_step  # current_step == turns_left
-                _grant_reason = None
-                if relic_armed:
-                    p_relic_cur = relic_table.lookup(
-                        _pre_state, _pre_turns_left, rerolls=_pre_state.rerolls)
-                    if p_relic_cur >= relic_reroll_threshold:
-                        _grant_reason = (f"P(relic+)={p_relic_cur:.1%} >= "
-                                         f"{relic_reroll_threshold:.1%}")
-                if _grant_reason is None and goal_armed:
-                    p_goal_cur = reroll_goal_table.lookup(
-                        _pre_state, _pre_turns_left, rerolls=_pre_state.rerolls)
-                    if p_goal_cur >= reroll_goal_threshold:
-                        _grant_reason = (f"P(will+chaos>={reroll_goal})="
-                                         f"{p_goal_cur:.1%} >= "
-                                         f"{reroll_goal_threshold:.1%}")
-                if _grant_reason is not None:
-                    extra_ticket_active = True
-                    # Grant +1 reroll to internal tracking so _analyze_frame
-                    # sees the updated count (same as simulator state.rerolls += 1).
-                    if internal_rerolls is not None:
-                        internal_rerolls += 1
-                    # else: internal_rerolls is None → _analyze_frame will re-read from
-                    # OCR via parse_rerolls(extra_ticket=True), which already returns
-                    # the ticket-inclusive count; skipping the +1 is correct, not a miss.
-                    print(f"  [info] Extra reroll ticket re-enabled "
-                          f"({_grant_reason})")
 
             # --- Analyze ---
             # Use OCR for rerolls only when a new turn is detected (turn
@@ -1109,15 +1069,27 @@ def run_auto(
                         or det_current_turn != prev_analysis.current_turn):
                     reroll_override = None
 
-            # F3-B: pass extra_ticket=False once the ticket has been consumed
-            # so parse_rerolls no longer adds the phantom +1 even if the game
-            # still shows the ticket icon as "available".
+            # extra_ticket=False: analysis.reroll_count is now the FREE reroll
+            # count (the on-screen number). The extra ticket is lent per turn
+            # below via decision.ticket_enabled — never folded into this count.
             analysis = _analyze_frame(
-                det, goal,
-                extra_ticket_active and not extra_ticket_consumed,
+                det, goal, False,
                 prob_table, target_effects, bis_only,
                 override_reroll_count=reroll_override,
             )
+
+            # --- Extra-ticket per-turn lend ---
+            # Re-evaluate the ticket every turn (never banked): lend +1 reroll to
+            # the decision budget only when the ticket is still available and an
+            # enabler clears its bar this turn. On a dead gem the enablers all go
+            # false, so the ticket is not lent (and not spent).
+            free_rerolls = analysis.reroll_count
+            ticket_lent = (
+                ownable and not extra_ticket_consumed
+                and decision_ctx is not None
+                and ticket_enabled(decision_ctx, analysis.state,
+                                   analysis.turns_left, free_rerolls))
+            effective_rerolls = free_rerolls + (1 if ticket_lent else 0)
 
             # --- Print previous turn's result (after process) ---
             if (prev_action == "process" and prev_analysis
@@ -1204,7 +1176,7 @@ def run_auto(
                 offers=pool_opts,
                 turn=analysis.current_turn,
                 turns_left=analysis.turns_left,
-                rerolls=analysis.reroll_count,
+                rerolls=effective_rerolls,  # free + lent ticket (per-turn)
                 reset_available=(reset_available and not reset_used),
             )
             decision = decide_post_roll(decision_ctx, ti)
@@ -1337,18 +1309,12 @@ def run_auto(
             _reroll_ticket_confirm = False  # track whether this is the extra-reroll ticket
             if action == "reset" and reset_available:
                 needs_confirm = True
-            elif action == "reroll" and extra_ticket_active:
-                # The ticket-provided reroll needs confirmation when
-                # we've used all base rerolls
-                rerolls_used_this_run = (
-                    (base_rerolls + 1)  # total with ticket
-                    - analysis.reroll_count
-                )
-                # Invariant: reroll_count <= 1 means only the extra-ticket reroll
-                # remains, so this reroll is the one that spends the ticket.
-                if rerolls_used_this_run >= base_rerolls:
-                    needs_confirm = True
-                    _reroll_ticket_confirm = True
+            elif action == "reroll" and ticket_lent and free_rerolls <= 0:
+                # No free rerolls remain, so this reroll spends the lent ticket
+                # (the in-game "Charge" button) — it needs the ticket-confirm
+                # dialog, and consumes the ticket for the rest of the run.
+                needs_confirm = True
+                _reroll_ticket_confirm = True
 
             if needs_confirm:
                 time.sleep(TICKET_CONFIRM_DELAY)
@@ -1571,7 +1537,7 @@ def run_auto(
             total_points=final_state_obj.total_points(),
             side_coeff=side_coeff_value,
             reset_used=reset_used,
-            extra_ticket_used=extra_ticket_active,
+            extra_ticket_used=extra_ticket_consumed,
             final_state=final_state_obj,
             reason=reason,
         )

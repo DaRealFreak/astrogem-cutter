@@ -104,6 +104,19 @@ class DecisionContext:
     # `will_chaos` `side_value_table` is degenerate (every state scores 10).
     # Its presence is the flag signal — None unless the flag is set.
     maxed_value_table: Optional[SideValueTable] = None
+    # --- Extra-ticket per-turn enable gate (see `ticket_enabled`) ---
+    # The gold-costing extra reroll ticket is re-evaluated every turn (never
+    # banked): it is usable this turn if ANY enabler clears its bar. These
+    # carry the enablers' tables/thresholds so the gate is a pure function of
+    # the context. `extra_ticket_force_on` is `--extra-ticket` (always on).
+    extra_ticket_force_on: bool = False
+    reroll_goal_prob_table: Optional[GoalProbabilityTable] = None
+    reroll_goal_threshold: float = 0.0
+    reroll_min_coeff: int = 0
+    # Goal-conditioned expected side-coefficient table (relic/ancient coeff 0,
+    # so value == E[side_coeff]); ~0 when the goal is unreachable, which is why
+    # the coeff enabler "requires the goal" for free.
+    expected_coeff_table: Optional[SideValueTable] = None
 
 
 @dataclass
@@ -169,6 +182,52 @@ def has_progress_offer(
             return True
         if o.kind == "second" and (need_second or need_coeff_second or need_total):
             return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Extra-ticket per-turn enable gate
+# ---------------------------------------------------------------------------
+
+
+def ticket_enabled(
+    ctx: DecisionContext, state: GemState, turns_left: int, free_rerolls: int,
+) -> bool:
+    """Whether the gold-costing extra reroll ticket may be used THIS turn.
+
+    Re-evaluated every turn (the ticket is never banked). Usable if ANY enabler
+    clears its bar — OR'd together — each looking ahead as if the ticket were in
+    hand (`free_rerolls + 1`), except the coefficient enabler, whose table is
+    reroll-independent:
+
+    * ``--extra-ticket``           → always (the player opted out of gold worry).
+    * ``--reroll-min-coeff N``     → expected side-coefficient ≥ N. The table is
+      goal-conditioned, so it reads ~0 once the goal is unreachable — a dead
+      gem's side coefficient is worthless, so the ticket disables itself.
+    * ``--relic-reroll-threshold F`` → P(relic+) with the ticket ≥ F. Grade is
+      valuable regardless of the goal, so this is goal-independent.
+    * ``--reroll-goal N``/``--reroll-goal-threshold F`` → P(will+chaos ≥ N) with
+      the ticket ≥ F.
+
+    Free rerolls are unaffected by this gate — they are always free to spend; it
+    governs only the extra ticket.
+    """
+    if ctx.extra_ticket_force_on:
+        return True
+    if (ctx.reroll_min_coeff > 0 and ctx.expected_coeff_table is not None
+            and ctx.expected_coeff_table.lookup(state, turns_left)
+            >= ctx.reroll_min_coeff):
+        return True
+    look_ahead = free_rerolls + 1  # P "as if the ticket were used"
+    if (ctx.relic_reroll_threshold > 0 and ctx.relic_prob_table is not None
+            and ctx.relic_prob_table.lookup(state, turns_left, rerolls=look_ahead)
+            >= ctx.relic_reroll_threshold):
+        return True
+    if (ctx.reroll_goal_threshold > 0 and ctx.reroll_goal_prob_table is not None
+            and ctx.reroll_goal_prob_table.lookup(
+                state, turns_left, rerolls=look_ahead)
+            >= ctx.reroll_goal_threshold):
+        return True
     return False
 
 

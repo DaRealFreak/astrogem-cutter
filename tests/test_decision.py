@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from arkgrid.decision import (
     ActionKind, Decision, DecisionContext, TurnInput,
-    compute_post_roll_metrics, decide_post_roll,
+    compute_post_roll_metrics, decide_post_roll, ticket_enabled,
     early_finish_decision, has_progress_offer,
     infeasibility_decision, last_turn_reset_decision,
     no_feasible_offer_decision, prob_reset_decision,
@@ -51,6 +51,10 @@ def build_ctx(
     min_side_coeff: int = 0,
     prob_reset_threshold: float = 0.0,
     relic_reroll_threshold: float = 0.0,
+    reroll_min_coeff: int = 0,
+    reroll_goal: Optional[int] = None,
+    reroll_goal_threshold: float = 0.0,
+    extra_ticket_force_on: bool = False,
     force_reroll_no_progress: int = 0,
     force_reroll_active: bool = False,
     gem_type: str = "order_immutability",
@@ -110,6 +114,18 @@ def build_ctx(
             relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
             value_mode="side",
         )
+    # Goal-conditioned expected side-coefficient table (no tier bonus) for the
+    # --reroll-min-coeff ticket enabler.
+    expected_coeff_table = SideValueTable(
+        g, turns_total, _POOL, gem_type=gem_type, optimize=optimize,
+        min_side_coeff=min_side_coeff, relic_coeff=0, ancient_coeff=0,
+        value_mode="side",
+    )
+    reroll_goal_prob_table = None
+    if reroll_goal is not None:
+        reroll_goal_prob_table = GoalProbabilityTable(
+            LastTurnGoal(min_total_will_chaos=reroll_goal), turns_total, _POOL,
+            early_finish=False, max_rerolls=base_rerolls)
     return DecisionContext(
         goal=g, pool=_POOL, optimize=optimize, bis_only=bis_only,
         min_side_coeff=min_side_coeff,
@@ -128,6 +144,11 @@ def build_ctx(
         side_value_table=side_value_table,
         grade_value_table=grade_value_table,
         maxed_value_table=maxed_value_table,
+        extra_ticket_force_on=extra_ticket_force_on,
+        reroll_goal_prob_table=reroll_goal_prob_table,
+        reroll_goal_threshold=reroll_goal_threshold,
+        reroll_min_coeff=reroll_min_coeff,
+        expected_coeff_table=expected_coeff_table,
     )
 
 
@@ -854,6 +875,80 @@ class TestDeadGoalGradeValue(unittest.TestCase):
         d = infeasibility_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.PROCESS)
+
+
+class TestTicketEnabled(unittest.TestCase):
+    """`ticket_enabled` — the per-turn extra-ticket gate.
+
+    The ticket is re-evaluated every turn (never banked). It's usable iff any
+    enabler clears its bar, OR'd: --extra-ticket (always), --reroll-min-coeff
+    (expected side-coeff, goal-conditioned), --relic-reroll-threshold (P(relic+)
+    with the ticket), --reroll-goal/threshold (P(goal) with the ticket).
+    """
+
+    # A mid-run state with a live goal and a relic-reachable position.
+    def _live_state(self):
+        return GemState(will=3, chaos=2, first=2, second=2, rerolls=2,
+                        first_effect="attack_power", second_effect="boss_damage")
+
+    def test_all_disabled_returns_false(self):
+        ctx = build_ctx(gem_type="order_fortitude")  # no enablers set
+        self.assertFalse(ticket_enabled(ctx, self._live_state(), turns_left=5,
+                                        free_rerolls=2))
+
+    def test_extra_ticket_force_on_always_true(self):
+        ctx = build_ctx(gem_type="order_fortitude", extra_ticket_force_on=True)
+        # Even with zero rerolls and a finished horizon.
+        self.assertTrue(ticket_enabled(ctx, self._live_state(), turns_left=1,
+                                       free_rerolls=0))
+
+    def test_relic_threshold_enables_when_prob_clears_bar(self):
+        st = self._live_state()
+        # Low bar -> any positive P(relic+) with the ticket enables it.
+        ctx_lo = build_ctx(gem_type="order_fortitude", relic_reroll_threshold=1e-6)
+        self.assertTrue(ticket_enabled(ctx_lo, st, turns_left=5, free_rerolls=2))
+        # Unreachable bar -> never enables on relic alone.
+        ctx_hi = build_ctx(gem_type="order_fortitude", relic_reroll_threshold=0.999)
+        self.assertFalse(ticket_enabled(ctx_hi, st, turns_left=5, free_rerolls=2))
+
+    def test_relic_threshold_uses_with_ticket_lookahead(self):
+        # The look-ahead is free_rerolls+1: more reroll headroom can only raise
+        # P(relic+), so enabling at a given free count implies enabling at +1.
+        st = self._live_state()
+        ctx = build_ctx(gem_type="order_fortitude", relic_reroll_threshold=0.2)
+        # Compare the raw table at free vs free+1 to assert monotonicity holds.
+        p_free = ctx.relic_prob_table.lookup(st, 5, rerolls=2)
+        p_ticket = ctx.relic_prob_table.lookup(st, 5, rerolls=3)
+        self.assertGreaterEqual(p_ticket, p_free)
+
+    def test_reroll_goal_threshold_enables(self):
+        st = self._live_state()
+        ctx_lo = build_ctx(gem_type="order_fortitude", reroll_goal=8,
+                           reroll_goal_threshold=1e-6)
+        self.assertTrue(ticket_enabled(ctx_lo, st, turns_left=6, free_rerolls=2))
+        ctx_hi = build_ctx(gem_type="order_fortitude", reroll_goal=8,
+                           reroll_goal_threshold=0.999)
+        self.assertFalse(ticket_enabled(ctx_hi, st, turns_left=1, free_rerolls=2))
+
+    def test_coeff_enabler_requires_live_goal(self):
+        # reroll-min-coeff with a tiny bar: enabled while the goal is reachable,
+        # but a structurally dead goal zeroes the expected coeff -> disabled,
+        # even though the gem's raw effects are high-coeff.
+        live = build_ctx(gem_type="order_fortitude",
+                         goal=LastTurnGoal(min_will=4, min_chaos=3),
+                         reroll_min_coeff=1)
+        st_live = GemState(will=3, chaos=2, first=3, second=3,
+                           first_effect="attack_power", second_effect="boss_damage")
+        self.assertTrue(ticket_enabled(live, st_live, turns_left=6, free_rerolls=2))
+
+        dead = build_ctx(gem_type="order_fortitude",
+                         goal=LastTurnGoal(min_will=5, min_chaos=5),
+                         reroll_min_coeff=1)
+        # will=4,chaos=4, 1 turn left -> can't reach 5/5 -> goal dead.
+        st_dead = GemState(will=4, chaos=4, first=5, second=5,
+                           first_effect="attack_power", second_effect="boss_damage")
+        self.assertFalse(ticket_enabled(dead, st_dead, turns_left=1, free_rerolls=2),
+                         "dead goal must zero the expected coeff -> ticket off")
 
 
 class TestRelicRerollThresholdTicketOnly(unittest.TestCase):

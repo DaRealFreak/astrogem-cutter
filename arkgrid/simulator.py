@@ -9,7 +9,7 @@ from arkgrid.constants import (
 )
 from arkgrid.decision import (
     ActionKind, DecisionContext, TurnInput,
-    compute_post_roll_metrics, decide_post_roll,
+    compute_post_roll_metrics, decide_post_roll, ticket_enabled,
     early_finish_decision, has_progress_offer,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
@@ -70,6 +70,9 @@ class GemSimulator:
         self._grade_value_table: Optional[SideValueTable] = None
         self._maxed_value_table_cache: Dict[str, SideValueTable] = {}
         self._maxed_value_table: Optional[SideValueTable] = None
+        # Goal-conditioned expected side-coefficient table (no tier bonus) for
+        # the per-turn --reroll-min-coeff extra-ticket enabler.
+        self._expected_coeff_table_cache: Dict[str, SideValueTable] = {}
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
         self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
@@ -276,6 +279,29 @@ class GemSimulator:
         self._maxed_value_table_cache[gem_type] = table
         return table
 
+    def _get_expected_coeff_table(self, gem_type: str) -> SideValueTable:
+        """Build/fetch the goal-conditioned *expected side-coefficient* table.
+
+        Same goal-conditioned DP as `_get_side_value_table`, but with the grade
+        (relic/ancient) coefficients forced to 0, so its value is purely the
+        expected side coefficient `E[side_coeff]`. Because it is conditioned on
+        the goal, it reads ~0 once the goal is unreachable — which is what makes
+        the `--reroll-min-coeff` ticket enabler "require the goal to be met" fall
+        out for free (a dead gem's side coefficient is worthless).
+        """
+        cached = self._expected_coeff_table_cache.get(gem_type)
+        if cached is not None:
+            return cached
+        table = SideValueTable(
+            self.goal, self.turns_total, self.pool,
+            gem_type=gem_type, optimize=self.optimize,
+            min_side_coeff=self.min_side_coeff,
+            relic_coeff=0, ancient_coeff=0,
+            value_mode="side",
+        )
+        self._expected_coeff_table_cache[gem_type] = table
+        return table
+
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
         """Generate a random AstroGem: random type, random 2-of-4 effects."""
@@ -397,6 +423,10 @@ class GemSimulator:
         if (maxed_value_table is None and gem_type
                 and self.ignore_side_node_values):
             maxed_value_table = self._get_maxed_value_table(gem_type)
+        # Expected side-coefficient table for the per-turn coeff ticket enabler.
+        expected_coeff_table = None
+        if gem_type and self.reroll_min_coeff > 0:
+            expected_coeff_table = self._get_expected_coeff_table(gem_type)
         return DecisionContext(
             goal=self.goal,
             pool=self.pool,
@@ -420,6 +450,11 @@ class GemSimulator:
             side_value_table=side_value_table,
             grade_value_table=grade_value_table,
             maxed_value_table=maxed_value_table,
+            extra_ticket_force_on=(self.use_extra_ticket is True),
+            reroll_goal_prob_table=self._reroll_goal_prob_table,
+            reroll_goal_threshold=self.reroll_goal_threshold,
+            reroll_min_coeff=self.reroll_min_coeff,
+            expected_coeff_table=expected_coeff_table,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],
@@ -570,8 +605,14 @@ class GemSimulator:
                 and run_gem.gem_type in GEM_TYPES) else None)
 
         reset_available = bool(self.use_reset_ticket)
-        extra_ticket_active = (self.use_extra_ticket is True)
+        # The extra reroll ticket is re-evaluated every turn (see
+        # `decision.ticket_enabled`), never armed once. `ownable` = the player
+        # has the ticket; `ticket_available` flips False once it is actually
+        # spent (a gold-costing reroll) and persists across a reset-ticket
+        # restart — the consumable doesn't come back.
         ownable = (self.use_extra_ticket is not False)
+        ticket_available = ownable
+        ticket_consumed = False
         coeff = (DPS_COEFF if run_gem.optimize == "dps"
                  else SUPPORT_COEFF)
         target = (DPS_EFFECTS if run_gem.optimize == "dps"
@@ -582,31 +623,16 @@ class GemSimulator:
         if reset_available and self.reset_min_coeff > 0:
             if total_coeff < self.reset_min_coeff:
                 reset_available = False
-        if (ownable and not extra_ticket_active
-                and self.reroll_min_coeff > 0
-                and total_coeff >= self.reroll_min_coeff):
-            extra_ticket_active = True
         self._force_reroll_active = (
             self.force_reroll_no_progress > 0
             and total_coeff >= self.force_reroll_no_progress)
-
-        # Track whether the extra reroll ticket was disabled by coeff gating
-        # but could be re-enabled mid-run by relic+ override.
-        relic_reroll_pending = (
-            not extra_ticket_active and ownable
-            and self.relic_reroll_threshold > 0.0
-        )
-        goal_reroll_pending = (
-            not extra_ticket_active and ownable
-            and self._reroll_goal_prob_table is not None
-        )
 
         reset_used = False
 
         _log_pt = self.prob_table if log else None
 
-        run_rerolls = (self.RARITY_REROLLS[self.rarity]
-                       + (1 if extra_ticket_active else 0))
+        # Free (base/earned) rerolls only — the extra ticket is lent per turn.
+        run_rerolls = self.RARITY_REROLLS[self.rarity]
 
         # Fresh-start probability — reset is better when current odds drop below this
         # Uses standard DP (not reroll-aware) for accurate reset value estimate.
@@ -637,25 +663,16 @@ class GemSimulator:
             for turn in range(1, self.turns_total + 1):
                 turns_left = self.turns_total - turn + 1
 
-                # Relic+ / goal-total override: grant the extra reroll ticket
-                # mid-run when P crosses the respective threshold.
-                if relic_reroll_pending or goal_reroll_pending:
-                    granted = False
-                    if relic_reroll_pending:
-                        p_relic = self._relic_prob_table.lookup(
-                            state, turns_left, rerolls=state.rerolls)
-                        if p_relic >= self.relic_reroll_threshold:
-                            granted = True
-                    if not granted and goal_reroll_pending:
-                        p_goal = self._reroll_goal_prob_table.lookup(
-                            state, turns_left, rerolls=state.rerolls)
-                        if p_goal >= self.reroll_goal_threshold:
-                            granted = True
-                    if granted:
-                        state.rerolls += 1
-                        extra_ticket_active = True
-                        relic_reroll_pending = False
-                        goal_reroll_pending = False
+                # Extra-ticket per-turn lend: if the ticket is still available
+                # and an enabler clears its bar this turn, lend it (+1 reroll)
+                # for this turn. Reconciled after the reroll loop below — spent
+                # only if every free reroll AND the ticket were used; otherwise
+                # the unused ticket is returned (never banked). `free_before` is
+                # the genuine free-reroll count this turn (logged probs use it,
+                # i.e. the "without ticket" view).
+                free_before = state.rerolls
+                ticket_lent = (ticket_available and ticket_enabled(
+                    ctx, state, turns_left, free_before))
 
                 if log:
                     entry: Optional[Dict[str, Any]] = {
@@ -664,10 +681,14 @@ class GemSimulator:
                         "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
                         "relic_prob": self._relic_prob_table.lookup(state, turns_left, rerolls=state.rerolls) if self._relic_prob_table else None,
                         "rerolls_available": state.rerolls,
+                        "ticket_lent": ticket_lent,
                         "eff_threshold": self.reroll_policy.effective_side_threshold(state),
                     }
                 else:
                     entry = None
+
+                if ticket_lent:
+                    state.rerolls += 1
                 rerolls_before = state.rerolls
                 offers = self.roll_offers_with_rerolls(state, turn, rng, entry if log else None)
                 rerolls_used = rerolls_before - state.rerolls
@@ -706,6 +727,17 @@ class GemSimulator:
                             self._offer_keys(offers))
                         entry.setdefault(
                             "reroll_reasons_history", []).append([decision.branch])
+
+                # Reconcile the lent ticket now that this turn's rerolls are
+                # done. If more rerolls were used than the free count, the ticket
+                # was spent (gold cost) — mark it consumed. Otherwise it went
+                # unused: return it so state.rerolls reflects only free rerolls.
+                if ticket_lent:
+                    if rerolls_by_turn.get(turn, 0) > free_before:
+                        ticket_available = False
+                        ticket_consumed = True
+                    else:
+                        state.rerolls -= 1
 
                 if log and decision.needs_confirmation:
                     entry["confirm"] = {
@@ -749,7 +781,7 @@ class GemSimulator:
                         state=state,
                         total_points=state.total_points(),
                         rerolls_left=state.rerolls,
-                        extra_ticket_used=extra_ticket_active,
+                        extra_ticket_used=ticket_consumed,
                         turn_log=turn_log if log else None,
                         rerolls_by_turn=rerolls_by_turn,
                     )
@@ -777,7 +809,7 @@ class GemSimulator:
                         state=state,
                         total_points=state.total_points(),
                         rerolls_left=state.rerolls,
-                        extra_ticket_used=extra_ticket_active,
+                        extra_ticket_used=ticket_consumed,
                         turn_log=turn_log if log else None,
                         rerolls_by_turn=rerolls_by_turn,
                     )
@@ -831,7 +863,7 @@ class GemSimulator:
                     state=state,
                     total_points=state.total_points(),
                     rerolls_left=state.rerolls,
-                    extra_ticket_used=extra_ticket_active,
+                    extra_ticket_used=ticket_consumed,
                     turn_log=turn_log if log else None,
                     rerolls_by_turn=rerolls_by_turn,
                 )
@@ -847,7 +879,7 @@ class GemSimulator:
                 state=state,
                 total_points=state.total_points(),
                 rerolls_left=state.rerolls,
-                extra_ticket_used=extra_ticket_active,
+                extra_ticket_used=ticket_consumed,
                 turn_log=turn_log if log else None,
                 rerolls_by_turn=rerolls_by_turn,
             )
