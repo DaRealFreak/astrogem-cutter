@@ -7,6 +7,7 @@
   import BrowserGuard from './components/BrowserGuard.svelte';
   import ActionMatrix from './components/ActionMatrix.svelte';
   import TurnLog from './components/TurnLog.svelte';
+  import CopyJsonButton from './components/CopyJsonButton.svelte';
   import { advisor } from './lib/state/advisor.state.svelte';
   import { turnLog } from './lib/state/turnLog.state.svelte';
   import { isCaptureSupported } from './lib/app/captureSupport';
@@ -27,6 +28,7 @@
       </div>
       <div class="main-right">
         <AdvisorPanel output={advisor.output} waiting={advisor.waiting} recomputing={advisor.recomputing} />
+        <CopyJsonButton />
         {#if advisor.output}
           <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} ticket={advisor.output.ticket} />
         {/if}
