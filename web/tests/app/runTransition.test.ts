@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { classifyRunTransition, inferResetFromLog, resolveResetAvailable } from '../../src/lib/app/runTransition';
+import { classifyRunTransition, inferResetFromLog, resolveResetAvailable, turnFromDetection } from '../../src/lib/app/runTransition';
+import type { DetectionResult } from '../../src/lib/cv/types';
 
 const id = (gemType = 'order_stability', f = 'attack_power', s = 'boss_damage') => ({ gemType, firstEffect: f, secondEffect: s });
 
@@ -43,5 +44,18 @@ describe('resolveResetAvailable', () => {
   it('manual override wins over detection', () => {
     expect(resolveResetAvailable(false, false, 'always')).toBe(true);
     expect(resolveResetAvailable(true, false, 'never')).toBe(false);
+  });
+});
+
+describe('turnFromDetection', () => {
+  const base = { totalSteps: 9, currentStep: 8 } as unknown as DetectionResult;
+  it('maps step 8/9 to turn 2', () => {
+    expect(turnFromDetection(base)).toBe(2);
+  });
+  it('maps step total/total to turn 1 (run start / post-reset)', () => {
+    expect(turnFromDetection({ totalSteps: 7, currentStep: 7 } as unknown as DetectionResult)).toBe(1);
+  });
+  it('treats missing steps as 0 → turn 1', () => {
+    expect(turnFromDetection({} as DetectionResult)).toBe(1);
   });
 });

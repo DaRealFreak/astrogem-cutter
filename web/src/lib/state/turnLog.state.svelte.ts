@@ -1,6 +1,6 @@
 import type { DetectionResult } from '../cv/types';
 import type { ActionKind } from '../engine';
-import { classifyRunTransition, type RunIdentity } from '../app/runTransition';
+import { classifyRunTransition, turnFromDetection, type RunIdentity } from '../app/runTransition';
 
 export interface TurnLogEntry {
   turn: number; will: number; chaos: number; firstLevel: number; secondLevel: number;
@@ -16,7 +16,7 @@ class TurnLog {
     det: DetectionResult, action: ActionKind,
     pGoal: number, pRelic: number, pAncient: number, eValue: number,
   ): void {
-    const turn = (det.totalSteps ?? 0) - (det.currentStep ?? 0) + 1;
+    const turn = turnFromDetection(det);
     const id: RunIdentity = { gemType: det.gemType, firstEffect: det.firstEffect, secondEffect: det.secondEffect };
     const transition = classifyRunTransition(this.#prev, { turn, id });
     if (transition === 'new-gem') { this.entries = []; this.resetObserved = false; }

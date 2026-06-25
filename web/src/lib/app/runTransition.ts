@@ -1,4 +1,11 @@
+import type { DetectionResult } from '../cv/types';
+
 export interface RunIdentity { gemType: string | null; firstEffect: string | null; secondEffect: string | null; }
+
+/** Turn number from the on-screen step counter (mirrors turnLog's formula). */
+export function turnFromDetection(det: DetectionResult): number {
+  return (det.totalSteps ?? 0) - (det.currentStep ?? 0) + 1;
+}
 
 function sameId(a: RunIdentity, b: RunIdentity): boolean {
   return a.gemType === b.gemType && a.firstEffect === b.firstEffect && a.secondEffect === b.secondEffect;
