@@ -26,7 +26,7 @@
         <CaptureControls {supported} />
       </div>
       <div class="main-right">
-        <AdvisorPanel output={advisor.output} waiting={advisor.waiting} />
+        <AdvisorPanel output={advisor.output} waiting={advisor.waiting} recomputing={advisor.recomputing} />
         {#if advisor.output}
           <ActionMatrix actions={advisor.output.actions} recommended={advisor.output.action} />
         {/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { CaptureController } from '../lib/cv/captureController';
-  import { computeAdvice } from '../lib/app/computeAdvice';
+  import { syncAdvice, type AdviceSink } from '../lib/app/adviceSync';
   import { isCompleteDetection } from '../lib/app/optimize';
   import { DetectionStabilizer, detectionSignature } from '../lib/app/detectionStability';
   import { config } from '../lib/state/config.state.svelte';
@@ -22,16 +23,40 @@
   // and side-node levels in between). Uploads bypass it (one-shot).
   const stabilizer = new DetectionStabilizer();
 
-  /** Update the advisor + turn log from a settled detection. */
-  function commit(det: DetectionResult) {
-    const { ready, output } = computeAdvice(det, config.current, turnLog.resetObserved);
-    if (ready && output) {
+  // Routes advisory results from the pure orchestrator into the reactive stores.
+  const sink: AdviceSink = {
+    applyAdvice(det, output) {
       advisor.detection = det;
       advisor.output = output;
       advisor.waiting = false;
+    },
+    observeTurn(det, output) {
       turnLog.observe(det, output.action, output.pGoal, output.pRelic, output.pAncient, output.eValue);
-    }
+    },
+  };
+
+  /** Update the advisor + turn log from a settled detection (a real turn). */
+  function commit(det: DetectionResult) {
+    syncAdvice(det, config.current, turnLog.resetObserved, true, sink);
   }
+
+  // Re-score the last reading whenever the config changes (preset load, goal or
+  // knob edit) so the odds + recommendation reflect the new goal without waiting
+  // for the next frame. No turn-log entry — the reading didn't change, the goal
+  // did. The recompute is synchronous and can rebuild the DP (tens of ms), so we
+  // flip on a "recalculating" flag and defer via setTimeout: the indicator paints
+  // before the main thread blocks, and rapid edits debounce to the last change.
+  $effect(() => {
+    JSON.stringify(config.current); // deep-track every config field
+    if (!untrack(() => advisor.detection)) return; // nothing committed yet
+    advisor.recomputing = true;
+    const id = setTimeout(() => {
+      const det = advisor.detection;
+      if (det) syncAdvice(det, config.current, turnLog.resetObserved, false, sink);
+      advisor.recomputing = false;
+    }, 0);
+    return () => clearTimeout(id);
+  });
 
   function ensure(): CaptureController {
     if (controller) return controller;

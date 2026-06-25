@@ -8,6 +8,7 @@ class AdvisorState {
   detection = $state<DetectionResult | null>(null);
   output = $state<AdvisorOutput | null>(null);
   waiting = $state(true);            // last detection failed the completeness gate
+  recomputing = $state(false);       // re-scoring the last reading after a config change
   error = $state<string | null>(null);
 }
 

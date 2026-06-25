@@ -1,13 +1,19 @@
 <script lang="ts">
   import type { AdvisorOutput } from '../lib/engine';
-  let { output, waiting }: { output: AdvisorOutput | null; waiting: boolean } = $props();
+  let { output, waiting, recomputing = false }:
+    { output: AdvisorOutput | null; waiting: boolean; recomputing?: boolean } = $props();
   const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 </script>
 
 {#if waiting || !output}
   <div class="advisor waiting card"><p>Waiting for cutting screen…</p></div>
 {:else}
-  <div class="advisor card">
+  <div class="advisor card" class:recomputing>
+    {#if recomputing}
+      <div class="recalculating" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>Recalculating odds…
+      </div>
+    {/if}
     <div class="action action-{output.action} badge">{output.action.toUpperCase()}</div>
     <p class="reason">{output.reason}</p>
     <dl class="metrics">

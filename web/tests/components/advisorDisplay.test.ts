@@ -1,8 +1,13 @@
-import { render, screen } from '@testing-library/svelte';
-import { describe, it, expect } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/svelte';
+import { describe, it, expect, afterEach } from 'vitest';
 import AdvisorPanel from '../../src/components/AdvisorPanel.svelte';
 import OfferTable from '../../src/components/OfferTable.svelte';
 import type { AdvisorOutput } from '../../src/lib/engine';
+
+// Browser-mode renders share one DOM within a file; reset between cases so
+// repeated AdvisorPanel mounts (REROLL badge, recalculating indicator) don't
+// collide across tests.
+afterEach(cleanup);
 
 const output: AdvisorOutput = {
   action: 'REROLL' as any, branch: 'dp_reroll', reason: 'reroll for value',
@@ -24,6 +29,16 @@ describe('advisor display', () => {
   it('AdvisorPanel shows a waiting state when gated', () => {
     render(AdvisorPanel, { props: { output: null, waiting: true } });
     expect(screen.getByText(/waiting for cutting screen/i)).toBeTruthy();
+  });
+  it('AdvisorPanel shows a recalculating indicator while odds are recomputed', () => {
+    render(AdvisorPanel, { props: { output, waiting: false, recomputing: true } });
+    expect(screen.getByText(/recalculating/i)).toBeTruthy();
+    // The previous advice stays visible (stale) underneath the indicator.
+    expect(screen.getByText('REROLL')).toBeTruthy();
+  });
+  it('AdvisorPanel hides the recalculating indicator when settled', () => {
+    render(AdvisorPanel, { props: { output, waiting: false, recomputing: false } });
+    expect(screen.queryByText(/recalculating/i)).toBeNull();
   });
   it('OfferTable renders one row per offer', () => {
     render(OfferTable, { props: { perOffer: output.perOffer } });

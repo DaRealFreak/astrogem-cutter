@@ -231,8 +231,35 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 
 /* ── AdvisorPanel ─────────────────────────────────────────────────────── */
 /* Size to content like the matrix/offer tables, rather than stretching the column. */
-.advisor { align-self: start; width: fit-content; max-width: min(32rem, 100%); }
+.advisor { align-self: start; width: fit-content; max-width: min(32rem, 100%); position: relative; }
 .advisor.waiting { opacity: 0.6; }
+/* While re-scoring after a config change the shown advice is stale; dim it and
+   show a status line so the player knows the odds below are being recomputed. */
+.advisor.recomputing .action,
+.advisor.recomputing .reason,
+.advisor.recomputing .metrics { opacity: 0.45; transition: opacity 0.12s ease; }
+.advisor .recalculating {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--action-reroll);
+  margin-bottom: var(--sp-2);
+}
+.advisor .recalculating .spinner {
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: advisor-spin 0.6s linear infinite;
+}
+@keyframes advisor-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .advisor .recalculating .spinner { animation: none; }
+}
 
 /* badge */
 .badge {
