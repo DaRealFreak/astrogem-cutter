@@ -35,4 +35,17 @@ describe('ActionMatrix', () => {
     expect(screen.getByText('1001.0')).toBeTruthy();   // without-ticket reroll
     expect(screen.getByText('1301.0')).toBeTruthy();   // with-ticket reroll
   });
+
+  it('flags a spent ticket and marks the recommended budget', () => {
+    const withoutTicket = { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001,
+      actions: { ...actions, reroll: { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001 } } };
+    const withTicket = { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301,
+      actions: { ...actions, reroll: { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301 } } };
+    render(ActionMatrix, { props: {
+      actions: withoutTicket.actions, recommended: 'PROCESS' as any,
+      ticket: { owned: true, lent: false, spent: true, free: 0, withoutTicket, withTicket } as any,
+    } });
+    expect(screen.getByText(/already used this gem/i)).toBeTruthy();
+    expect(screen.getByText(/without extra reroll.*recommended/i)).toBeTruthy();
+  });
 });

@@ -32,18 +32,24 @@
 {/snippet}
 
 {#if ticket}
-  <!-- Owned extra ticket: show both budgets so you can see its effect. The
-       recommendation used the variant marked "used". -->
+  <!-- Owned extra ticket: show both budgets. A "✓ recommended" badge marks the
+       budget the advice actually used; when the ticket is known spent this run,
+       the With-extra column is greyed and captioned "already used". -->
   <div class="matrix-pair">
     <div class="matrix-variant">
-      <div class="matrix-caption">Without extra reroll{ticket.lent ? '' : ' — used'}</div>
+      <div class="matrix-caption">Without extra reroll{!ticket.lent ? ' ✓ recommended' : ''}</div>
       {@render matrix(ticket.withoutTicket.actions, !ticket.lent)}
     </div>
-    <div class="matrix-variant">
-      <div class="matrix-caption">With extra reroll{ticket.lent ? ' — used' : ''}</div>
+    <div class="matrix-variant" class:spent={ticket.spent}>
+      <div class="matrix-caption">With extra reroll{ticket.lent ? ' ✓ recommended' : ''}{ticket.spent ? ' — already used this gem' : ''}</div>
       {@render matrix(ticket.withTicket.actions, ticket.lent)}
     </div>
   </div>
 {:else}
   {@render matrix(actions, true)}
 {/if}
+
+<style>
+  .matrix-variant.spent { opacity: 0.5; }
+  .matrix-variant.spent .matrix-caption { font-style: italic; }
+</style>
