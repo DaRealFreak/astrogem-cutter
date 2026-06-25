@@ -43,7 +43,7 @@ describe('syncAdvice', () => {
 
   it('applies advice and logs a turn for a fresh detection', () => {
     const { sink, applied, observed } = recordingSink();
-    const ok = syncAdvice(complete, easyGoal, false, true, sink);
+    const ok = syncAdvice(complete, easyGoal, false, false, true, sink);
     expect(ok).toBe(true);
     expect(applied).toHaveLength(1);
     expect(observed).toHaveLength(1);
@@ -52,9 +52,9 @@ describe('syncAdvice', () => {
   it('recomputes advice on a config change WITHOUT logging a turn', () => {
     const { sink, applied, observed } = recordingSink();
     // Fresh detection logs a turn under the easy goal.
-    syncAdvice(complete, easyGoal, false, true, sink);
+    syncAdvice(complete, easyGoal, false, false, true, sink);
     // Config changes (goal raised); same reading → recompute only, no new turn.
-    const ok = syncAdvice(complete, harderGoal, false, false, sink);
+    const ok = syncAdvice(complete, harderGoal, false, false, false, sink);
     expect(ok).toBe(true);
     expect(observed).toHaveLength(1); // still one turn — no phantom log entry from the recompute
     expect(applied).toHaveLength(2);  // but advice WAS re-applied
@@ -64,9 +64,21 @@ describe('syncAdvice', () => {
 
   it('produces no advice and no side effects for an incomplete detection', () => {
     const { sink, applied, observed } = recordingSink();
-    const ok = syncAdvice({ ...complete, found: false }, easyGoal, false, true, sink);
+    const ok = syncAdvice({ ...complete, found: false }, easyGoal, false, false, true, sink);
     expect(ok).toBe(false);
     expect(applied).toHaveLength(0);
     expect(observed).toHaveLength(0);
+  });
+
+  it('forwards ticketSpent so an already-used ticket is not lent', () => {
+    const cfg: AdvisorStoredConfig = { ...DEFAULT_CONFIG, relicRerollThreshold: 0.01 };
+    const lent = recordingSink();
+    syncAdvice(complete, cfg, false, false, true, lent.sink);
+    expect(lent.applied[0].ticket!.lent).toBe(true);
+
+    const spent = recordingSink();
+    syncAdvice(complete, cfg, false, true, true, spent.sink);
+    expect(spent.applied[0].ticket!.lent).toBe(false);
+    expect(spent.applied[0].ticket!.spent).toBe(true);
   });
 });

@@ -37,7 +37,7 @@
 
   /** Update the advisor + turn log from a settled detection (a real turn). */
   function commit(det: DetectionResult) {
-    syncAdvice(det, config.current, turnLog.resetObserved, true, sink);
+    syncAdvice(det, config.current, turnLog.resetObserved, false, true, sink);
   }
 
   // Re-score the last reading whenever the config changes (preset load, goal or
@@ -52,7 +52,7 @@
     advisor.recomputing = true;
     const id = setTimeout(() => {
       const det = advisor.detection;
-      if (det) syncAdvice(det, config.current, turnLog.resetObserved, false, sink);
+      if (det) syncAdvice(det, config.current, turnLog.resetObserved, false, false, sink);
       advisor.recomputing = false;
     }, 0);
     return () => clearTimeout(id);

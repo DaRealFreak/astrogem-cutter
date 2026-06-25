@@ -29,10 +29,11 @@ export function syncAdvice(
   det: DetectionResult,
   config: AdvisorStoredConfig,
   resetObserved: boolean,
+  ticketSpent: boolean,
   logTurn: boolean,
   sink: AdviceSink,
 ): boolean {
-  const { ready, output } = computeAdvice(det, config, resetObserved);
+  const { ready, output } = computeAdvice(det, config, resetObserved, ticketSpent);
   if (!ready || !output) return false;
   sink.applyAdvice(det, output);
   if (logTurn) sink.observeTurn(det, output);
