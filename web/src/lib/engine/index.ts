@@ -65,6 +65,7 @@ export interface EngineContext {
   _relicProbTable: GoalProbabilityTable;
   _ancientProbTable: GoalProbabilityTable;
   _sideValueTable: SideValueTable;
+  _displayValueTable: SideValueTable;
   _freshState: GemState;
 }
 
@@ -227,6 +228,18 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     valueMode: ignoreSide ? 'will_chaos' : 'side',
   });
 
+  // 5b. Reroll-aware DISPLAY value table: identical value model to `sideValueTable`,
+  // plus the reroll dimension so the eValue matrix moves with the ticket. The
+  // DECISION path keeps using the flat `sideValueTable`; this is display-only.
+  const displayValueTable = new SideValueTable(goal, turnsTotal, pool, gemType, {
+    optimize,
+    minSideCoeff,
+    relicCoeff,
+    ancientCoeff,
+    valueMode: ignoreSide ? 'will_chaos' : 'side',
+    maxRerolls: dpMaxRerolls,
+  });
+
   // 6. Grade-value table (goal-independent; dead-goal decisions)
   const gradeValueTable = new SideValueTable(new LastTurnGoal(), turnsTotal, pool, gemType, {
     optimize,
@@ -307,6 +320,7 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     _relicProbTable: relicProbTable,
     _ancientProbTable: ancientProbTable,
     _sideValueTable: sideValueTable,
+    _displayValueTable: displayValueTable,
     _freshState: freshState,
   };
 }
@@ -326,20 +340,20 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
   const posPGoal = dc.probTable.lookup(state, turnsLeft, rerolls);
   const posRelic = ctx._relicProbTable.lookup(state, turnsLeft, rerolls);
   const posAncient = ctx._ancientProbTable.lookup(state, turnsLeft, rerolls);
-  const posEValue = ctx._sideValueTable.lookup(state, turnsLeft);
+  const posEValue = ctx._displayValueTable.lookup(state, turnsLeft, rerolls);
 
   // Per-offer breakdown
   const turnsLeftAfter = turnsLeft - 1;
   const perOffer = offers.map((o) => ({
     key: o.key,
     pGoalAfter: dc.probTable.expectedProbAfterClick(state, [o], turnsLeftAfter, rerolls),
-    eValueAfter: ctx._sideValueTable.expectedValueAfterClick(state, [o], turnsLeftAfter),
+    eValueAfter: ctx._displayValueTable.expectedValueAfterClick(state, [o], turnsLeftAfter, rerolls),
   }));
 
   // ---------------------------------------------------------------------------
   // Actions projection: process / reroll / reset × { pGoal, pRelic, pAncient, eValue }
   // ---------------------------------------------------------------------------
-  const probT = dc.probTable, relicT = ctx._relicProbTable, ancientT = ctx._ancientProbTable, sideT = ctx._sideValueTable;
+  const probT = dc.probTable, relicT = ctx._relicProbTable, ancientT = ctx._ancientProbTable, dispT = ctx._displayValueTable;
   const tlAfter = turnsLeft - 1;
 
   // process = expected outcome of clicking. The game applies a uniformly-random
@@ -351,7 +365,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pGoal: probT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
     pRelic: relicT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
     pAncient: ancientT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
-    eValue: sideT.expectedValueAfterClick(state, offers, tlAfter),
+    eValue: dispT.expectedValueAfterClick(state, offers, tlAfter, rerolls),
   } : null;
 
   // reroll = same state, one reroll spent (state/turnsLeft unchanged → side value unchanged)
@@ -359,7 +373,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pGoal: probT.lookup(state, turnsLeft, rerolls - 1),
     pRelic: relicT.lookup(state, turnsLeft, rerolls - 1),
     pAncient: ancientT.lookup(state, turnsLeft, rerolls - 1),
-    eValue: sideT.lookup(state, turnsLeft),
+    eValue: dispT.lookup(state, turnsLeft, rerolls - 1),
   } : null;
 
   // reset = fresh gem, full budget (reroll-aware tables for matrix consistency)
@@ -367,7 +381,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pGoal: probT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
     pRelic: relicT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
     pAncient: ancientT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
-    eValue: sideT.lookup(ctx._freshState, ctx.turnsTotal),
+    eValue: dispT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
   } : null;
 
   // Headline = the recommended action's projected row, so the big P(click) block

@@ -212,6 +212,30 @@ def export_side_values():
                     "ancient_coeff": t.ancient_coeff,
                     "gem_value": t.gem_value(st), "lookup": t.lookup(st, tl),
                     "evac": t.expected_value_after_click(st, offers, max(0, tl - 1))}})
+    # Reroll-dimension records (exercise the reroll-aware display value table).
+    gt2, fe2, se2, opt2 = "order_stability", "additional_damage", "attack_power", "dps"
+    goal2 = LastTurnGoal(min_total_will_chaos=8)
+    msc2 = 2000
+    mr2 = 3
+    t2 = SideValueTable(goal2, turns, pool, gem_type=gt2, optimize=opt2,
+                        min_side_coeff=msc2, value_mode="side", max_rerolls=mr2)
+    for w, c, f, s in [(1, 1, 1, 1), (2, 1, 2, 1), (4, 4, 3, 2)]:
+        st = GemState(will=w, chaos=c, first=f, second=s,
+                      first_effect=fe2, second_effect=se2)
+        for tl in (3, turns):
+            offers = _offers(pool, st, turns - tl + 1, tl)
+            for r in (0, 2, 3):
+                recs.append({"inputs": {"mode": "side", "gem_type": gt2,
+                    "first_effect": fe2, "second_effect": se2, "optimize": opt2,
+                    "goal": _goal_dict(goal2), "min_side_coeff": msc2,
+                    "max_rerolls": mr2, "rerolls": r,
+                    "state": [w, c, f, s], "turns_left": tl,
+                    "offers": [o.key for o in offers]},
+                  "expected": {"relic_coeff": t2.relic_coeff,
+                    "ancient_coeff": t2.ancient_coeff,
+                    "gem_value": t2.gem_value(st),
+                    "lookup": t2.lookup(st, tl, rerolls=r),
+                    "evac": t2.expected_value_after_click(st, offers, max(0, tl - 1), rerolls=r)}})
     dump("side_values", recs)
 
 
@@ -339,7 +363,7 @@ def export_actions():
         anc = GoalProbabilityTable(LastTurnGoal(min_total=19), turns, pool,
             early_finish=False, max_rerolls=mr)
         svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
-            min_side_coeff=0)
+            min_side_coeff=0, max_rerolls=mr)
         fresh = GemState(first_effect=fe, second_effect=se)
 
         for w, c, f, s in [(2, 2, 2, 1), (4, 4, 3, 2), (5, 5, 3, 2)]:
@@ -359,7 +383,7 @@ def export_actions():
                             "pGoal": roll.expected_prob_after_click(st, offers, tl_after, rerolls=r),
                             "pRelic": relic.expected_prob_after_click(st, offers, tl_after, rerolls=r),
                             "pAncient": anc.expected_prob_after_click(st, offers, tl_after, rerolls=r),
-                            "eValue": svt.expected_value_after_click(st, offers, tl_after),
+                            "eValue": svt.expected_value_after_click(st, offers, tl_after, rerolls=r),
                         }
                     else:
                         process_rec = None
@@ -370,7 +394,7 @@ def export_actions():
                             "pGoal": roll.lookup(st, tl, rerolls=r - 1),
                             "pRelic": relic.lookup(st, tl, rerolls=r - 1),
                             "pAncient": anc.lookup(st, tl, rerolls=r - 1),
-                            "eValue": svt.lookup(st, tl),
+                            "eValue": svt.lookup(st, tl, rerolls=r - 1),
                         }
                     else:
                         reroll_rec = None
@@ -380,7 +404,7 @@ def export_actions():
                         "pGoal": roll.lookup(fresh, turns, rerolls=base_rerolls),
                         "pRelic": relic.lookup(fresh, turns, rerolls=base_rerolls),
                         "pAncient": anc.lookup(fresh, turns, rerolls=base_rerolls),
-                        "eValue": svt.lookup(fresh, turns),
+                        "eValue": svt.lookup(fresh, turns, rerolls=base_rerolls),
                     }
 
                     recs.append({"inputs": {

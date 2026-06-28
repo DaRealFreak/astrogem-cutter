@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "7dc45b1"
+  "arkgrid_sha": "86107ef"
  },
  "records": [
   {
@@ -893,6 +893,636 @@
     "gem_value": 3334.0,
     "lookup": 3334.0,
     "evac": 3286.8774674509586
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 0,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 5.020617564725584,
+    "evac": 29.803540507327902
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 14.904088481209119,
+    "evac": 65.43040868058085
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 19.47689879396637,
+    "evac": 78.49863829805635
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 0,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 1018.0100598913667,
+    "evac": 1726.0167961803127
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 2,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 1570.4351027201394,
+    "evac": 2423.3817866981494
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 3,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 1785.9207088417147,
+    "evac": 2683.1786802153183
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 0,
+    "state": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 38.872164451922075,
+    "evac": 100.52276453294976
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 2,
+    "state": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 93.1039867703375,
+    "evac": 188.26000739208746
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 3,
+    "state": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 115.09498160155555,
+    "evac": 217.55696456521213
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 0,
+    "state": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 1702.603996625116,
+    "evac": 1995.4314833661374
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 2,
+    "state": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 2425.379959942284,
+    "evac": 2736.2711487923743
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 3,
+    "state": [
+     2,
+     1,
+     2,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 0.0,
+    "lookup": 2695.228645054255,
+    "evac": 3008.270471334107
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 0,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 2900.0,
+    "lookup": 3911.6165135708293,
+    "evac": 3012.3160992987255
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 2900.0,
+    "lookup": 4651.026918503143,
+    "evac": 3586.624514559698
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turns_left": 3,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 2900.0,
+    "lookup": 4884.205866946056,
+    "evac": 3753.5252775705503
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 0,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 2900.0,
+    "lookup": 5494.12617970184,
+    "evac": 5232.804394377861
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 2,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 2900.0,
+    "lookup": 6130.23469487201,
+    "evac": 5952.751400618639
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "attack_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "max_rerolls": 3,
+    "rerolls": 3,
+    "state": [
+     4,
+     4,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2234,
+    "ancient_coeff": 2619,
+    "gem_value": 2900.0,
+    "lookup": 6341.930360280707,
+    "evac": 6191.5544811982245
    }
   }
  ]
