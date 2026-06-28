@@ -1,10 +1,30 @@
 from __future__ import annotations
 
+import math
 from typing import FrozenSet, List, Optional, Dict, Tuple
 
 from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS, fusion_avg_coeff
 from arkgrid.models import Option, LastTurnGoal, GemState
 from arkgrid.pool import OptionPool
+
+_SQRT2 = math.sqrt(2.0)
+_INV_SQRT_2PI = 1.0 / math.sqrt(2.0 * math.pi)
+
+
+def _norm_cdf(x: float) -> float:
+    return 0.5 * (1.0 + math.erf(x / _SQRT2))
+
+
+def _norm_pdf(x: float) -> float:
+    return _INV_SQRT_2PI * math.exp(-0.5 * x * x)
+
+
+def _e_max(mu: float, sd: float, t: float) -> float:
+    """E[max(X, t)] for X ~ Normal(mu, sd**2)."""
+    if sd <= 0.0:
+        return mu if mu > t else t
+    d = (mu - t) / sd
+    return t + (mu - t) * _norm_cdf(d) + sd * _norm_pdf(d)
 
 
 class GoalProbabilityTable:
@@ -890,6 +910,7 @@ class SideValueTable:
         relic_coeff: Optional[int] = None,
         ancient_coeff: Optional[int] = None,
         value_mode: str = "side",
+        max_rerolls: int = 0,
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
@@ -898,6 +919,7 @@ class SideValueTable:
         self._optimize = optimize
         self._min_side_coeff = min_side_coeff
         self.value_mode = value_mode
+        self._max_rerolls = max_rerolls
         self.enabled = gem_type in GEM_TYPES
         if self.enabled:
             # Default the tier weights to the fusion-derived average gem
@@ -937,7 +959,10 @@ class SideValueTable:
                 if fi != si:
                     self._change_dests[(fi, si)] = tuple(
                         i for i in range(4) if i != fi and i != si)
-        self._build()
+        if max_rerolls > 0:
+            self._build_reroll()
+        else:
+            self._build()
 
     # -- value model -------------------------------------------------
 
@@ -1089,6 +1114,97 @@ class SideValueTable:
                                     finish_val if finish_val > proc
                                     else proc)
 
+    def _build_reroll(self) -> None:
+        dp = self._dp
+        mt = self.max_turns
+        maxR = self._max_rerolls
+        valid_pairs = [(fi, si) for fi in range(4)
+                       for si in range(4) if fi != si]
+
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    for s in range(1, 6):
+                        for fi, si in valid_pairs:
+                            v = self._gem_value_idx(w, c, f, s, fi, si)
+                            for r in range(maxR + 1):
+                                dp[(w, c, f, s, fi, si, r, 0)] = v
+
+        def transitions(w, c, f, s, turn, tl):
+            state = GemState(will=w, chaos=c, first=f, second=s)
+            elig = [o for o in self.pool.pool
+                    if self.pool.eligible(o, state, turn, tl)]
+            if not elig:
+                return [(1.0, "", "", w, c, f, s, 0)], 0
+            tot = sum(o.weight for o in elig)
+            out = []
+            for o in elig:
+                nw, nc, nf, ns, vd = w, c, f, s, 0
+                if o.kind == "will":
+                    nw = min(5, max(1, w + o.delta))
+                elif o.kind == "chaos":
+                    nc = min(5, max(1, c + o.delta))
+                elif o.kind == "first":
+                    nf = min(5, max(1, f + o.delta))
+                elif o.kind == "second":
+                    ns = min(5, max(1, s + o.delta))
+                elif o.kind == "view":
+                    vd = o.delta
+                out.append((o.weight / tot, o.key, o.kind, nw, nc, nf, ns, vd))
+            return out, len(elig)
+
+        trans_cache = {}
+        for label, turn, tl in [("first", 1, mt), ("last", mt, 1),
+                                ("middle", 2, mt - 1 if mt > 2 else 2)]:
+            cache = {}
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            cache[(w, c, f, s)] = transitions(w, c, f, s, turn, tl)
+            trans_cache[label] = cache
+
+        cd = self._change_dests
+
+        def post_val(key, nw, nc, nf, ns, fi, si, nr, tl):
+            if key == "change_first_effect":
+                d = cd[(fi, si)]
+                return sum(dp[(nw, nc, nf, ns, di, si, nr, tl)] for di in d) / len(d)
+            if key == "change_second_effect":
+                d = cd[(fi, si)]
+                return sum(dp[(nw, nc, nf, ns, fi, di, nr, tl)] for di in d) / len(d)
+            return dp[(nw, nc, nf, ns, fi, si, nr, tl)]
+
+        for tl in range(1, mt + 1):
+            turn_number = mt - tl + 1
+            tc = (trans_cache["first"] if turn_number == 1
+                  else trans_cache["last"] if tl == 1
+                  else trans_cache["middle"])
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            trans, n_elig = tc[(w, c, f, s)]
+                            fpc = ((n_elig - 4) / (n_elig - 1)
+                                   if n_elig > 4 else 0.0)
+                            for fi, si in valid_pairs:
+                                finish_val = self._gem_value_idx(w, c, f, s, fi, si)
+                                for r in range(maxR + 1):
+                                    xs = []
+                                    for (p, key, _k, nw, nc, nf, ns, vd) in trans:
+                                        nr = min(maxR, r + vd)
+                                        xs.append((p, post_val(
+                                            key, nw, nc, nf, ns, fi, si, nr, tl - 1)))
+                                    mu = sum(p * x for p, x in xs)
+                                    var = sum(p * (x - mu) ** 2 for p, x in xs)
+                                    sd = math.sqrt(max(0.0, var / 4.0 * fpc))
+                                    if r > 0 and turn_number != 1:
+                                        rc = dp[(w, c, f, s, fi, si, r - 1, tl)]
+                                        t = finish_val if finish_val > rc else rc
+                                    else:
+                                        t = finish_val
+                                    dp[(w, c, f, s, fi, si, r, tl)] = _e_max(mu, sd, t)
+
     # -- public API --------------------------------------------------
 
     def gem_value(self, state: GemState) -> float:
@@ -1102,7 +1218,7 @@ class SideValueTable:
         return self._gem_value_idx(state.will, state.chaos,
                                    state.first, state.second, fi, si)
 
-    def lookup(self, state: GemState, turns_left: int) -> float:
+    def lookup(self, state: GemState, turns_left: int, rerolls=None) -> float:
         """Expected final gem value under optimal play from this state."""
         if not self.enabled:
             return 0.0
@@ -1110,13 +1226,16 @@ class SideValueTable:
         if idx is None:
             return 0.0
         fi, si = idx
-        return self._dp.get(
-            (state.will, state.chaos, state.first, state.second,
-             fi, si, turns_left), 0.0)
+        w, c, f, s = state.will, state.chaos, state.first, state.second
+        if self._max_rerolls > 0:
+            r = min(self._max_rerolls, rerolls or 0)
+            return self._dp.get((w, c, f, s, fi, si, r, turns_left), 0.0)
+        return self._dp.get((w, c, f, s, fi, si, turns_left), 0.0)
 
     def expected_value_after_click(self, state: GemState,
                                    offers: List[Option],
-                                   turns_left_after: int) -> float:
+                                   turns_left_after: int,
+                                   rerolls=None) -> float:
         """Mean V across the 4 *actual* visible offers (uniform 25% pick).
 
         Mirrors `GoalProbabilityTable.expected_prob_after_click` — the
@@ -1131,6 +1250,7 @@ class SideValueTable:
         fi, si = idx
         dests = self._change_dests[(fi, si)]
         nd = len(dests)
+        ra = self._max_rerolls > 0
         total = 0.0
         for o in offers:
             nw = (min(5, max(1, state.will + o.delta))
@@ -1141,15 +1261,16 @@ class SideValueTable:
                   if o.kind == "first" else state.first)
             ns = (min(5, max(1, state.second + o.delta))
                   if o.kind == "second" else state.second)
-            if o.key == "change_first_effect":
-                total += sum(self._dp.get(
-                    (nw, nc, nf, ns, d, si, turns_left_after), 0.0)
-                    for d in dests) / nd
-            elif o.key == "change_second_effect":
-                total += sum(self._dp.get(
-                    (nw, nc, nf, ns, fi, d, turns_left_after), 0.0)
-                    for d in dests) / nd
+            if ra:
+                vd = o.delta if o.kind == "view" else 0
+                nr = min(self._max_rerolls, (rerolls or 0) + vd)
+                k = lambda a, b: (nw, nc, nf, ns, a, b, nr, turns_left_after)
             else:
-                total += self._dp.get(
-                    (nw, nc, nf, ns, fi, si, turns_left_after), 0.0)
+                k = lambda a, b: (nw, nc, nf, ns, a, b, turns_left_after)
+            if o.key == "change_first_effect":
+                total += sum(self._dp.get(k(d, si), 0.0) for d in dests) / nd
+            elif o.key == "change_second_effect":
+                total += sum(self._dp.get(k(fi, d), 0.0) for d in dests) / nd
+            else:
+                total += self._dp.get(k(fi, si), 0.0)
         return total / len(offers)

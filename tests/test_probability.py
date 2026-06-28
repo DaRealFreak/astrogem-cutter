@@ -589,5 +589,51 @@ class TestSideValueTableGradeOnlyMode(unittest.TestCase):
         self.assertEqual(t.lookup(st, 1), 0.0)
 
 
+class TestSideValueTableReroll(unittest.TestCase):
+    def _table(self, max_rerolls):
+        from arkgrid.pool import OptionPool
+        from arkgrid.models import LastTurnGoal
+        return SideValueTable(
+            LastTurnGoal(min_total_will_chaos=8), 9, OptionPool(),
+            gem_type="order_stability", optimize="dps",
+            min_side_coeff=2000, relic_coeff=None, ancient_coeff=None,
+            max_rerolls=max_rerolls,
+        )
+
+    def _s0(self):
+        return GemState(will=1, chaos=1, first=1, second=1,
+                        first_effect="additional_damage",
+                        second_effect="attack_power")
+
+    def test_flat_default_unchanged(self):
+        # max_rerolls=0 reproduces the documented flat value exactly.
+        t = self._table(0)
+        self.assertAlmostEqual(t.lookup(self._s0(), 9), 905.05, places=1)
+
+    def test_reroll_value_strictly_increases(self):
+        t = self._table(4)
+        vals = [t.lookup(self._s0(), 9, rerolls=r) for r in range(5)]
+        for a, b in zip(vals, vals[1:]):
+            self.assertGreater(b, a)
+
+    def test_reroll_value_tracks_mc(self):
+        # Validated MC self-consistency band (tools/reroll_value_fix_validate.py).
+        t = self._table(4)
+        got = [t.lookup(self._s0(), 9, rerolls=r) for r in range(5)]
+        expect = [1018.07, 1319.00, 1574.14, 1798.41, 1995.55]
+        for g, e in zip(got, expect):
+            self.assertAlmostEqual(g, e, delta=2.0)
+
+    def test_evac_flat_unchanged(self):
+        from arkgrid.models import Option
+        t0 = self._table(0)
+        offers = [Option("will+2", 4.40, "will", 2),
+                  Option("second+1", 11.65, "second", 1),
+                  Option("first+4", 0.45, "first", 4),
+                  Option("chaos+3", 1.75, "chaos", 3)]
+        self.assertAlmostEqual(
+            t0.expected_value_after_click(self._s0(), offers, 8), 1383.34, places=1)
+
+
 if __name__ == "__main__":
     unittest.main()
