@@ -11,8 +11,25 @@ _SQRT2 = math.sqrt(2.0)
 _INV_SQRT_2PI = 1.0 / math.sqrt(2.0 * math.pi)
 
 
+def _erf(x: float) -> float:
+    """Abramowitz & Stegun 7.1.26 error-function approximation.
+
+    Deliberately NOT `math.erf`: the TypeScript port (web/) has no native
+    erf, so both engines share this identical approximation to keep the
+    reroll-aware SideValueTable byte-for-byte in parity across languages
+    (the ~1.5e-7 absolute error is negligible against the value DP's own
+    ~3% normal-approximation bias).
+    """
+    sign = 1.0 if x >= 0.0 else -1.0
+    x = abs(x)
+    t = 1.0 / (1.0 + 0.3275911 * x)
+    y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
+               - 0.284496736) * t + 0.254829592) * t * math.exp(-x * x)
+    return sign * y
+
+
 def _norm_cdf(x: float) -> float:
-    return 0.5 * (1.0 + math.erf(x / _SQRT2))
+    return 0.5 * (1.0 + _erf(x / _SQRT2))
 
 
 def _norm_pdf(x: float) -> float:
