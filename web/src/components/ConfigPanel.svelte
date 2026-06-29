@@ -3,6 +3,15 @@
   import PresetBar from './PresetBar.svelte';
   const c = config;   // c.current is the reactive, bindable store value
 
+  // The relic-reroll threshold slider commits to config only on release
+  // (onchange), never per drag step (oninput). The advisor re-scores on any
+  // config change, so binding the slider straight to config would rebuild the
+  // DP on every intermediate value as you drag. A local live value drives the
+  // thumb + label during the drag; the synced effect keeps it in step with
+  // external config changes (preset load / reset).
+  let relicThresholdLive = $state(c.current.relicRerollThreshold ?? 0);
+  $effect(() => { relicThresholdLive = c.current.relicRerollThreshold ?? 0; });
+
   // When switching to combined mode, seed minWillChaosTotal from separate values if blank
   function handleGoalModeChange(mode: 'separate' | 'combined') {
     c.current.goalMode = mode;
@@ -99,8 +108,10 @@
     <div class="field-row">
       <label for="relic-reroll-threshold" title="Worthiness bar on P(relic+). Enables the extra reroll ticket once relic-grade odds cross it, and on a dead goal finishes the gem when odds fall below it. 0% disables both.">Relic reroll threshold</label>
       <div class="slider-field">
-        <input id="relic-reroll-threshold" type="range" min="0" max="1" step="0.05" bind:value={c.current.relicRerollThreshold} />
-        <span class="slider-value">{Math.round((c.current.relicRerollThreshold ?? 0) * 100)}%</span>
+        <input id="relic-reroll-threshold" type="range" min="0" max="1" step="0.05"
+          bind:value={relicThresholdLive}
+          onchange={() => (c.current.relicRerollThreshold = relicThresholdLive)} />
+        <span class="slider-value">{Math.round(relicThresholdLive * 100)}%</span>
       </div>
     </div>
     <div class="field-row">
