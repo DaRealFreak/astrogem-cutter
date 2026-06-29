@@ -236,6 +236,31 @@ def export_side_values():
                     "gem_value": t2.gem_value(st),
                     "lookup": t2.lookup(st, tl, rerolls=r),
                     "evac": t2.expected_value_after_click(st, offers, max(0, tl - 1), rerolls=r)}})
+    # Policy-evaluation records (will_chaos policy, side display value) — the
+    # web display eValue under --ignore-side-node-values. order_fortitude is
+    # the user's order_solidity gem (ally_attack + boss_damage); exercise the
+    # bare and min_side_coeff-floored variants.
+    gt3, fe3, se3, opt3 = "order_fortitude", "ally_attack", "boss_damage", "dps"
+    goal3 = LastTurnGoal(min_total_will_chaos=8)
+    for msc3 in (0, 2000):
+        t3 = SideValueTable(goal3, turns, pool, gem_type=gt3, optimize=opt3,
+                            min_side_coeff=msc3, value_mode="side",
+                            policy_value_mode="will_chaos")
+        for w, c, f, s in [(1, 1, 1, 1), (4, 4, 1, 1), (5, 5, 3, 2)]:
+            st = GemState(will=w, chaos=c, first=f, second=s,
+                          first_effect=fe3, second_effect=se3)
+            for tl in (1, 5, turns):
+                offers = _offers(pool, st, turns - tl + 1, tl)
+                recs.append({"inputs": {"mode": "side", "gem_type": gt3,
+                    "first_effect": fe3, "second_effect": se3, "optimize": opt3,
+                    "goal": _goal_dict(goal3), "min_side_coeff": msc3,
+                    "policy_value_mode": "will_chaos",
+                    "state": [w, c, f, s], "turns_left": tl,
+                    "offers": [o.key for o in offers]},
+                  "expected": {"relic_coeff": t3.relic_coeff,
+                    "ancient_coeff": t3.ancient_coeff,
+                    "gem_value": t3.gem_value(st), "lookup": t3.lookup(st, tl),
+                    "evac": t3.expected_value_after_click(st, offers, max(0, tl - 1))}})
     dump("side_values", recs)
 
 

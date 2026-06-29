@@ -20,13 +20,14 @@ describe('SideValueTable parity', () => {
     const tableCache = new Map<string, SideValueTable>();
     for (const r of recs) {
       const i = r.inputs; const turns = 9;
-      const cacheKey = `${i.gem_type}|${i.optimize}|${i.min_side_coeff}|${i.mode}|${i.max_rerolls ?? 0}|${i.relic_coeff ?? ''}|${i.ancient_coeff ?? ''}|${JSON.stringify(i.goal)}`;
+      const cacheKey = `${i.gem_type}|${i.optimize}|${i.min_side_coeff}|${i.mode}|${i.max_rerolls ?? 0}|${i.relic_coeff ?? ''}|${i.ancient_coeff ?? ''}|${i.policy_value_mode ?? ''}|${JSON.stringify(i.goal)}`;
       let t = tableCache.get(cacheKey);
       if (!t) {
         t = new SideValueTable(goalOf(i.goal), turns, pool, i.gem_type, {
           optimize: i.optimize, minSideCoeff: i.min_side_coeff, valueMode: i.mode,
           maxRerolls: i.max_rerolls ?? 0,
-          relicCoeff: i.relic_coeff ?? null, ancientCoeff: i.ancient_coeff ?? null });
+          relicCoeff: i.relic_coeff ?? null, ancientCoeff: i.ancient_coeff ?? null,
+          policyValueMode: i.policy_value_mode ?? undefined });
         tableCache.set(cacheKey, t);
       }
       const [w, c, f, s] = i.state;

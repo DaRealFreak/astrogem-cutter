@@ -635,5 +635,57 @@ class TestSideValueTableReroll(unittest.TestCase):
             t0.expected_value_after_click(self._s0(), offers, 8), 1383.34, places=1)
 
 
+class TestSideValueTablePolicyEval(unittest.TestCase):
+    """policy_value_mode='will_chaos': the side display value EXPECTED under
+    the will+chaos decision policy, not the value-iteration upper bound. Used
+    for the web display eValue under --ignore-side-node-values (order_solidity
+    gem = order_fortitude: ally_attack + boss_damage)."""
+
+    def _tables(self, min_side_coeff=0):
+        from arkgrid.pool import OptionPool
+        from arkgrid.models import LastTurnGoal
+        pool = OptionPool()
+        kw = dict(gem_type="order_fortitude", optimize="dps",
+                  min_side_coeff=min_side_coeff)
+        goal = LastTurnGoal(min_total_will_chaos=8)
+        vi = SideValueTable(goal, 9, pool, value_mode="side", **kw)
+        pe = SideValueTable(goal, 9, pool, value_mode="side",
+                            policy_value_mode="will_chaos", **kw)
+        return vi, pe
+
+    def _s0(self):
+        return GemState(will=1, chaos=1, first=1, second=1,
+                        first_effect="ally_attack",
+                        second_effect="boss_damage")
+
+    def test_policy_eval_below_value_iteration(self):
+        # The will+chaos policy lets the side node only ride along, so the
+        # realistic coefficient is below the value-iteration upper bound (which
+        # assumes the side node is actively chased).
+        vi, pe = self._tables()
+        self.assertLess(pe.lookup(self._s0(), 9), vi.lookup(self._s0(), 9))
+
+    def test_policy_eval_is_a_real_coefficient(self):
+        # boss_damage (coeff 1000) keeps the value in the hundreds — NOT the
+        # will+chaos sum (~4) the decision table would report.
+        _, pe = self._tables()
+        self.assertGreater(pe.lookup(self._s0(), 9), 100.0)
+        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 930.99, places=1)
+
+    def test_policy_eval_is_flat(self):
+        # Policy-eval forces flat (no reroll dimension); a rerolls argument is
+        # ignored.
+        _, pe = self._tables()
+        self.assertEqual(pe.lookup(self._s0(), 9, rerolls=3),
+                         pe.lookup(self._s0(), 9, rerolls=0))
+
+    def test_min_side_coeff_floor_applies(self):
+        # With the 2000 floor, the value still sits below value-iteration and
+        # stays a meaningful coefficient.
+        vi, pe = self._tables(min_side_coeff=2000)
+        self.assertLess(pe.lookup(self._s0(), 9), vi.lookup(self._s0(), 9))
+        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 817.50, places=1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "86107ef"
+  "arkgrid_sha": "4f5c8dd"
  },
  "records": [
   {
@@ -1523,6 +1523,618 @@
     "gem_value": 2900.0,
     "lookup": 6341.930360280707,
     "evac": 6191.5544811982245
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 0.0,
+    "evac": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 5,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 104.82765141782487,
+    "evac": 347.5368045337143
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 930.989421344482,
+    "evac": 1529.5335354944762
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 1000.0,
+    "lookup": 1000.0,
+    "evac": 500.0
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 5,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 1000.0,
+    "lookup": 2263.7824063959733,
+    "evac": 1734.124411509075
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 1000.0,
+    "lookup": 3465.041791895796,
+    "evac": 2869.22435644735
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 2000.0,
+    "lookup": 2000.0,
+    "evac": 3422.0
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 5,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 2000.0,
+    "lookup": 2000.0,
+    "evac": 4412.417329146105
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 0,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 2000.0,
+    "lookup": 2000.0,
+    "evac": 4707.400214725979
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 0.0,
+    "evac": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 5,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 64.40645885111657,
+    "evac": 211.36023721807572
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 817.4971304590352,
+    "evac": 1323.2533806213335
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 0.0,
+    "evac": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 5,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 1847.786553511106,
+    "evac": 1225.838588213331
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 0.0,
+    "lookup": 2933.119727684928,
+    "evac": 2370.31442479215
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 2000.0,
+    "lookup": 2000.0,
+    "evac": 3422.0
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 5,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 2000.0,
+    "lookup": 2000.0,
+    "evac": 4277.514667463753
+   }
+  },
+  {
+   "inputs": {
+    "mode": "side",
+    "gem_type": "order_fortitude",
+    "first_effect": "ally_attack",
+    "second_effect": "boss_damage",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "min_side_coeff": 2000,
+    "policy_value_mode": "will_chaos",
+    "state": [
+     5,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first+1",
+     "first+2"
+    ]
+   },
+   "expected": {
+    "relic_coeff": 2844,
+    "ancient_coeff": 3334,
+    "gem_value": 2000.0,
+    "lookup": 2000.0,
+    "evac": 4505.812249615734
    }
   }
  ]

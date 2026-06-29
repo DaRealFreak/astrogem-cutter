@@ -739,7 +739,10 @@ export class GoalProbabilityTable {
 // a probability:
 //   gem_value(state) = side_coeff(state) + tier_bonus(total_points)
 // with goal-broken states valued 0. Backward induction takes
-// max(finishNow=gemValue, processEV). No reroll dimension.
+// max(finishNow=gemValue, processEV). When maxRerolls > 0 the state
+// carries the reroll count and _buildReroll prices a keep-vs-reroll
+// choice via a variance-aware Gaussian E[max(handEV, threshold)]
+// (Phase A/B); maxRerolls === 0 builds the flat table.
 
 export interface SideValueOpts {
   optimize?: string;
@@ -748,6 +751,10 @@ export interface SideValueOpts {
   ancientCoeff?: number | null;
   valueMode?: 'side' | 'will_chaos' | 'grade_only';
   maxRerolls?: number;
+  /** Policy-evaluation mode: report the `valueMode` value expected under the
+   *  will+chaos decision policy (a coupled flat DP), not the value-iteration
+   *  upper bound. Used for the displayed eValue under ignoreSideNodeValues. */
+  policyValueMode?: 'will_chaos';
 }
 
 // SideValue-only transition entry (no reroll/view-delta bookkeeping):
@@ -767,6 +774,7 @@ export class SideValueTable {
   private readonly _minSideCoeff: number;
   private readonly _valueMode: 'side' | 'will_chaos' | 'grade_only';
   private readonly _maxRerolls: number;
+  private readonly _policyValueMode: 'will_chaos' | null;
 
   private _effectTuple: readonly string[];
   private _effectCoeffs: readonly number[];
@@ -787,7 +795,11 @@ export class SideValueTable {
     this._optimize = opts?.optimize ?? 'dps';
     this._minSideCoeff = opts?.minSideCoeff ?? 0;
     this._valueMode = opts?.valueMode ?? 'side';
-    this._maxRerolls = opts?.maxRerolls ?? 0;
+    this._policyValueMode = opts?.policyValueMode ?? null;
+    // Policy-evaluation tables are flat: the will_chaos policy they follow
+    // has a discrete per-state finish-vs-continue choice, which the
+    // variance-aware reroll model (a continuous E[max]) does not expose.
+    this._maxRerolls = this._policyValueMode != null ? 0 : (opts?.maxRerolls ?? 0);
 
     this.enabled = gemType in GEM_TYPES;
 
@@ -838,7 +850,9 @@ export class SideValueTable {
       }
     }
 
-    if (this._maxRerolls > 0) {
+    if (this._policyValueMode != null) {
+      this._buildPolicyEval();
+    } else if (this._maxRerolls > 0) {
       this._buildReroll();
     } else {
       this._build();
@@ -906,7 +920,11 @@ export class SideValueTable {
     return result;
   }
 
-  private _postVal(
+  // V at a transition destination *in map `dpd`*, routing change_effect
+  // uniformly across the two non-equipped pool members. Parameterizing the
+  // map lets _buildPolicyEval read its two coupled tables (policy, display).
+  private _postValIn(
+    dpd: Map<string, number>,
     optKey: string,
     nw: number,
     nc: number,
@@ -921,18 +939,33 @@ export class SideValueTable {
     if (optKey === 'change_first_effect') {
       let v = 0.0;
       for (const d of dests) {
-        v += (this._dp.get(key(nw, nc, nf, ns, d, si, tl)) ?? 0.0);
+        v += (dpd.get(key(nw, nc, nf, ns, d, si, tl)) ?? 0.0);
       }
       return v / nd;
     }
     if (optKey === 'change_second_effect') {
       let v = 0.0;
       for (const d of dests) {
-        v += (this._dp.get(key(nw, nc, nf, ns, fi, d, tl)) ?? 0.0);
+        v += (dpd.get(key(nw, nc, nf, ns, fi, d, tl)) ?? 0.0);
       }
       return v / nd;
     }
-    return this._dp.get(key(nw, nc, nf, ns, fi, si, tl)) ?? 0.0;
+    return dpd.get(key(nw, nc, nf, ns, fi, si, tl)) ?? 0.0;
+  }
+
+  private _postVal(
+    optKey: string,
+    nw: number,
+    nc: number,
+    nf: number,
+    ns: number,
+    fi: number,
+    si: number,
+    dests: number[],
+    nd: number,
+    tl: number
+  ): number {
+    return this._postValIn(this._dp, optKey, nw, nc, nf, ns, fi, si, dests, nd, tl);
   }
 
   private _build(): void {
@@ -1002,6 +1035,105 @@ export class SideValueTable {
                   proc += p * this._postVal(optKey, nw, nc, nf, ns, fi, si, dests, nd, tl - 1);
                 }
                 dp.set(key(w, c, f, s, fi, si, tl), finishVal > proc ? finishVal : proc);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Flat coupled DP: side display value under the will+chaos policy.
+  // dpW holds the will_chaos policy value (w+c on goal-met states, else 0 —
+  // what the decision layer maximizes under ignoreSideNodeValues); dpS
+  // (== this._dp) holds the side display value accumulated along whichever
+  // finish-vs-continue branch the policy picks, not the side-optimal branch.
+  // So the policy chases will+chaos and locks in when satisfied; the side node
+  // only rides along — the realistic expected coefficient, not the
+  // value-iteration upper bound _build() produces. Process is the pool-average
+  // continuation (the reroll arm is folded into process; flat, no reroll dim).
+  // Mirrors arkgrid/probability.py::SideValueTable._build_policy_eval.
+  private _buildPolicyEval(): void {
+    const dpS = this._dp;
+    const dpW = new Map<string, number>();
+    const mt = this._maxTurns;
+    const validPairs: [number, number][] = [];
+    for (let fi = 0; fi < 4; fi++) {
+      for (let si = 0; si < 4; si++) {
+        if (fi !== si) validPairs.push([fi, si]);
+      }
+    }
+
+    const wcFinish = (w: number, c: number, f: number, s: number): number =>
+      this._goal.satisfied(w, c, f, s) ? w + c : 0.0;
+
+    // Terminal: turns_left == 0.
+    for (let w = 1; w <= 5; w++) {
+      for (let c = 1; c <= 5; c++) {
+        for (let f = 1; f <= 5; f++) {
+          for (let s = 1; s <= 5; s++) {
+            const fw = wcFinish(w, c, f, s);
+            for (const [fi, si] of validPairs) {
+              dpW.set(key(w, c, f, s, fi, si, 0), fw);
+              dpS.set(key(w, c, f, s, fi, si, 0), this._gemValueIdx(w, c, f, s, fi, si));
+            }
+          }
+        }
+      }
+    }
+
+    // Option-level transition cache (same three-turn-type strategy as _build).
+    const transCache: Record<string, Map<string, SvTransEntry[]>> = {};
+    const turnSpecs: [string, number, number][] = [
+      ['first', 1, mt],
+      ['last', mt, 1],
+      ['middle', 2, mt > 2 ? mt - 1 : 2],
+    ];
+    for (const [label, turn, tl] of turnSpecs) {
+      const cache = new Map<string, SvTransEntry[]>();
+      for (let w = 1; w <= 5; w++) {
+        for (let c = 1; c <= 5; c++) {
+          for (let f = 1; f <= 5; f++) {
+            for (let s = 1; s <= 5; s++) {
+              cache.set(key(w, c, f, s), this._transitions(w, c, f, s, turn, tl));
+            }
+          }
+        }
+      }
+      transCache[label] = cache;
+    }
+
+    // Backward induction: follow the will_chaos finish-vs-continue choice.
+    for (let tl = 1; tl <= mt; tl++) {
+      const turnNumber = mt - tl + 1;
+      let tc: Map<string, SvTransEntry[]>;
+      if (turnNumber === 1) tc = transCache['first']!;
+      else if (tl === 1) tc = transCache['last']!;
+      else tc = transCache['middle']!;
+
+      for (let w = 1; w <= 5; w++) {
+        for (let c = 1; c <= 5; c++) {
+          for (let f = 1; f <= 5; f++) {
+            for (let s = 1; s <= 5; s++) {
+              const trans = tc.get(key(w, c, f, s))!;
+              for (const [fi, si] of validPairs) {
+                const dests = this._changeDests.get(key(fi, si))!;
+                const nd = dests.length;
+                const finishW = wcFinish(w, c, f, s);
+                const finishS = this._gemValueIdx(w, c, f, s, fi, si);
+                let procW = 0.0;
+                let procS = 0.0;
+                for (const [p, optKey, , nw, nc, nf, ns] of trans) {
+                  procW += p * this._postValIn(dpW, optKey, nw, nc, nf, ns, fi, si, dests, nd, tl - 1);
+                  procS += p * this._postValIn(dpS, optKey, nw, nc, nf, ns, fi, si, dests, nd, tl - 1);
+                }
+                if (finishW >= procW) {
+                  dpW.set(key(w, c, f, s, fi, si, tl), finishW);
+                  dpS.set(key(w, c, f, s, fi, si, tl), finishS);
+                } else {
+                  dpW.set(key(w, c, f, s, fi, si, tl), procW);
+                  dpS.set(key(w, c, f, s, fi, si, tl), procS);
+                }
               }
             }
           }

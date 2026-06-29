@@ -255,6 +255,29 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
       })
     : null;
 
+  // Display value table: the shown eValue is always an expected side
+  // coefficient (never the will+chaos sum). Without ignoreSide, `sideValueTable`
+  // (side mode, reroll-aware) already IS the value the decision follows, so it
+  // doubles as the display. Under ignoreSide the decision optimizes will+chaos
+  // and the side node only rides along, so the value-iteration table would
+  // overstate the realistic coefficient (it assumes you chase the side node).
+  // Instead the display is a POLICY EVALUATION of the will+chaos policy — a
+  // coupled flat DP that follows the policy's finish-vs-continue choice and
+  // accumulates side value — yielding the lower, realistic expected coefficient.
+  // Flat (no reroll dimension): the variance-aware reroll model has no discrete
+  // per-state argmax to follow, and under ignoreSide rerolls aren't spent on the
+  // side node anyway, so the side value earns no reroll boost.
+  const displayValueTable = ignoreSide
+    ? new SideValueTable(goal, turnsTotal, pool, gemType, {
+        optimize,
+        minSideCoeff,
+        relicCoeff,
+        ancientCoeff,
+        valueMode: 'side',
+        policyValueMode: 'will_chaos',
+      })
+    : sideValueTable;
+
   // 8. Goal-conditioned expected side-coefficient table (grade coeffs 0 ->
   //    value == E[side_coeff]) for the per-turn --reroll-min-coeff ticket
   //    enabler. ~0 once the goal is unreachable.
@@ -315,10 +338,12 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     _relicProbTable: relicProbTable,
     _ancientProbTable: ancientProbTable,
     _sideValueTable: sideValueTable,
-    // Phase B: the decision gate and the display now share one reroll-aware
-    // value table; `_displayValueTable` is kept as an alias for advise()'s
-    // eValue rows (threaded with the live reroll budget).
-    _displayValueTable: sideValueTable,
+    // advise()'s eValue rows read this (threaded with the live reroll budget).
+    // It is the 'side'-mode value table so the displayed eValue is always an
+    // expected side coefficient. It equals `sideValueTable` except under
+    // ignoreSideNodeValues, where the decision table is 'will_chaos' and this
+    // diverges to the side-mode maxed oracle (see displayValueTable above).
+    _displayValueTable: displayValueTable,
     _freshState: freshState,
   };
 }

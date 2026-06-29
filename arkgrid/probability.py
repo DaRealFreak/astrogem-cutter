@@ -893,8 +893,8 @@ class SideValueTable:
 
     A parallel DP to `GoalProbabilityTable`, consulted once the goal is met
     to decide finish-vs-continue. Effect-aware; the state key is
-    `(w, c, f, s, fi, si, tl)`. The stored value is a *coefficient*, not a
-    probability:
+    `(w, c, f, s, fi, si, tl)`, or `(w, c, f, s, fi, si, r, tl)` when
+    reroll-aware. The stored value is a *coefficient*, not a probability:
 
         gem_value(state) = side_coeff(state) + tier_bonus(total_points)
 
@@ -903,12 +903,28 @@ class SideValueTable:
     the destination-value oracle for `_side_value_finish_decision`, not a
     value compared directly.
 
-    There is deliberately no reroll dimension. Under the single-draw
-    pool-average transition model a reroll redraws from the same pool, so
-    its expected value equals the process arm — V would be identical for
-    every reroll count. The decision layer still values the *current* turn's
-    reroll: it compares this table's value (the pool-average continuation)
-    against `expected_value_after_click` over the actual 4 offers in hand.
+    Reroll dimension (`max_rerolls > 0`, Phase A/B): the state carries the
+    reroll count and `_build_reroll` prices a per-turn keep-vs-reroll choice.
+    A naive *pool-average* reroll DP would be a no-op — a reroll redraws from
+    the same pool, so its mean equals the process arm. The fix models the
+    redraw's *variance*: the 4-offer hand EV is `Normal(mu, (var/4)*fpc)`
+    (`fpc=(N-4)/(N-1)`, the finite-population correction over the `N`
+    eligible options), and the value of a turn is the variance-aware Gaussian
+    `E[max(hand_EV, keep_or_finish_threshold)]` (`_e_max`). Because a redraw
+    is a fresh sample, the chance to draw above the mean has real value, so V
+    *does* rise with the reroll count. `max_rerolls == 0` builds the flat
+    table (byte-identical to the pre-Phase-A table). The decision layer
+    threads the live reroll budget into every lookup / `expected_value_after_click`.
+
+    Policy-evaluation mode (`policy_value_mode="will_chaos"`): instead of
+    value-iteration (which reports the *best achievable* side value if you
+    chased it), the table reports the side value *expected under the will+chaos
+    decision policy*. A coupled flat DP tracks the will_chaos policy value
+    alongside the side accumulator and, at each state, follows the policy's
+    finish-vs-continue choice — so under `--ignore-side-node-values`, where the
+    bot optimizes will+chaos and the side node only rides along, the reported
+    coefficient is realistically lower than the value-iteration upper bound.
+    The web advisor uses this for its displayed eValue under that flag.
 
     Self-disables (`enabled is False`, every lookup returns 0.0) when the
     gem type is unknown, mirroring `GoalProbabilityTable`'s effect-aware
@@ -928,6 +944,7 @@ class SideValueTable:
         ancient_coeff: Optional[int] = None,
         value_mode: str = "side",
         max_rerolls: int = 0,
+        policy_value_mode: Optional[str] = None,
     ) -> None:
         self.goal = goal
         self.max_turns = max_turns
@@ -936,7 +953,11 @@ class SideValueTable:
         self._optimize = optimize
         self._min_side_coeff = min_side_coeff
         self.value_mode = value_mode
-        self._max_rerolls = max_rerolls
+        self._policy_value_mode = policy_value_mode
+        # Policy-evaluation tables are flat: the will_chaos policy they follow
+        # has a discrete per-state finish-vs-continue choice, which the
+        # variance-aware reroll model (a continuous E[max]) does not expose.
+        self._max_rerolls = 0 if policy_value_mode is not None else max_rerolls
         self.enabled = gem_type in GEM_TYPES
         if self.enabled:
             # Default the tier weights to the fusion-derived average gem
@@ -976,7 +997,9 @@ class SideValueTable:
                 if fi != si:
                     self._change_dests[(fi, si)] = tuple(
                         i for i in range(4) if i != fi and i != si)
-        if max_rerolls > 0:
+        if policy_value_mode is not None:
+            self._build_policy_eval()
+        elif max_rerolls > 0:
             self._build_reroll()
         else:
             self._build()
@@ -1059,18 +1082,26 @@ class SideValueTable:
             result.append((p, o.key, o.kind, nw, nc, nf, ns))
         return result
 
+    def _post_val_in(self, dpd: Dict[tuple, float], key: str,
+                     nw: int, nc: int, nf: int, ns: int, fi: int, si: int,
+                     dests: Tuple[int, ...], nd: int, tl: int) -> float:
+        """V at a transition destination *in dict `dpd`*, routing
+        change_effect uniformly across the two non-equipped pool members.
+        Parameterizing the dict lets the policy-evaluation build read its two
+        coupled tables (policy value, display value) with the same routing."""
+        if key == "change_first_effect":
+            return sum(dpd[(nw, nc, nf, ns, d, si, tl)] for d in dests) / nd
+        if key == "change_second_effect":
+            return sum(dpd[(nw, nc, nf, ns, fi, d, tl)] for d in dests) / nd
+        return dpd[(nw, nc, nf, ns, fi, si, tl)]
+
     def _post_val(self, key: str, nw: int, nc: int, nf: int, ns: int,
                   fi: int, si: int, dests: Tuple[int, ...], nd: int,
                   tl: int) -> float:
         """V at a transition destination, routing change_effect uniformly
         across the two non-equipped pool members."""
-        if key == "change_first_effect":
-            return sum(self._dp[(nw, nc, nf, ns, d, si, tl)]
-                       for d in dests) / nd
-        if key == "change_second_effect":
-            return sum(self._dp[(nw, nc, nf, ns, fi, d, tl)]
-                       for d in dests) / nd
-        return self._dp[(nw, nc, nf, ns, fi, si, tl)]
+        return self._post_val_in(self._dp, key, nw, nc, nf, ns,
+                                 fi, si, dests, nd, tl)
 
     def _build(self) -> None:
         dp = self._dp
@@ -1130,6 +1161,95 @@ class SideValueTable:
                                 dp[(w, c, f, s, fi, si, tl)] = (
                                     finish_val if finish_val > proc
                                     else proc)
+
+    def _build_policy_eval(self) -> None:
+        """Flat coupled DP: side display value under the will+chaos policy.
+
+        Two dicts share the state space and transitions. `dp_w` is the
+        will_chaos *policy* value (`w+c` on goal-met states, else 0 — what the
+        decision layer maximizes under --ignore-side-node-values). `dp_s`
+        (== self._dp, returned by lookups) is the side *display* value, but
+        accumulated along whichever finish-vs-continue branch the policy picks,
+        not the side-optimal branch. So the policy chases will+chaos and locks
+        in when it is satisfied; the side node only rides along — yielding the
+        realistic expected coefficient instead of the value-iteration upper
+        bound `_build()` produces.
+
+        Process is the pool-average continuation (the policy's reroll arm is
+        folded into process; flat, no reroll dimension).
+        """
+        dp_s = self._dp
+        dp_w: Dict[tuple, float] = {}
+        mt = self.max_turns
+        valid_pairs = [(fi, si) for fi in range(4)
+                       for si in range(4) if fi != si]
+
+        def wc_finish(w: int, c: int, f: int, s: int) -> float:
+            return float(w + c) if self.goal.satisfied(w, c, f, s) else 0.0
+
+        # Terminal: turns_left == 0.
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    for s in range(1, 6):
+                        fw = wc_finish(w, c, f, s)
+                        for fi, si in valid_pairs:
+                            dp_w[(w, c, f, s, fi, si, 0)] = fw
+                            dp_s[(w, c, f, s, fi, si, 0)] = \
+                                self._gem_value_idx(w, c, f, s, fi, si)
+
+        # Option-level transition cache (same three-turn-type strategy as
+        # _build).
+        trans_cache = {}
+        for label, turn, tl in [("first", 1, mt),
+                                ("last", mt, 1),
+                                ("middle", 2, mt - 1 if mt > 2 else 2)]:
+            cache = {}
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            cache[(w, c, f, s)] = self._transitions(
+                                w, c, f, s, turn, tl)
+            trans_cache[label] = cache
+
+        # Backward induction: follow the will_chaos finish-vs-continue choice.
+        for tl in range(1, mt + 1):
+            turn_number = mt - tl + 1
+            if turn_number == 1:
+                tc = trans_cache["first"]
+            elif tl == 1:
+                tc = trans_cache["last"]
+            else:
+                tc = trans_cache["middle"]
+
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            trans = tc[(w, c, f, s)]
+                            for fi, si in valid_pairs:
+                                dests = self._change_dests[(fi, si)]
+                                nd = len(dests)
+                                finish_w = wc_finish(w, c, f, s)
+                                finish_s = self._gem_value_idx(
+                                    w, c, f, s, fi, si)
+                                proc_w = 0.0
+                                proc_s = 0.0
+                                for (p, key, _kind,
+                                     nw, nc, nf, ns) in trans:
+                                    proc_w += p * self._post_val_in(
+                                        dp_w, key, nw, nc, nf, ns,
+                                        fi, si, dests, nd, tl - 1)
+                                    proc_s += p * self._post_val_in(
+                                        dp_s, key, nw, nc, nf, ns,
+                                        fi, si, dests, nd, tl - 1)
+                                if finish_w >= proc_w:
+                                    dp_w[(w, c, f, s, fi, si, tl)] = finish_w
+                                    dp_s[(w, c, f, s, fi, si, tl)] = finish_s
+                                else:
+                                    dp_w[(w, c, f, s, fi, si, tl)] = proc_w
+                                    dp_s[(w, c, f, s, fi, si, tl)] = proc_s
 
     def _build_reroll(self) -> None:
         dp = self._dp
