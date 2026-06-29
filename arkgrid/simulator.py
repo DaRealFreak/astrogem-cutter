@@ -47,6 +47,7 @@ class GemSimulator:
             ignore_side_node_values: bool = False,
             reroll_goal: Optional[int] = None,
             reroll_goal_threshold: float = 0.0,
+            reroll_aware_value: bool = False,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -64,6 +65,10 @@ class GemSimulator:
         self.ignore_side_node_values = ignore_side_node_values
         self.reroll_goal = reroll_goal
         self.reroll_goal_threshold = reroll_goal_threshold
+        # Phase B: when True, the finish/continue/grade/maxed value oracles are
+        # built reroll-aware (max_rerolls=dp_max_rerolls) so the decision prices
+        # the value of remaining rerolls. Default False = legacy flat behavior.
+        self.reroll_aware_value = reroll_aware_value
         self._side_value_table_cache: Dict[str, SideValueTable] = {}
         self._side_value_table: Optional[SideValueTable] = None
         self._grade_value_table_cache: Dict[str, SideValueTable] = {}
@@ -221,6 +226,8 @@ class GemSimulator:
             ancient_coeff=self.ancient_coeff,
             value_mode=("will_chaos" if self.ignore_side_node_values
                         else "side"),
+            max_rerolls=(self._dp_max_rerolls
+                         if self.reroll_aware_value else 0),
         )
         self._side_value_table_cache[gem_type] = table
         return table
@@ -251,6 +258,8 @@ class GemSimulator:
             ancient_coeff=self.ancient_coeff,
             value_mode=("grade_only" if self.ignore_side_node_values
                         else "side"),
+            max_rerolls=(self._dp_max_rerolls
+                         if self.reroll_aware_value else 0),
         )
         self._grade_value_table_cache[gem_type] = table
         return table
@@ -275,6 +284,8 @@ class GemSimulator:
             relic_coeff=self.relic_coeff,
             ancient_coeff=self.ancient_coeff,
             value_mode="side",
+            max_rerolls=(self._dp_max_rerolls
+                         if self.reroll_aware_value else 0),
         )
         self._maxed_value_table_cache[gem_type] = table
         return table

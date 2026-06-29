@@ -453,14 +453,14 @@ def _maxed_hold_decision(ctx: DecisionContext, ti: TurnInput) -> Decision:
     oracle = ctx.maxed_value_table
     finish_val = oracle.gem_value(ti.state)
     process_ev = oracle.expected_value_after_click(
-        ti.state, ti.offers, ti.turns_left - 1)
+        ti.state, ti.offers, ti.turns_left - 1, rerolls=ti.rerolls)
     hand_safe = _hand_is_wc_safe(ti.offers)
     can_reroll = ti.rerolls > 0 and ti.turn != 1
     metrics = {"finish_val": finish_val, "process_ev": process_ev,
                "hand_safe": hand_safe}
 
     if can_reroll:
-        reroll_val = oracle.lookup(ti.state, ti.turns_left)
+        reroll_val = oracle.lookup(ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
         metrics["reroll_val"] = reroll_val
         best_continue = (max(reroll_val, process_ev) if hand_safe
                          else reroll_val)
@@ -543,14 +543,14 @@ def _side_value_finish_decision(
 
     finish_val = svt.gem_value(ti.state)
     process_ev = svt.expected_value_after_click(
-        ti.state, ti.offers, ti.turns_left - 1)
+        ti.state, ti.offers, ti.turns_left - 1, rerolls=ti.rerolls)
     can_reroll = ti.rerolls > 0 and ti.turn != 1
 
     if can_reroll:
         # Never finish with a free reroll in hand: `lookup()` (optimal-play
         # value) is always >= `finish_val`, so a redraw is never worse than
         # stopping. Reroll unless the offers in hand already beat a redraw.
-        reroll_val = svt.lookup(ti.state, ti.turns_left)
+        reroll_val = svt.lookup(ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
         metrics = {"finish_val": finish_val, "process_ev": process_ev,
                    "reroll_val": reroll_val}
         if reroll_val >= process_ev:
@@ -662,12 +662,12 @@ def _grade_value_decision(
     """
     finish_val = gvt.gem_value(ti.state)
     process_ev = gvt.expected_value_after_click(
-        ti.state, ti.offers, ti.turns_left - 1)
+        ti.state, ti.offers, ti.turns_left - 1, rerolls=ti.rerolls)
     can_reroll = ti.rerolls > 0 and ti.turn != 1
     metrics = {"finish_val": finish_val, "process_ev": process_ev}
 
     if can_reroll:
-        reroll_val = gvt.lookup(ti.state, ti.turns_left)
+        reroll_val = gvt.lookup(ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
         metrics["reroll_val"] = reroll_val
         best_continue = max(reroll_val, process_ev)
         if best_continue <= finish_val + _GRADE_VALUE_EPS:
