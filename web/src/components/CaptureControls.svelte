@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import { CaptureController } from '../lib/cv/captureController';
   import { syncAdvice, type AdviceSink } from '../lib/app/adviceSync';
+  import { Debouncer, RECOMPUTE_DEBOUNCE_MS } from '../lib/app/debounce';
   import { isCompleteDetection } from '../lib/app/optimize';
   import { DetectionStabilizer, detectionSignature } from '../lib/app/detectionStability';
   import { config } from '../lib/state/config.state.svelte';
@@ -47,18 +48,22 @@
   // knob edit) so the odds + recommendation reflect the new goal without waiting
   // for the next frame. No turn-log entry — the reading didn't change, the goal
   // did. The recompute is synchronous and can rebuild the DP (tens of ms), so we
-  // flip on a "recalculating" flag and defer via setTimeout: the indicator paints
-  // before the main thread blocks, and rapid edits debounce to the last change.
+  // flip on a "recalculating" flag and defer it behind a debounce: dragging a
+  // slider or holding a number-field arrow fires an `input` per step, and we
+  // only want one recompute once the player stops changing the value. The
+  // indicator paints immediately; the heavy work runs RECOMPUTE_DEBOUNCE_MS after
+  // the last edit.
+  const recomputeDebounce = new Debouncer(RECOMPUTE_DEBOUNCE_MS);
   $effect(() => {
     JSON.stringify(config.current); // deep-track every config field
     if (!untrack(() => advisor.detection)) return; // nothing committed yet
     advisor.recomputing = true;
-    const id = setTimeout(() => {
+    recomputeDebounce.schedule(() => {
       const det = advisor.detection;
       if (det) syncAdvice(det, config.current, turnLog.resetObserved, ticketRun.spent, false, sink);
       advisor.recomputing = false;
-    }, 0);
-    return () => clearTimeout(id);
+    });
+    return () => recomputeDebounce.cancel();
   });
 
   function ensure(): CaptureController {
