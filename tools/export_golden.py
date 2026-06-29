@@ -263,13 +263,14 @@ def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=Non
     svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
         min_side_coeff=min_side_coeff, relic_coeff=relic_coeff,
         ancient_coeff=ancient_coeff,
-        value_mode=("will_chaos" if ignore_side else "side"))
+        value_mode=("will_chaos" if ignore_side else "side"), max_rerolls=mr)
     gvt = SideValueTable(LastTurnGoal(), turns, pool, gem_type=gt, optimize=opt,
         min_side_coeff=0, relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
-        value_mode=("grade_only" if ignore_side else "side"))
+        value_mode=("grade_only" if ignore_side else "side"), max_rerolls=mr)
     mvt = (SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
         min_side_coeff=min_side_coeff, relic_coeff=relic_coeff,
-        ancient_coeff=ancient_coeff, value_mode="side") if ignore_side else None)
+        ancient_coeff=ancient_coeff, value_mode="side", max_rerolls=mr)
+        if ignore_side else None)
     ctx = D.DecisionContext(goal=goal, pool=pool, optimize=opt, bis_only=False,
         min_side_coeff=min_side_coeff, prob_reset_threshold=0.0,
         relic_reroll_threshold=relic_thr, force_reroll_no_progress=force_reroll,

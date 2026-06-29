@@ -449,8 +449,14 @@ class TestScenarioRelicNoEarlyFinish(unittest.TestCase):
 
 class TestScenarioRelicNoEarlyFinishBelowThreshold(unittest.TestCase):
     """Turn 8/9, will=4 chaos=5 first=1 second=1 (total=11).
-    Goal met, risky offers → early finish would trigger.
-    P(relic+) is low (need +5 in 2 turns) → override does NOT suppress.
+    Goal met; P(relic+) is low (need +5 in 2 turns) → relic override does
+    NOT suppress, so the side-value gate alone decides finish-vs-process.
+
+    Under the reroll-aware value oracle (Phase B) this hand is a near-tie:
+    process_ev (~1018) marginally beats finish_val (~1000), so the gate
+    PROCESSES rather than early-finishing (the flat oracle finished at
+    967<1000; the reroll-aware value is the more accurate one — the flat
+    table underestimates ~8% at r=0).
     """
 
     def setUp(self) -> None:
@@ -468,9 +474,12 @@ class TestScenarioRelicNoEarlyFinishBelowThreshold(unittest.TestCase):
             relic_reroll_threshold=0.3,
         )
 
-    def test_early_finish_still_triggers(self) -> None:
-        """P(relic+) from (4,5,1,1) with 2 turns is too low → early finish still fires."""
-        self.assertTrue(self.result.should_early_finish)
+    def test_reroll_aware_processes_near_tie(self) -> None:
+        """Reroll-aware value gate processes this near-tie (process_ev ~1018 >
+        finish_val ~1000) instead of early-finishing; the relic override is
+        not the deciding factor (its no-suppress behavior is covered by
+        test_relic_prob_below_threshold)."""
+        self.assertFalse(self.result.should_early_finish)
 
     def test_relic_prob_below_threshold(self) -> None:
         """Need +5 total in 2 turns — P(relic+) should be below 0.3."""

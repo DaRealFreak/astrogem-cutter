@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "c2341ce"
+  "arkgrid_sha": "b97fb16"
  },
  "records": [
   {
@@ -2863,8 +2863,8 @@
     ]
    },
    "expected": {
-    "action": "reroll",
-    "branch": "side_value_finish"
+    "action": "process",
+    "branch": "default_process"
    }
   },
   {
@@ -2892,43 +2892,6 @@
     "turns_left": 6,
     "rerolls": 1,
     "reset_available": true,
-    "offers": [
-     "will+1",
-     "will-1",
-     "chaos-1",
-     "first+1"
-    ]
-   },
-   "expected": {
-    "action": "reroll",
-    "branch": "side_value_finish"
-   }
-  },
-  {
-   "inputs": {
-    "gt": "order_stability",
-    "fe": "additional_damage",
-    "se": "brand_power",
-    "opt": "dps",
-    "g": {
-     "min_total_will_chaos": 8
-    },
-    "rarity": "rare",
-    "config": {
-     "relic_thr": 0.3
-    },
-    "turns_total": 7,
-    "dp_max_rerolls": 3,
-    "state": [
-     4,
-     5,
-     3,
-     2
-    ],
-    "turn": 7,
-    "turns_left": 1,
-    "rerolls": 0,
-    "reset_available": false,
     "offers": [
      "will+1",
      "will-1",
@@ -2965,6 +2928,43 @@
     "turn": 7,
     "turns_left": 1,
     "rerolls": 0,
+    "reset_available": false,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "action": "process",
+    "branch": "default_process"
+   }
+  },
+  {
+   "inputs": {
+    "gt": "order_stability",
+    "fe": "additional_damage",
+    "se": "brand_power",
+    "opt": "dps",
+    "g": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "config": {
+     "relic_thr": 0.3
+    },
+    "turns_total": 7,
+    "dp_max_rerolls": 3,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turn": 7,
+    "turns_left": 1,
+    "rerolls": 0,
     "reset_available": true,
     "offers": [
      "will+1",
@@ -3159,8 +3159,8 @@
     ]
    },
    "expected": {
-    "action": "finish",
-    "branch": "side_value_finish"
+    "action": "process",
+    "branch": "default_process"
    }
   },
   {
@@ -3196,8 +3196,8 @@
     ]
    },
    "expected": {
-    "action": "finish",
-    "branch": "side_value_finish"
+    "action": "process",
+    "branch": "default_process"
    }
   },
   {
@@ -4195,8 +4195,8 @@
     ]
    },
    "expected": {
-    "action": "reroll",
-    "branch": "side_value_finish"
+    "action": "process",
+    "branch": "default_process"
    }
   },
   {
@@ -4232,8 +4232,8 @@
     ]
    },
    "expected": {
-    "action": "reroll",
-    "branch": "side_value_finish"
+    "action": "process",
+    "branch": "default_process"
    }
   },
   {
@@ -5710,7 +5710,7 @@
     ]
    },
    "expected": {
-    "action": "finish",
+    "action": "reroll",
     "branch": "maxed_hold"
    }
   },
@@ -5748,7 +5748,7 @@
     ]
    },
    "expected": {
-    "action": "finish",
+    "action": "reroll",
     "branch": "maxed_hold"
    }
   },

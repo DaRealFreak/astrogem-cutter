@@ -219,19 +219,11 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     { earlyFinish: false, maxRerolls: dpMaxRerolls }
   );
 
-  // 5. Side-value table (goal-conditioned; finish/continue decisions)
+  // 5. Reroll-aware value table (goal-conditioned). Phase B: used for BOTH the
+  // finish/continue decision gate AND the displayed eValue matrix, threaded with
+  // the live reroll budget. (When dpMaxRerolls === 0 a reroll-aware build is
+  // byte-identical to a flat one.)
   const sideValueTable = new SideValueTable(goal, turnsTotal, pool, gemType, {
-    optimize,
-    minSideCoeff,
-    relicCoeff,
-    ancientCoeff,
-    valueMode: ignoreSide ? 'will_chaos' : 'side',
-  });
-
-  // 5b. Reroll-aware DISPLAY value table: identical value model to `sideValueTable`,
-  // plus the reroll dimension so the eValue matrix moves with the ticket. The
-  // DECISION path keeps using the flat `sideValueTable`; this is display-only.
-  const displayValueTable = new SideValueTable(goal, turnsTotal, pool, gemType, {
     optimize,
     minSideCoeff,
     relicCoeff,
@@ -240,16 +232,18 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     maxRerolls: dpMaxRerolls,
   });
 
-  // 6. Grade-value table (goal-independent; dead-goal decisions)
+  // 6. Grade-value table (goal-independent; dead-goal decisions), reroll-aware.
   const gradeValueTable = new SideValueTable(new LastTurnGoal(), turnsTotal, pool, gemType, {
     optimize,
     minSideCoeff: 0,
     relicCoeff,
     ancientCoeff,
     valueMode: ignoreSide ? 'grade_only' : 'side',
+    maxRerolls: dpMaxRerolls,
   });
 
-  // 7. Maxed-oracle (side-mode; only when ignoreSide is set, at will/chaos cap)
+  // 7. Maxed-oracle (side-mode; only when ignoreSide is set, at will/chaos cap),
+  // reroll-aware.
   const maxedValueTable = ignoreSide
     ? new SideValueTable(goal, turnsTotal, pool, gemType, {
         optimize,
@@ -257,6 +251,7 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
         relicCoeff,
         ancientCoeff,
         valueMode: 'side',
+        maxRerolls: dpMaxRerolls,
       })
     : null;
 
@@ -320,7 +315,10 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     _relicProbTable: relicProbTable,
     _ancientProbTable: ancientProbTable,
     _sideValueTable: sideValueTable,
-    _displayValueTable: displayValueTable,
+    // Phase B: the decision gate and the display now share one reroll-aware
+    // value table; `_displayValueTable` is kept as an alias for advise()'s
+    // eValue rows (threaded with the live reroll budget).
+    _displayValueTable: sideValueTable,
     _freshState: freshState,
   };
 }

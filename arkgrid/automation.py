@@ -915,6 +915,7 @@ def run_auto(
                         ancient_coeff=ancient_coeff,
                         value_mode=("will_chaos" if ignore_side_node_values
                                     else "side"),
+                        max_rerolls=dp_max_rerolls,
                     )
                 # Goal-independent grade-value table (trivial goal, no
                 # side-coeff floor) for dead-goal turns — built per gem type
@@ -929,6 +930,7 @@ def run_auto(
                         ancient_coeff=ancient_coeff,
                         value_mode=("grade_only" if ignore_side_node_values
                                     else "side"),
+                        max_rerolls=dp_max_rerolls,
                     )
                 # Side-mode oracle for the will/chaos cap under
                 # --ignore-side-node-values (see decision._maxed_hold_decision).
@@ -942,6 +944,7 @@ def run_auto(
                         relic_coeff=relic_coeff,
                         ancient_coeff=ancient_coeff,
                         value_mode="side",
+                        max_rerolls=dp_max_rerolls,
                     )
                 # Goal-conditioned expected side-coefficient table (grade coeffs
                 # forced to 0 -> value == E[side_coeff]) for the per-turn

@@ -47,7 +47,7 @@ class GemSimulator:
             ignore_side_node_values: bool = False,
             reroll_goal: Optional[int] = None,
             reroll_goal_threshold: float = 0.0,
-            reroll_aware_value: bool = False,
+            reroll_aware_value: bool = True,
     ) -> None:
         self.rarity = rarity
         self.goal = goal

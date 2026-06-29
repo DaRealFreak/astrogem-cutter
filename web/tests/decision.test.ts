@@ -24,6 +24,8 @@ function goalFieldsFromFixture(g: Record<string, number>): {
 }
 
 describe('decidePostRoll parity', () => {
+  // Reroll-aware value tables (Phase B) make each EngineContext build ~3-4x
+  // heavier; the parity sweep builds one per distinct config, so allow headroom.
   it('matches python action+branch for every record', () => {
     const pool = new OptionPool();
     const byKey = new Map(pool.pool.map(o => [o.key, o]));
@@ -64,7 +66,7 @@ describe('decidePostRoll parity', () => {
       expect({ action: d.action, branch: d.branch })
         .toEqual({ action: r.expected.action, branch: r.expected.branch });
     }
-  });
+  }, 180_000);
 
   // Direct assertion: verify budget formula for specific rarity+config combos.
   it('derives dpMaxRerolls=3 for epic with no extra config', () => {

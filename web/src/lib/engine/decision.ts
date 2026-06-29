@@ -363,7 +363,7 @@ function maxedHoldDecision(ctx: DecisionContext, ti: TurnInput): Decision {
   // ctx.maxedValueTable is non-null here (guarded by the caller).
   const oracle = ctx.maxedValueTable!;
   const finishVal = oracle.gemValue(ti.state);
-  const processEv = oracle.expectedValueAfterClick(ti.state, ti.offers, ti.turnsLeft - 1);
+  const processEv = oracle.expectedValueAfterClick(ti.state, ti.offers, ti.turnsLeft - 1, ti.rerolls);
   const handSafe = handIsWcSafe(ti.offers);
   const canReroll = ti.rerolls > 0 && ti.turn !== 1;
   const metrics: Record<string, unknown> = {
@@ -373,7 +373,7 @@ function maxedHoldDecision(ctx: DecisionContext, ti: TurnInput): Decision {
   };
 
   if (canReroll) {
-    const rerollVal = oracle.lookup(ti.state, ti.turnsLeft);
+    const rerollVal = oracle.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
     metrics['reroll_val'] = rerollVal;
     const bestContinue = handSafe ? Math.max(rerollVal, processEv) : rerollVal;
     if (bestContinue <= finishVal + GRADE_VALUE_EPS) {
@@ -437,12 +437,12 @@ function sideValueFinishDecision(
   }
 
   const finishVal = svt.gemValue(ti.state);
-  const processEv = svt.expectedValueAfterClick(ti.state, ti.offers, ti.turnsLeft - 1);
+  const processEv = svt.expectedValueAfterClick(ti.state, ti.offers, ti.turnsLeft - 1, ti.rerolls);
   const canReroll = ti.rerolls > 0 && ti.turn !== 1;
 
   if (canReroll) {
     // Never finish with a free reroll in hand.
-    const rerollVal = svt.lookup(ti.state, ti.turnsLeft);
+    const rerollVal = svt.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
     const metrics = { finish_val: finishVal, process_ev: processEv, reroll_val: rerollVal };
     if (rerollVal >= processEv) {
       return makeDecision({
@@ -548,12 +548,12 @@ function gradeValueDecision(
   reason: string
 ): Decision {
   const finishVal = gvt.gemValue(ti.state);
-  const processEv = gvt.expectedValueAfterClick(ti.state, ti.offers, ti.turnsLeft - 1);
+  const processEv = gvt.expectedValueAfterClick(ti.state, ti.offers, ti.turnsLeft - 1, ti.rerolls);
   const canReroll = ti.rerolls > 0 && ti.turn !== 1;
   const metrics: Record<string, unknown> = { finish_val: finishVal, process_ev: processEv };
 
   if (canReroll) {
-    const rerollVal = gvt.lookup(ti.state, ti.turnsLeft);
+    const rerollVal = gvt.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
     metrics['reroll_val'] = rerollVal;
     const bestContinue = Math.max(rerollVal, processEv);
     if (bestContinue <= finishVal + GRADE_VALUE_EPS) {
