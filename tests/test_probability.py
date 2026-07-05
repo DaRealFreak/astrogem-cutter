@@ -68,11 +68,14 @@ class TestGoalProbabilityTable(unittest.TestCase):
         s = GemState(will=2, chaos=2, first=2, second=2)
         self.assertAlmostEqual(self.table.lookup(s, 0), 0.0)
 
-    def test_build_time_under_100ms(self) -> None:
+    def test_build_time_under_300ms(self) -> None:
+        # ~65-75ms idle since the cost-saturation dimension doubled the state
+        # space; the bound leaves headroom for a loaded machine (the old
+        # 100ms bound flaked under full-suite parallel load).
         t0 = time.perf_counter()
         GoalProbabilityTable(self.goal, 9, self.pool)
         elapsed = time.perf_counter() - t0
-        self.assertLess(elapsed, 0.1, f"Build took {elapsed:.3f}s")
+        self.assertLess(elapsed, 0.3, f"Build took {elapsed:.3f}s")
 
     def test_expected_prob_after_click(self) -> None:
         s = GemState(will=3, chaos=4, first=2, second=2)
@@ -406,7 +409,9 @@ class TestSideValueTable(unittest.TestCase):
         self.assertGreater(ev, 0.0)
         fi, si = t._effect_indices(st)
         dests = t._change_dests[(fi, si)]
-        cfe = sum(t._dp[(4, 4, 3, 3, 0, d, si, 4)] for d in dests) / len(dests)
+        from arkgrid.probability import _s625
+        cfe = sum(t._dp[t._idx(_s625(4, 4, 3, 3), 0, d * 4 + si, 0, 4)]
+                  for d in dests) / len(dests)
         rest = sum(t.lookup(_apply(st, o), 4) for o in offers[1:])
         self.assertAlmostEqual(ev, (cfe + rest) / 4, places=3)
 

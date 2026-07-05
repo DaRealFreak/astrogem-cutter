@@ -44,6 +44,16 @@ def _e_max(mu: float, sd: float, t: float) -> float:
     return t + (mu - t) * _norm_cdf(d) + sd * _norm_pdf(d)
 
 
+def _s625(w: int, c: int, f: int, s: int) -> int:
+    """Dense 0..624 index over the 4 stat levels (each 1..5).
+
+    The DP lives in flat lists indexed arithmetically — the dense state
+    space makes tuple-keyed dicts needlessly slow (tuple hashing used to
+    dominate the build time; the flat layout cut builds ~10x).
+    """
+    return (((w - 1) * 5 + (c - 1)) * 5 + (f - 1)) * 5 + (s - 1)
+
+
 class GoalProbabilityTable:
     """Precomputed P(reach goal | will, chaos, first, second, turns_left).
 
@@ -114,7 +124,21 @@ class GoalProbabilityTable:
             self._effect_coeffs = ()
             self._change_dests = {}
 
-        self._dp: Dict[tuple, float] = {}
+        # Flat DP storage. Index layout: (state625, cs, ea, r, tl) where
+        # ea = fi*4+si (effect-aware), ft*2+st (BIS), or 0 (standard).
+        if self.effect_aware:
+            self._ea_dim = 16
+        elif self.bis_only:
+            self._ea_dim = 4
+        else:
+            self._ea_dim = 1
+        reroll_dimensioned = max_rerolls > 0 and (self.effect_aware
+                                                  or not self.bis_only)
+        self._r_dim = max_rerolls + 1 if reroll_dimensioned else 1
+        self._tl_dim = max_turns + 1
+        # Unwritten slots stay 0.0, matching the old dict's .get(key, 0.0).
+        self._dp: List[float] = [0.0] * (
+            625 * 2 * self._ea_dim * self._r_dim * self._tl_dim)
         if self.effect_aware:
             if max_rerolls > 0:
                 self._build_effect_aware_with_rerolls()
@@ -126,6 +150,11 @@ class GoalProbabilityTable:
             self._build_bis()
         else:
             self._build()
+
+    def _idx(self, st: int, cs: int, ea: int, r: int, tl: int) -> int:
+        """Flat-list index; see the layout note in __init__."""
+        return (((st * 2 + cs) * self._ea_dim + ea)
+                * self._r_dim + r) * self._tl_dim + tl
 
     # ------------------------------------------------------------------
     # Transition helpers (option probability assignment)
@@ -141,8 +170,10 @@ class GoalProbabilityTable:
     # ------------------------------------------------------------------
 
     def _transitions(self, w: int, c: int, f: int, s: int, cs: int,
-                     turn: int, turns_left: int) -> Dict[Tuple[int, int, int, int, int], float]:
-        """Return {(nw, nc, nf, ns, ncs): probability} for one turn.
+                     turn: int, turns_left: int) -> List[List[float]]:
+        """Return [[prob, nw, nc, nf, ns, ncs], ...] for one turn, with
+        duplicate destinations merged in first-occurrence order (same float
+        summation order as the old dict aggregation).
 
         `cs` is the cost-saturation flag (1 when cost_ratio is at ±100).
         The two saturated states are symmetric — each excludes one of the
@@ -156,10 +187,11 @@ class GoalProbabilityTable:
         eligible = [o for o in self.pool.pool
                     if self.pool.eligible(o, state, turn, turns_left)]
         if not eligible:
-            return {(w, c, f, s, cs): 1.0}
+            return [[1.0, w, c, f, s, cs]]
 
         probs = self._option_probs(eligible)
-        dest: Dict[Tuple[int, int, int, int, int], float] = {}
+        result: List[List[float]] = []
+        seen: Dict[int, int] = {}
         for p, o in zip(probs, eligible):
             nw, nc, nf, ns, ncs = w, c, f, s, cs
             if o.kind == "will":
@@ -173,9 +205,14 @@ class GoalProbabilityTable:
             elif o.kind == "cost":
                 ncs = 1 - cs
             # view/other/maintain -> no state change
-            key = (nw, nc, nf, ns, ncs)
-            dest[key] = dest.get(key, 0.0) + p
-        return dest
+            packed = _s625(nw, nc, nf, ns) * 2 + ncs
+            at = seen.get(packed)
+            if at is not None:
+                result[at][0] += p
+            else:
+                seen[packed] = len(result)
+                result.append([p, nw, nc, nf, ns, ncs])
+        return result
 
     def _coeff_satisfied(self, f: int, s: int,
                          ft: int = 1, st: int = 1) -> bool:
@@ -196,23 +233,23 @@ class GoalProbabilityTable:
                     for s in range(1, 6):
                         sat = 1.0 if (self.goal.satisfied(w, c, f, s)
                                       and self._coeff_satisfied(f, s)) else 0.0
+                        st = _s625(w, c, f, s)
                         for cs in (0, 1):
-                            dp[(w, c, f, s, cs, 0)] = sat
+                            dp[self._idx(st, cs, 0, 0, 0)] = sat
 
-        # Precompute transition tables for three turn types x cost states.
-        trans_cache: Dict[Tuple[str, int], Dict[Tuple[int, int, int, int],
-                                                Dict[Tuple[int, int, int, int, int], float]]] = {}
+        # Precompute transition tables for three turn types x cost states,
+        # indexed by state625.
+        trans_cache: Dict[Tuple[str, int], List[List[List[float]]]] = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache: Dict[Tuple[int, int, int, int],
-                            Dict[Tuple[int, int, int, int, int], float]] = {}
+                cache: List[List[List[float]]] = [None] * 625  # type: ignore[list-item]
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = self._transitions(
+                                cache[_s625(w, c, f, s)] = self._transitions(
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
@@ -230,18 +267,19 @@ class GoalProbabilityTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            st = _s625(w, c, f, s)
                             if (self.early_finish
                                     and self.goal.satisfied(w, c, f, s)
                                     and self._coeff_satisfied(f, s)):
                                 for cs in (0, 1):
-                                    dp[(w, c, f, s, cs, tl)] = 1.0
+                                    dp[self._idx(st, cs, 0, 0, tl)] = 1.0
                                 continue
                             for cs in (0, 1):
-                                tc = trans_cache[(label, cs)]
                                 val = 0.0
-                                for (nw, nc, nf, ns, ncs), p in tc[(w, c, f, s)].items():
-                                    val += p * dp[(nw, nc, nf, ns, ncs, tl - 1)]
-                                dp[(w, c, f, s, cs, tl)] = val
+                                for p, nw, nc, nf, ns, ncs in trans_cache[(label, cs)][st]:
+                                    val += p * dp[self._idx(
+                                        _s625(nw, nc, nf, ns), ncs, 0, 0, tl - 1)]
+                                dp[self._idx(st, cs, 0, 0, tl)] = val
 
     # ------------------------------------------------------------------
     # Reroll-aware transitions and build
@@ -311,24 +349,25 @@ class GoalProbabilityTable:
                     for s in range(1, 6):
                         sat = 1.0 if (self.goal.satisfied(w, c, f, s)
                                       and self._coeff_satisfied(f, s)) else 0.0
+                        st = _s625(w, c, f, s)
                         for cs in (0, 1):
                             for r in range(0, max_r + 1):
-                                dp[(w, c, f, s, cs, r, 0)] = sat
+                                dp[self._idx(st, cs, 0, r, 0)] = sat
 
-        # Precompute transition tables (with view deltas) per cost state
+        # Precompute transition tables (with view deltas) per cost state,
+        # indexed by state625.
         TransEntry = List[Tuple[float, int, int, int, int, int, int]]
-        trans_cache: Dict[Tuple[str, int],
-                          Dict[Tuple[int, int, int, int], TransEntry]] = {}
+        trans_cache: Dict[Tuple[str, int], List[TransEntry]] = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache: Dict[Tuple[int, int, int, int], TransEntry] = {}
+                cache: List[TransEntry] = [None] * 625  # type: ignore[list-item]
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = self._transitions_reroll(
+                                cache[_s625(w, c, f, s)] = self._transitions_reroll(
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
@@ -346,32 +385,35 @@ class GoalProbabilityTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans = trans_cache[(label, cs)][(w, c, f, s)]
+                                trans = trans_cache[(label, cs)][st]
                                 for r in range(0, max_r + 1):
                                     if (self.early_finish
                                             and self.goal.satisfied(w, c, f, s)
                                             and self._coeff_satisfied(f, s)):
-                                        dp[(w, c, f, s, cs, r, tl)] = 1.0
+                                        dp[self._idx(st, cs, 0, r, tl)] = 1.0
                                         continue
 
                                     # Reroll decision uses per-option max:
                                     # for each possible draw, keep if better
                                     # than rerolling, otherwise reroll.
                                     if r > 0 and turn_number != 1:
-                                        reroll_val = dp[(w, c, f, s, cs, r - 1, tl)]
+                                        reroll_val = dp[self._idx(st, cs, 0, r - 1, tl)]
                                         val = 0.0
                                         for (p, nw, nc, nf, ns, ncs, vd) in trans:
                                             nr = min(max_r, r + vd)
-                                            post = dp[(nw, nc, nf, ns, ncs, nr, tl - 1)]
+                                            post = dp[self._idx(
+                                                _s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]
                                             val += p * max(post, reroll_val)
-                                        dp[(w, c, f, s, cs, r, tl)] = val
+                                        dp[self._idx(st, cs, 0, r, tl)] = val
                                     else:
                                         val = 0.0
                                         for (p, nw, nc, nf, ns, ncs, vd) in trans:
                                             nr = min(max_r, r + vd)
-                                            val += p * dp[(nw, nc, nf, ns, ncs, nr, tl - 1)]
-                                        dp[(w, c, f, s, cs, r, tl)] = val
+                                            val += p * dp[self._idx(
+                                                _s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]
+                                        dp[self._idx(st, cs, 0, r, tl)] = val
 
     # ------------------------------------------------------------------
     # BIS-aware transitions and build
@@ -388,16 +430,29 @@ class GoalProbabilityTable:
     def _transitions_bis(
         self, w: int, c: int, f: int, s: int, cs: int, ft: int, st: int,
         turn: int, turns_left: int,
-    ) -> Dict[Tuple[int, int, int, int, int, int, int], float]:
+    ) -> List[List[float]]:
+        """Return [[prob, nw, nc, nf, ns, ncs, nft, nst], ...] with duplicate
+        destinations merged in first-occurrence order."""
         state = GemState(will=w, chaos=c, first=f, second=s,
                          cost_ratio=100 if cs else 0)
         eligible = [o for o in self.pool.pool
                     if self.pool.eligible(o, state, turn, turns_left)]
         if not eligible:
-            return {(w, c, f, s, cs, ft, st): 1.0}
+            return [[1.0, w, c, f, s, cs, ft, st]]
 
         probs = self._option_probs(eligible)
-        dest: Dict[Tuple[int, int, int, int, int, int, int], float] = {}
+        result: List[List[float]] = []
+        seen: Dict[int, int] = {}
+
+        def add(p: float, nw: int, nc: int, nf: int, ns: int,
+                ncs: int, nft: int, nst: int) -> None:
+            packed = ((_s625(nw, nc, nf, ns) * 2 + ncs) * 2 + nft) * 2 + nst
+            at = seen.get(packed)
+            if at is not None:
+                result[at][0] += p
+            else:
+                seen[packed] = len(result)
+                result.append([p, nw, nc, nf, ns, ncs, nft, nst])
 
         for p, o in zip(probs, eligible):
             nw, nc, nf, ns, ncs = w, c, f, s, cs
@@ -417,26 +472,21 @@ class GoalProbabilityTable:
                 # Probabilistic transition for ft
                 p_target = (2 - ft - st) / 2.0
                 if p_target > 0:
-                    k1 = (nw, nc, nf, ns, ncs, 1, nst)
-                    dest[k1] = dest.get(k1, 0.0) + p * p_target
+                    add(p * p_target, nw, nc, nf, ns, ncs, 1, nst)
                 if p_target < 1:
-                    k0 = (nw, nc, nf, ns, ncs, 0, nst)
-                    dest[k0] = dest.get(k0, 0.0) + p * (1 - p_target)
-                continue  # already added to dest
+                    add(p * (1 - p_target), nw, nc, nf, ns, ncs, 0, nst)
+                continue  # already added
             elif o.key == "change_second_effect":
                 p_target = (2 - ft - st) / 2.0
                 if p_target > 0:
-                    k1 = (nw, nc, nf, ns, ncs, nft, 1)
-                    dest[k1] = dest.get(k1, 0.0) + p * p_target
+                    add(p * p_target, nw, nc, nf, ns, ncs, nft, 1)
                 if p_target < 1:
-                    k0 = (nw, nc, nf, ns, ncs, nft, 0)
-                    dest[k0] = dest.get(k0, 0.0) + p * (1 - p_target)
+                    add(p * (1 - p_target), nw, nc, nf, ns, ncs, nft, 0)
                 continue
 
-            key = (nw, nc, nf, ns, ncs, nft, nst)
-            dest[key] = dest.get(key, 0.0) + p
+            add(p, nw, nc, nf, ns, ncs, nft, nst)
 
-        return dest
+        return result
 
     def _build_bis(self) -> None:
         dp = self._dp
@@ -450,6 +500,7 @@ class GoalProbabilityTable:
             for c in range(1, 6):
                 for f in range(1, 6):
                     for s in range(1, 6):
+                        stx = _s625(w, c, f, s)
                         for ft in ft_range:
                             for st in st_range:
                                 # BIS: success requires targets + goal + coefficient
@@ -457,24 +508,23 @@ class GoalProbabilityTable:
                                 sat = 1.0 if (goal_sat and ft == 1 and st == 1
                                               and self._coeff_satisfied(f, s, ft, st)) else 0.0
                                 for cs in (0, 1):
-                                    dp[(w, c, f, s, cs, ft, st, 0)] = sat
+                                    dp[self._idx(stx, cs, ft * 2 + st, 0, 0)] = sat
 
-        # Precompute transition tables per cost state
-        StateKey = Tuple[int, int, int, int, int, int]
-        DestKey = Tuple[int, int, int, int, int, int, int]
-        trans_cache: Dict[Tuple[str, int], Dict[StateKey, Dict[DestKey, float]]] = {}
+        # Precompute transition tables per cost state, indexed by
+        # state625 * 4 + ft*2+st.
+        trans_cache: Dict[Tuple[str, int], List[List[List[float]]]] = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache: Dict[StateKey, Dict[DestKey, float]] = {}
+                cache: List[List[List[float]]] = [None] * (625 * 4)  # type: ignore[list-item]
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
                                 for ft in ft_range:
                                     for st in st_range:
-                                        cache[(w, c, f, s, ft, st)] = \
+                                        cache[_s625(w, c, f, s) * 4 + ft * 2 + st] = \
                                             self._transitions_bis(
                                                 w, c, f, s, cs, ft, st, turn, tl)
                 trans_cache[(label, cs)] = cache
@@ -493,6 +543,7 @@ class GoalProbabilityTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            stx = _s625(w, c, f, s)
                             for cs in (0, 1):
                                 tc = trans_cache[(label, cs)]
                                 for ft in ft_range:
@@ -501,14 +552,15 @@ class GoalProbabilityTable:
                                                 and self.goal.satisfied(w, c, f, s)
                                                 and ft == 1 and st == 1
                                                 and self._coeff_satisfied(f, s, ft, st)):
-                                            dp[(w, c, f, s, cs, ft, st, tl)] = 1.0
+                                            dp[self._idx(stx, cs, ft * 2 + st, 0, tl)] = 1.0
                                             continue
                                         val = 0.0
-                                        for dest_key, p in tc[(w, c, f, s, ft, st)].items():
-                                            nw, nc, nf, ns, ncs, nft, nst = dest_key
-                                            val += p * dp[(nw, nc, nf, ns, ncs,
-                                                           nft, nst, tl - 1)]
-                                        dp[(w, c, f, s, cs, ft, st, tl)] = val
+                                        for (p, nw, nc, nf, ns,
+                                             ncs, nft, nst) in tc[stx * 4 + ft * 2 + st]:
+                                            val += p * dp[self._idx(
+                                                _s625(nw, nc, nf, ns), ncs,
+                                                nft * 2 + nst, 0, tl - 1)]
+                                        dp[self._idx(stx, cs, ft * 2 + st, 0, tl)] = val
 
     # ------------------------------------------------------------------
     # Effect-aware transitions and build
@@ -578,30 +630,31 @@ class GoalProbabilityTable:
                 for f in range(1, 6):
                     for s in range(1, 6):
                         goal_sat = self.goal.satisfied(w, c, f, s)
+                        st = _s625(w, c, f, s)
                         for fi, si in valid_pairs:
                             sat = 1.0 if (goal_sat
                                           and self._coeff_satisfied_idx(
                                               f, s, fi, si)) else 0.0
                             for cs in (0, 1):
-                                dp[(w, c, f, s, cs, fi, si, 0)] = sat
+                                dp[self._idx(st, cs, fi * 4 + si, 0, 0)] = sat
 
-        # Precompute option-level transition tables (independent of fi/si)
+        # Precompute option-level transition tables (independent of fi/si),
+        # indexed by state625.
         trans_cache: Dict[Tuple[str, int],
-                          Dict[Tuple[int, int, int, int],
-                               List[Tuple[float, str, str,
+                          List[List[Tuple[float, str, str,
                                           int, int, int, int, int, int]]]] = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache: Dict[Tuple[int, int, int, int],
-                            List[Tuple[float, str, str,
-                                       int, int, int, int, int, int]]] = {}
+                cache: List[List[Tuple[float, str, str,
+                                       int, int, int, int, int, int]]] = \
+                    [None] * 625  # type: ignore[list-item]
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = \
+                                cache[_s625(w, c, f, s)] = \
                                     self._effect_aware_transitions(
                                         w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
@@ -621,33 +674,35 @@ class GoalProbabilityTable:
                     for f in range(1, 6):
                         for s in range(1, 6):
                             goal_sat = self.goal.satisfied(w, c, f, s)
+                            st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans = trans_cache[(label, cs)][(w, c, f, s)]
+                                trans = trans_cache[(label, cs)][st]
                                 for fi, si in valid_pairs:
                                     if (self.early_finish and goal_sat
                                             and self._coeff_satisfied_idx(
                                                 f, s, fi, si)):
-                                        dp[(w, c, f, s, cs, fi, si, tl)] = 1.0
+                                        dp[self._idx(st, cs, fi * 4 + si, 0, tl)] = 1.0
                                         continue
                                     dests = self._change_dests[(fi, si)]
                                     n_dests = len(dests)  # always 2
                                     val = 0.0
                                     for (p, key, _kind,
                                          nw, nc, nf, ns, ncs, _vd) in trans:
+                                        nst = _s625(nw, nc, nf, ns)
                                         if key == "change_first_effect":
                                             for new_fi in dests:
-                                                val += (p / n_dests) * dp[
-                                                    (nw, nc, nf, ns, ncs,
-                                                     new_fi, si, tl - 1)]
+                                                val += (p / n_dests) * dp[self._idx(
+                                                    nst, ncs, new_fi * 4 + si,
+                                                    0, tl - 1)]
                                         elif key == "change_second_effect":
                                             for new_si in dests:
-                                                val += (p / n_dests) * dp[
-                                                    (nw, nc, nf, ns, ncs,
-                                                     fi, new_si, tl - 1)]
+                                                val += (p / n_dests) * dp[self._idx(
+                                                    nst, ncs, fi * 4 + new_si,
+                                                    0, tl - 1)]
                                         else:
-                                            val += p * dp[(nw, nc, nf, ns, ncs,
-                                                           fi, si, tl - 1)]
-                                    dp[(w, c, f, s, cs, fi, si, tl)] = val
+                                            val += p * dp[self._idx(
+                                                nst, ncs, fi * 4 + si, 0, tl - 1)]
+                                    dp[self._idx(st, cs, fi * 4 + si, 0, tl)] = val
 
     def _build_effect_aware_with_rerolls(self) -> None:
         """Effect-aware DP extended with reroll count as extra state dim."""
@@ -662,30 +717,30 @@ class GoalProbabilityTable:
                 for f in range(1, 6):
                     for s in range(1, 6):
                         goal_sat = self.goal.satisfied(w, c, f, s)
+                        st = _s625(w, c, f, s)
                         for fi, si in valid_pairs:
                             sat = 1.0 if (goal_sat
                                           and self._coeff_satisfied_idx(
                                               f, s, fi, si)) else 0.0
                             for cs in (0, 1):
                                 for r in range(0, max_r + 1):
-                                    dp[(w, c, f, s, cs, fi, si, r, 0)] = sat
+                                    dp[self._idx(st, cs, fi * 4 + si, r, 0)] = sat
 
         trans_cache: Dict[Tuple[str, int],
-                          Dict[Tuple[int, int, int, int],
-                               List[Tuple[float, str, str,
+                          List[List[Tuple[float, str, str,
                                           int, int, int, int, int, int]]]] = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache: Dict[Tuple[int, int, int, int],
-                            List[Tuple[float, str, str,
-                                       int, int, int, int, int, int]]] = {}
+                cache: List[List[Tuple[float, str, str,
+                                       int, int, int, int, int, int]]] = \
+                    [None] * 625  # type: ignore[list-item]
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = \
+                                cache[_s625(w, c, f, s)] = \
                                     self._effect_aware_transitions(
                                         w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
@@ -705,57 +760,62 @@ class GoalProbabilityTable:
                     for f in range(1, 6):
                         for s in range(1, 6):
                             goal_sat = self.goal.satisfied(w, c, f, s)
+                            st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans = trans_cache[(label, cs)][(w, c, f, s)]
+                                trans = trans_cache[(label, cs)][st]
                                 for fi, si in valid_pairs:
                                     dests = self._change_dests[(fi, si)]
                                     n_dests = len(dests)
+                                    ea = fi * 4 + si
+
+                                    # Keep-value: expected value of the
+                                    # 4-draw-pick-1 outcome
+                                    def post_val(key, nst, ncs, nr):
+                                        if key == "change_first_effect":
+                                            v = 0.0
+                                            for new_fi in dests:
+                                                v += dp[self._idx(
+                                                    nst, ncs, new_fi * 4 + si,
+                                                    nr, tl - 1)] / n_dests
+                                            return v
+                                        if key == "change_second_effect":
+                                            v = 0.0
+                                            for new_si in dests:
+                                                v += dp[self._idx(
+                                                    nst, ncs, fi * 4 + new_si,
+                                                    nr, tl - 1)] / n_dests
+                                            return v
+                                        return dp[self._idx(
+                                            nst, ncs, ea, nr, tl - 1)]
+
                                     for r in range(0, max_r + 1):
                                         if (self.early_finish and goal_sat
                                                 and self._coeff_satisfied_idx(
                                                     f, s, fi, si)):
-                                            dp[(w, c, f, s, cs, fi, si, r, tl)] = 1.0
+                                            dp[self._idx(st, cs, ea, r, tl)] = 1.0
                                             continue
 
-                                        # Compute keep-value: expected value
-                                        # of the 4-draw-pick-1 outcome
-                                        def post_val(key, nw, nc, nf, ns, ncs, nr):
-                                            if key == "change_first_effect":
-                                                v = 0.0
-                                                for new_fi in dests:
-                                                    v += dp[(nw, nc, nf, ns, ncs,
-                                                             new_fi, si, nr,
-                                                             tl - 1)] / n_dests
-                                                return v
-                                            if key == "change_second_effect":
-                                                v = 0.0
-                                                for new_si in dests:
-                                                    v += dp[(nw, nc, nf, ns, ncs,
-                                                             fi, new_si, nr,
-                                                             tl - 1)] / n_dests
-                                                return v
-                                            return dp[(nw, nc, nf, ns, ncs,
-                                                       fi, si, nr, tl - 1)]
-
                                         if r > 0 and turn_number != 1:
-                                            reroll_val = dp[
-                                                (w, c, f, s, cs, fi, si, r - 1, tl)]
+                                            reroll_val = dp[self._idx(
+                                                st, cs, ea, r - 1, tl)]
                                             val = 0.0
                                             for (p, key, _kind,
                                                  nw, nc, nf, ns, ncs, vd) in trans:
                                                 nr = min(max_r, r + vd)
-                                                post = post_val(key, nw, nc,
-                                                                nf, ns, ncs, nr)
+                                                post = post_val(
+                                                    key, _s625(nw, nc, nf, ns),
+                                                    ncs, nr)
                                                 val += p * max(post, reroll_val)
-                                            dp[(w, c, f, s, cs, fi, si, r, tl)] = val
+                                            dp[self._idx(st, cs, ea, r, tl)] = val
                                         else:
                                             val = 0.0
                                             for (p, key, _kind,
                                                  nw, nc, nf, ns, ncs, vd) in trans:
                                                 nr = min(max_r, r + vd)
                                                 val += p * post_val(
-                                                    key, nw, nc, nf, ns, ncs, nr)
-                                            dp[(w, c, f, s, cs, fi, si, r, tl)] = val
+                                                    key, _s625(nw, nc, nf, ns),
+                                                    ncs, nr)
+                                            dp[self._idx(st, cs, ea, r, tl)] = val
 
     def _effect_indices(self, state: GemState) -> Optional[Tuple[int, int]]:
         """Translate state.first_effect/second_effect to (fi, si) indices."""
@@ -774,35 +834,26 @@ class GoalProbabilityTable:
 
     def lookup(self, state: GemState, turns_left: int,
                rerolls: Optional[int] = None) -> float:
+        if turns_left < 0 or turns_left >= self._tl_dim:
+            return 0.0
         cs = 1 if state.cost_ratio != 0 else 0
+        stx = _s625(state.will, state.chaos, state.first, state.second)
         if self.effect_aware:
             idx = self._effect_indices(state)
             if idx is None:
                 return 0.0
             fi, si = idx
-            w, c, f, s = (state.will, state.chaos,
-                          state.first, state.second)
-            if self._max_rerolls > 0:
-                r = min(self._max_rerolls,
-                        rerolls if rerolls is not None else 0)
-                return self._dp.get(
-                    (w, c, f, s, cs, fi, si, r, turns_left), 0.0)
-            return self._dp.get(
-                (w, c, f, s, cs, fi, si, turns_left), 0.0)
+            r = (min(self._max_rerolls, rerolls if rerolls is not None else 0)
+                 if self._max_rerolls > 0 else 0)
+            return self._dp[self._idx(stx, cs, fi * 4 + si, r, turns_left)]
         if self._max_rerolls > 0 and not self.bis_only:
             r = min(self._max_rerolls, rerolls if rerolls is not None else 0)
-            return self._dp.get(
-                (state.will, state.chaos, state.first, state.second,
-                 cs, r, turns_left), 0.0)
+            return self._dp[self._idx(stx, cs, 0, r, turns_left)]
         if self.bis_only:
             ft = 1 if state.first_effect in self._target_effects else 0
             st = 1 if state.second_effect in self._target_effects else 0
-            return self._dp.get(
-                (state.will, state.chaos, state.first, state.second,
-                 cs, ft, st, turns_left), 0.0)
-        return self._dp.get(
-            (state.will, state.chaos, state.first, state.second,
-             cs, turns_left), 0.0)
+            return self._dp[self._idx(stx, cs, ft * 2 + st, 0, turns_left)]
+        return self._dp[self._idx(stx, cs, 0, 0, turns_left)]
 
     def lookup_bis_averaged(self, turns_left: int,
                             w: int = 1, c: int = 1,
@@ -813,11 +864,14 @@ class GoalProbabilityTable:
         P(ft=0,st=0)=1/6.  Derived from drawing 2 effects without
         replacement from a pool of 2 target + 2 non-target.
         """
+        if turns_left < 0 or turns_left >= self._tl_dim:
+            return 0.0
         dp = self._dp
-        return (dp.get((w, c, f, s, 0, 1, 1, turns_left), 0.0) / 6
-                + dp.get((w, c, f, s, 0, 1, 0, turns_left), 0.0) / 3
-                + dp.get((w, c, f, s, 0, 0, 1, turns_left), 0.0) / 3
-                + dp.get((w, c, f, s, 0, 0, 0, turns_left), 0.0) / 6)
+        stx = _s625(w, c, f, s)
+        return (dp[self._idx(stx, 0, 3, 0, turns_left)] / 6
+                + dp[self._idx(stx, 0, 2, 0, turns_left)] / 3
+                + dp[self._idx(stx, 0, 1, 0, turns_left)] / 3
+                + dp[self._idx(stx, 0, 0, 0, turns_left)] / 6)
 
     def lookup_after_effect_change(
         self, state: GemState, slot: str, turns_left: int,
@@ -830,18 +884,20 @@ class GoalProbabilityTable:
         if not self.bis_only:
             return self.lookup(state, turns_left)
 
+        if turns_left < 0 or turns_left >= self._tl_dim:
+            return 0.0
         ft = 1 if state.first_effect in self._target_effects else 0
         st = 1 if state.second_effect in self._target_effects else 0
         p_target = (2 - ft - st) / 2.0
-        w, c, f, s = state.will, state.chaos, state.first, state.second
+        stx = _s625(state.will, state.chaos, state.first, state.second)
         cs = 1 if state.cost_ratio != 0 else 0
 
         if slot == "first":
-            p_good = self._dp.get((w, c, f, s, cs, 1, st, turns_left), 0.0)
-            p_bad = self._dp.get((w, c, f, s, cs, 0, st, turns_left), 0.0)
+            p_good = self._dp[self._idx(stx, cs, 2 + st, 0, turns_left)]
+            p_bad = self._dp[self._idx(stx, cs, st, 0, turns_left)]
         else:
-            p_good = self._dp.get((w, c, f, s, cs, ft, 1, turns_left), 0.0)
-            p_bad = self._dp.get((w, c, f, s, cs, ft, 0, turns_left), 0.0)
+            p_good = self._dp[self._idx(stx, cs, ft * 2 + 1, 0, turns_left)]
+            p_bad = self._dp[self._idx(stx, cs, ft * 2, 0, turns_left)]
 
         return p_target * p_good + (1 - p_target) * p_bad
 
@@ -855,12 +911,15 @@ class GoalProbabilityTable:
         over the 2 non-equipped destinations (matching the transition model)
         — `Option.resolved_effect` is never consulted here.
         """
+        if turns_left_after < 0 or turns_left_after >= self._tl_dim:
+            return 0.0
         nw = min(5, max(1, state.will + o.delta)) if o.kind == "will" else state.will
         nc = min(5, max(1, state.chaos + o.delta)) if o.kind == "chaos" else state.chaos
         nf = min(5, max(1, state.first + o.delta)) if o.kind == "first" else state.first
         ns = min(5, max(1, state.second + o.delta)) if o.kind == "second" else state.second
         cs = 1 if state.cost_ratio != 0 else 0
         ncs = (1 - cs) if o.kind == "cost" else cs
+        nst = _s625(nw, nc, nf, ns)
 
         if self.effect_aware:
             idx = self._effect_indices(state)
@@ -875,26 +934,22 @@ class GoalProbabilityTable:
             if o.key == "change_first_effect":
                 v = 0.0
                 for new_fi in dests:
-                    v += self._dp_lookup_ea(nw, nc, nf, ns, ncs,
-                                            new_fi, si, nr,
-                                            turns_left_after) / n_dests
+                    v += self._dp[self._idx(nst, ncs, new_fi * 4 + si, nr,
+                                            turns_left_after)] / n_dests
                 return v
             if o.key == "change_second_effect":
                 v = 0.0
                 for new_si in dests:
-                    v += self._dp_lookup_ea(nw, nc, nf, ns, ncs,
-                                            fi, new_si, nr,
-                                            turns_left_after) / n_dests
+                    v += self._dp[self._idx(nst, ncs, fi * 4 + new_si, nr,
+                                            turns_left_after)] / n_dests
                 return v
-            return self._dp_lookup_ea(nw, nc, nf, ns, ncs,
-                                      fi, si, nr,
-                                      turns_left_after)
+            return self._dp[self._idx(nst, ncs, fi * 4 + si, nr,
+                                      turns_left_after)]
         if self._max_rerolls > 0 and not self.bis_only:
             r = rerolls if rerolls is not None else 0
             vd = o.delta if o.kind == "view" else 0
             nr = min(self._max_rerolls, r + vd)
-            return self._dp.get(
-                (nw, nc, nf, ns, ncs, nr, turns_left_after), 0.0)
+            return self._dp[self._idx(nst, ncs, 0, nr, turns_left_after)]
         if self.bis_only and o.key in ("change_first_effect", "change_second_effect"):
             next_state = GemState(will=nw, chaos=nc, first=nf, second=ns,
                                   cost_ratio=state.cost_ratio,
@@ -905,8 +960,8 @@ class GoalProbabilityTable:
         if self.bis_only:
             ft = 1 if state.first_effect in self._target_effects else 0
             st = 1 if state.second_effect in self._target_effects else 0
-            return self._dp.get((nw, nc, nf, ns, ncs, ft, st, turns_left_after), 0.0)
-        return self._dp.get((nw, nc, nf, ns, ncs, turns_left_after), 0.0)
+            return self._dp[self._idx(nst, ncs, ft * 2 + st, 0, turns_left_after)]
+        return self._dp[self._idx(nst, ncs, 0, 0, turns_left_after)]
 
     def expected_prob_after_click(self, state: GemState,
                                   offers: List[Option],
@@ -921,10 +976,12 @@ class GoalProbabilityTable:
 
     def _dp_lookup_ea(self, w: int, c: int, f: int, s: int, cs: int,
                       fi: int, si: int, r: int, tl: int) -> float:
-        """Internal effect-aware DP lookup by indices."""
-        if self._max_rerolls > 0:
-            return self._dp.get((w, c, f, s, cs, fi, si, r, tl), 0.0)
-        return self._dp.get((w, c, f, s, cs, fi, si, tl), 0.0)
+        """Internal effect-aware DP lookup by indices (`r` ignored when the
+        table is flat)."""
+        if tl < 0 or tl >= self._tl_dim:
+            return 0.0
+        nr = r if self._max_rerolls > 0 else 0
+        return self._dp[self._idx(_s625(w, c, f, s), cs, fi * 4 + si, nr, tl)]
 
     def should_reroll_dp(self, state: GemState, offers: List[Option],
                          turns_left: int, rerolls: int) -> bool:
@@ -1038,7 +1095,13 @@ class SideValueTable:
             # will/chaos value ignores grade entirely.
             self.relic_coeff = 0
             self.ancient_coeff = 0
-        self._dp: Dict[tuple, float] = {}
+        # Flat DP storage, index layout (state625, cs, fi*4+si, r, tl) —
+        # see GoalProbabilityTable._idx. Unwritten slots stay 0.0.
+        self._r_dim = self._max_rerolls + 1 if self._max_rerolls > 0 else 1
+        self._tl_dim = max_turns + 1
+        self._dp: List[float] = (
+            [0.0] * (625 * 2 * 16 * self._r_dim * self._tl_dim)
+            if self.enabled else [])
 
         if not self.enabled:
             self._effect_tuple: Tuple[str, ...] = ()
@@ -1148,26 +1211,32 @@ class SideValueTable:
             result.append((p, o.key, o.kind, nw, nc, nf, ns, ncs))
         return result
 
-    def _post_val_in(self, dpd: Dict[tuple, float], key: str,
-                     nw: int, nc: int, nf: int, ns: int, ncs: int,
+    def _idx(self, st: int, cs: int, ea: int, r: int, tl: int) -> int:
+        """Flat-list index (state625, cs, fi*4+si, r, tl)."""
+        return (((st * 2 + cs) * 16 + ea) * self._r_dim + r) * self._tl_dim + tl
+
+    def _post_val_in(self, dpd: List[float], key: str,
+                     nst: int, ncs: int,
                      fi: int, si: int,
                      dests: Tuple[int, ...], nd: int, tl: int) -> float:
-        """V at a transition destination *in dict `dpd`*, routing
+        """V at a transition destination *in list `dpd`*, routing
         change_effect uniformly across the two non-equipped pool members.
-        Parameterizing the dict lets the policy-evaluation build read its two
+        Parameterizing the list lets the policy-evaluation build read its two
         coupled tables (policy value, display value) with the same routing."""
         if key == "change_first_effect":
-            return sum(dpd[(nw, nc, nf, ns, ncs, d, si, tl)] for d in dests) / nd
+            return sum(dpd[self._idx(nst, ncs, d * 4 + si, 0, tl)]
+                       for d in dests) / nd
         if key == "change_second_effect":
-            return sum(dpd[(nw, nc, nf, ns, ncs, fi, d, tl)] for d in dests) / nd
-        return dpd[(nw, nc, nf, ns, ncs, fi, si, tl)]
+            return sum(dpd[self._idx(nst, ncs, fi * 4 + d, 0, tl)]
+                       for d in dests) / nd
+        return dpd[self._idx(nst, ncs, fi * 4 + si, 0, tl)]
 
-    def _post_val(self, key: str, nw: int, nc: int, nf: int, ns: int,
-                  ncs: int, fi: int, si: int, dests: Tuple[int, ...], nd: int,
+    def _post_val(self, key: str, nst: int, ncs: int,
+                  fi: int, si: int, dests: Tuple[int, ...], nd: int,
                   tl: int) -> float:
         """V at a transition destination, routing change_effect uniformly
         across the two non-equipped pool members."""
-        return self._post_val_in(self._dp, key, nw, nc, nf, ns, ncs,
+        return self._post_val_in(self._dp, key, nst, ncs,
                                  fi, si, dests, nd, tl)
 
     def _build(self) -> None:
@@ -1181,23 +1250,25 @@ class SideValueTable:
             for c in range(1, 6):
                 for f in range(1, 6):
                     for s in range(1, 6):
+                        st = _s625(w, c, f, s)
                         for fi, si in valid_pairs:
                             v = self._gem_value_idx(w, c, f, s, fi, si)
                             for cs in (0, 1):
-                                dp[(w, c, f, s, cs, fi, si, 0)] = v
+                                dp[self._idx(st, cs, fi * 4 + si, 0, 0)] = v
 
-        # Option-level transition cache (independent of fi/si).
+        # Option-level transition cache (independent of fi/si), indexed by
+        # state625.
         trans_cache = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache = {}
+                cache = [None] * 625
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = self._transitions(
+                                cache[_s625(w, c, f, s)] = self._transitions(
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
@@ -1215,8 +1286,9 @@ class SideValueTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans = trans_cache[(label, cs)][(w, c, f, s)]
+                                trans = trans_cache[(label, cs)][st]
                                 for fi, si in valid_pairs:
                                     dests = self._change_dests[(fi, si)]
                                     nd = len(dests)
@@ -1226,9 +1298,9 @@ class SideValueTable:
                                     for (p, key, _kind,
                                          nw, nc, nf, ns, ncs) in trans:
                                         proc += p * self._post_val(
-                                            key, nw, nc, nf, ns, ncs,
+                                            key, _s625(nw, nc, nf, ns), ncs,
                                             fi, si, dests, nd, tl - 1)
-                                    dp[(w, c, f, s, cs, fi, si, tl)] = (
+                                    dp[self._idx(st, cs, fi * 4 + si, 0, tl)] = (
                                         finish_val if finish_val > proc
                                         else proc)
 
@@ -1249,7 +1321,7 @@ class SideValueTable:
         folded into process; flat, no reroll dimension).
         """
         dp_s = self._dp
-        dp_w: Dict[tuple, float] = {}
+        dp_w: List[float] = [0.0] * len(dp_s)
         mt = self.max_turns
         valid_pairs = [(fi, si) for fi in range(4)
                        for si in range(4) if fi != si]
@@ -1263,25 +1335,26 @@ class SideValueTable:
                 for f in range(1, 6):
                     for s in range(1, 6):
                         fw = wc_finish(w, c, f, s)
+                        st = _s625(w, c, f, s)
                         for fi, si in valid_pairs:
                             v = self._gem_value_idx(w, c, f, s, fi, si)
                             for cs in (0, 1):
-                                dp_w[(w, c, f, s, cs, fi, si, 0)] = fw
-                                dp_s[(w, c, f, s, cs, fi, si, 0)] = v
+                                dp_w[self._idx(st, cs, fi * 4 + si, 0, 0)] = fw
+                                dp_s[self._idx(st, cs, fi * 4 + si, 0, 0)] = v
 
         # Option-level transition cache (same three-turn-type strategy as
-        # _build).
+        # _build), indexed by state625.
         trans_cache = {}
         for label, turn, tl in [("first", 1, mt),
                                 ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache = {}
+                cache = [None] * 625
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = self._transitions(
+                                cache[_s625(w, c, f, s)] = self._transitions(
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
@@ -1299,8 +1372,9 @@ class SideValueTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans = trans_cache[(label, cs)][(w, c, f, s)]
+                                trans = trans_cache[(label, cs)][st]
                                 for fi, si in valid_pairs:
                                     dests = self._change_dests[(fi, si)]
                                     nd = len(dests)
@@ -1311,18 +1385,20 @@ class SideValueTable:
                                     proc_s = 0.0
                                     for (p, key, _kind,
                                          nw, nc, nf, ns, ncs) in trans:
+                                        nst = _s625(nw, nc, nf, ns)
                                         proc_w += p * self._post_val_in(
-                                            dp_w, key, nw, nc, nf, ns, ncs,
+                                            dp_w, key, nst, ncs,
                                             fi, si, dests, nd, tl - 1)
                                         proc_s += p * self._post_val_in(
-                                            dp_s, key, nw, nc, nf, ns, ncs,
+                                            dp_s, key, nst, ncs,
                                             fi, si, dests, nd, tl - 1)
+                                    ea = fi * 4 + si
                                     if finish_w >= proc_w:
-                                        dp_w[(w, c, f, s, cs, fi, si, tl)] = finish_w
-                                        dp_s[(w, c, f, s, cs, fi, si, tl)] = finish_s
+                                        dp_w[self._idx(st, cs, ea, 0, tl)] = finish_w
+                                        dp_s[self._idx(st, cs, ea, 0, tl)] = finish_s
                                     else:
-                                        dp_w[(w, c, f, s, cs, fi, si, tl)] = proc_w
-                                        dp_s[(w, c, f, s, cs, fi, si, tl)] = proc_s
+                                        dp_w[self._idx(st, cs, ea, 0, tl)] = proc_w
+                                        dp_s[self._idx(st, cs, ea, 0, tl)] = proc_s
 
     def _build_reroll(self) -> None:
         dp = self._dp
@@ -1335,11 +1411,12 @@ class SideValueTable:
             for c in range(1, 6):
                 for f in range(1, 6):
                     for s in range(1, 6):
+                        st = _s625(w, c, f, s)
                         for fi, si in valid_pairs:
                             v = self._gem_value_idx(w, c, f, s, fi, si)
                             for cs in (0, 1):
                                 for r in range(maxR + 1):
-                                    dp[(w, c, f, s, cs, fi, si, r, 0)] = v
+                                    dp[self._idx(st, cs, fi * 4 + si, r, 0)] = v
 
         def transitions(w, c, f, s, cs, turn, tl):
             state = GemState(will=w, chaos=c, first=f, second=s,
@@ -1371,25 +1448,27 @@ class SideValueTable:
         for label, turn, tl in [("first", 1, mt), ("last", mt, 1),
                                 ("middle", 2, mt - 1 if mt > 2 else 2)]:
             for cs in (0, 1):
-                cache = {}
+                cache = [None] * 625
                 for w in range(1, 6):
                     for c in range(1, 6):
                         for f in range(1, 6):
                             for s in range(1, 6):
-                                cache[(w, c, f, s)] = transitions(
+                                cache[_s625(w, c, f, s)] = transitions(
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
         cd = self._change_dests
 
-        def post_val(key, nw, nc, nf, ns, ncs, fi, si, nr, tl):
+        def post_val(key, nst, ncs, fi, si, nr, tl):
             if key == "change_first_effect":
                 d = cd[(fi, si)]
-                return sum(dp[(nw, nc, nf, ns, ncs, di, si, nr, tl)] for di in d) / len(d)
+                return sum(dp[self._idx(nst, ncs, di * 4 + si, nr, tl)]
+                           for di in d) / len(d)
             if key == "change_second_effect":
                 d = cd[(fi, si)]
-                return sum(dp[(nw, nc, nf, ns, ncs, fi, di, nr, tl)] for di in d) / len(d)
-            return dp[(nw, nc, nf, ns, ncs, fi, si, nr, tl)]
+                return sum(dp[self._idx(nst, ncs, fi * 4 + di, nr, tl)]
+                           for di in d) / len(d)
+            return dp[self._idx(nst, ncs, fi * 4 + si, nr, tl)]
 
         for tl in range(1, mt + 1):
             turn_number = mt - tl + 1
@@ -1400,28 +1479,30 @@ class SideValueTable:
                 for c in range(1, 6):
                     for f in range(1, 6):
                         for s in range(1, 6):
+                            st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans, n_elig = trans_cache[(label, cs)][(w, c, f, s)]
+                                trans, n_elig = trans_cache[(label, cs)][st]
                                 fpc = ((n_elig - 4) / (n_elig - 1)
                                        if n_elig > 4 else 0.0)
                                 for fi, si in valid_pairs:
                                     finish_val = self._gem_value_idx(w, c, f, s, fi, si)
+                                    ea = fi * 4 + si
                                     for r in range(maxR + 1):
                                         xs = []
                                         for (p, key, _k, nw, nc, nf, ns, ncs, vd) in trans:
                                             nr = min(maxR, r + vd)
                                             xs.append((p, post_val(
-                                                key, nw, nc, nf, ns, ncs,
+                                                key, _s625(nw, nc, nf, ns), ncs,
                                                 fi, si, nr, tl - 1)))
                                         mu = sum(p * x for p, x in xs)
                                         var = sum(p * (x - mu) ** 2 for p, x in xs)
                                         sd = math.sqrt(max(0.0, var / 4.0 * fpc))
                                         if r > 0 and turn_number != 1:
-                                            rc = dp[(w, c, f, s, cs, fi, si, r - 1, tl)]
+                                            rc = dp[self._idx(st, cs, ea, r - 1, tl)]
                                             t = finish_val if finish_val > rc else rc
                                         else:
                                             t = finish_val
-                                        dp[(w, c, f, s, cs, fi, si, r, tl)] = _e_max(mu, sd, t)
+                                        dp[self._idx(st, cs, ea, r, tl)] = _e_max(mu, sd, t)
 
     # -- public API --------------------------------------------------
 
@@ -1440,16 +1521,16 @@ class SideValueTable:
         """Expected final gem value under optimal play from this state."""
         if not self.enabled:
             return 0.0
+        if turns_left < 0 or turns_left >= self._tl_dim:
+            return 0.0
         idx = self._effect_indices(state)
         if idx is None:
             return 0.0
         fi, si = idx
-        w, c, f, s = state.will, state.chaos, state.first, state.second
+        stx = _s625(state.will, state.chaos, state.first, state.second)
         cs = 1 if state.cost_ratio != 0 else 0
-        if self._max_rerolls > 0:
-            r = min(self._max_rerolls, rerolls or 0)
-            return self._dp.get((w, c, f, s, cs, fi, si, r, turns_left), 0.0)
-        return self._dp.get((w, c, f, s, cs, fi, si, turns_left), 0.0)
+        r = min(self._max_rerolls, rerolls or 0) if self._max_rerolls > 0 else 0
+        return self._dp[self._idx(stx, cs, fi * 4 + si, r, turns_left)]
 
     def expected_value_after_click(self, state: GemState,
                                    offers: List[Option],
@@ -1465,6 +1546,8 @@ class SideValueTable:
             return 0.0
         idx = self._effect_indices(state)
         if idx is None:
+            return 0.0
+        if turns_left_after < 0 or turns_left_after >= self._tl_dim:
             return 0.0
         fi, si = idx
         dests = self._change_dests[(fi, si)]
@@ -1482,16 +1565,21 @@ class SideValueTable:
             ns = (min(5, max(1, state.second + o.delta))
                   if o.kind == "second" else state.second)
             ncs = (1 - cs) if o.kind == "cost" else cs
+            nst = _s625(nw, nc, nf, ns)
             if ra:
                 vd = o.delta if o.kind == "view" else 0
                 nr = min(self._max_rerolls, (rerolls or 0) + vd)
-                k = lambda a, b: (nw, nc, nf, ns, ncs, a, b, nr, turns_left_after)
             else:
-                k = lambda a, b: (nw, nc, nf, ns, ncs, a, b, turns_left_after)
+                nr = 0
             if o.key == "change_first_effect":
-                total += sum(self._dp.get(k(d, si), 0.0) for d in dests) / nd
+                total += sum(self._dp[self._idx(nst, ncs, d * 4 + si, nr,
+                                                turns_left_after)]
+                             for d in dests) / nd
             elif o.key == "change_second_effect":
-                total += sum(self._dp.get(k(fi, d), 0.0) for d in dests) / nd
+                total += sum(self._dp[self._idx(nst, ncs, fi * 4 + d, nr,
+                                                turns_left_after)]
+                             for d in dests) / nd
             else:
-                total += self._dp.get(k(fi, si), 0.0)
+                total += self._dp[self._idx(nst, ncs, fi * 4 + si, nr,
+                                            turns_left_after)]
         return total / len(offers)
