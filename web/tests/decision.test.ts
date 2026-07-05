@@ -79,6 +79,31 @@ describe('decidePostRoll parity', () => {
     expect(ctx.dpMaxRerolls).toBe(3);
   });
 
+  // A goal-met gem must never be reset/abandoned by the no_feasible_offer
+  // branch. Reachable only with an unknown gem type (sideValueTable disabled,
+  // Branch 0 defers): goal met, every offer would break it irrecoverably.
+  it('never resets a goal-met gem on no_feasible_offer (unknown gem type)', () => {
+    const pool = new OptionPool();
+    const byKey = new Map(pool.pool.map(o => [o.key, o]));
+    const engCtx = buildEngineContext(
+      { gemType: '', firstEffect: 'attack_power', secondEffect: 'boss_damage', optimize: 'dps' },
+      { rarity: 'epic', minWill: 5, minChaos: 5 }
+    );
+    const st = new GemState({ will: 5, chaos: 5, first: 1, second: 1,
+      firstEffect: 'attack_power', secondEffect: 'boss_damage', rerolls: 0 });
+    const offers = [byKey.get('will-1')!, byKey.get('chaos-1')!];
+    // Last turn, no rerolls, reset ticket in hand: lock in the success.
+    const d = decidePostRoll(engCtx._decisionCtx, { state: st, offers,
+      turn: 9, turnsLeft: 1, rerolls: 0, resetAvailable: true });
+    expect(d.action).toBe('finish');
+    // Last turn with unspent rerolls: reroll for a safe hand instead.
+    const st2 = new GemState({ will: 5, chaos: 5, first: 1, second: 1,
+      firstEffect: 'attack_power', secondEffect: 'boss_damage', rerolls: 2 });
+    const d2 = decidePostRoll(engCtx._decisionCtx, { state: st2, offers,
+      turn: 9, turnsLeft: 1, rerolls: 2, resetAvailable: true });
+    expect(d2.action).toBe('reroll');
+  });
+
   it('derives dpMaxRerolls=3 for rare with relicRerollThreshold=0.3', () => {
     const ctx = buildEngineContext(
       { gemType: 'chaos_distortion', firstEffect: 'attack_power', secondEffect: 'ally_damage', optimize: 'dps' },

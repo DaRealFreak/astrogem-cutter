@@ -872,6 +872,23 @@ def no_feasible_offer_decision(
     """
     if not ti.offers or m.feasible_count > 0:
         return None
+    # A gem that already satisfies the goal is a guaranteed success (early
+    # finish locks it in) — never hand it to the reset/relic-chase tail.
+    # Reachable goal-met only when Branch 0 deferred (gem type unknown, no
+    # value tables): every offer would break the goal irrecoverably, so
+    # spend a free reroll fishing for a safe hand, else finish.
+    if _goal_fully_satisfied(ctx, ti.state):
+        if ti.rerolls > 0 and ti.turn != 1:
+            return Decision(
+                action=ActionKind.REROLL,
+                branch="no_feasible_offer",
+                reason="goal met, every offer risks it — rerolling for a safe hand",
+            )
+        return Decision(
+            action=ActionKind.FINISH,
+            branch="no_feasible_offer",
+            reason="goal met, every offer risks it — finishing to lock success",
+        )
     decision = _reset_or_chase_relic(
         ctx, ti, m, branch="no_feasible_offer",
         reason="no offer reaches goal",

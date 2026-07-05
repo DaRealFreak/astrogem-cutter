@@ -725,6 +725,25 @@ export function noFeasibleOfferDecision(
   if (ti.offers.length === 0 || m.feasibleCount > 0) {
     return null;
   }
+  // A gem that already satisfies the goal is a guaranteed success (early
+  // finish locks it in) — never hand it to the reset/relic-chase tail.
+  // Reachable goal-met only when Branch 0 deferred (gem type unknown, no
+  // value tables): every offer would break the goal irrecoverably, so
+  // spend a free reroll fishing for a safe hand, else finish.
+  if (goalFullySatisfied(ctx, ti.state)) {
+    if (ti.rerolls > 0 && ti.turn !== 1) {
+      return makeDecision({
+        action: ActionKind.REROLL,
+        branch: 'no_feasible_offer',
+        reason: 'goal met, every offer risks it — rerolling for a safe hand',
+      });
+    }
+    return makeDecision({
+      action: ActionKind.FINISH,
+      branch: 'no_feasible_offer',
+      reason: 'goal met, every offer risks it — finishing to lock success',
+    });
+  }
   const decision = resetOrChaseRelic(ctx, ti, m, 'no_feasible_offer', 'no offer reaches goal');
   return maybeConfirm(ctx, ti, decision);
 }

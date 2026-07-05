@@ -1408,5 +1408,59 @@ class TestMaxedHoldDecision(unittest.TestCase):
         self.assertNotEqual(d.action, ActionKind.FINISH)
 
 
+class TestGoalMetGuardOnNoFeasibleOffer(unittest.TestCase):
+    """Branch 3 must never reset/abandon a gem that already satisfies the
+    goal — it is a guaranteed success (early finish locks it in).
+
+    Reachable only when the gem type is unknown (Branch 0 defers without a
+    side-value table): goal met, every offer would break it (post-click
+    P(goal)=0 -> feasible_count=0). Pre-fix, `_reset_or_chase_relic` would
+    RESET the guaranteed success when the reset ticket was available.
+    """
+
+    def _ctx_ti(self, *, rerolls: int, reset_available: bool,
+                turn: int, turns_left: int):
+        goal = LastTurnGoal(min_will=5, min_chaos=5)
+        ctx = build_ctx(goal=goal)
+        # Unknown gem type: no value tables — Branch 0 defers.
+        ctx.side_value_table = None
+        ctx.grade_value_table = None
+        ctx.maxed_value_table = None
+        state = GemState(will=5, chaos=5, first=1, second=1, rerolls=rerolls,
+                         first_effect="attack_power",
+                         second_effect="boss_damage")
+        # Both offers break min_will=5 & min_chaos=5 -> feasible_count == 0.
+        ti = build_ti(state=state, offers=make_offers("will-1", "chaos-1"),
+                      turn=turn, turns_left=turns_left, rerolls=rerolls,
+                      reset_available=reset_available)
+        return ctx, ti
+
+    def test_goal_met_last_turn_finishes_instead_of_reset(self):
+        ctx, ti = self._ctx_ti(rerolls=0, reset_available=True,
+                               turn=9, turns_left=1)
+        m = compute_post_roll_metrics(ctx, ti)
+        self.assertEqual(m.feasible_count, 0)
+        d = no_feasible_offer_decision(ctx, ti, m)
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.FINISH)
+
+    def test_goal_met_full_tree_finishes_instead_of_reset(self):
+        ctx, ti = self._ctx_ti(rerolls=0, reset_available=True,
+                               turn=9, turns_left=1)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.FINISH)
+
+    def test_goal_met_with_rerolls_rerolls_for_safe_hand(self):
+        # Last turn with unspent rerolls: a free reroll never risks the met
+        # goal — fish for a safe hand instead of finishing (or resetting).
+        ctx, ti = self._ctx_ti(rerolls=2, reset_available=True,
+                               turn=9, turns_left=1)
+        m = compute_post_roll_metrics(ctx, ti)
+        self.assertEqual(m.feasible_count, 0)
+        d = no_feasible_offer_decision(ctx, ti, m)
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.REROLL)
+
+
 if __name__ == "__main__":
     unittest.main()
