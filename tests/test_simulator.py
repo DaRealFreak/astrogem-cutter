@@ -176,6 +176,73 @@ class TestSimulator(unittest.TestCase):
         self.assertTrue(any(e.get("ticket_lent") for e in post),
                         "extra ticket must be available again after a reset")
 
+    def test_reroll_accounting_resets_between_attempts(self) -> None:
+        # `rerolls_by_turn` must not leak attempt-1 counts into the post-reset
+        # attempt. Regression: the dict was initialized once outside the
+        # attempt loop and only overwritten when a turn spent >0 rerolls, so
+        # the ticket reconciliation in attempt 2 could read a stale attempt-1
+        # count — falsely marking the renewed reroll ticket consumed AND
+        # skipping the "return the lent +1" branch (a phantom free reroll).
+        #
+        # Scripted scenario (epic: 2 free rerolls, owned ticket, reset ticket):
+        #   attempt 1: T1 process, T2 process, T3 reroll x2 + process
+        #              (rerolls_by_turn[3] = 2), T4 reset.
+        #   attempt 2: T1 process, T2 reroll + process, T3 process with the
+        #              ticket lent (free_before=1) and 0 rerolls used —
+        #              pre-fix the stale [3]=2 > 1 marked the ticket spent and
+        #              leaked the lent +1 — T4 finish.
+        from unittest import mock
+        from arkgrid.decision import ActionKind, Decision
+
+        def d(action: ActionKind) -> Decision:
+            return Decision(action=action, branch="scripted", reason="")
+
+        script = iter([
+            # attempt 1
+            d(ActionKind.PROCESS), d(ActionKind.PROCESS),
+            d(ActionKind.REROLL), d(ActionKind.REROLL), d(ActionKind.PROCESS),
+            d(ActionKind.RESET),
+            # attempt 2
+            d(ActionKind.PROCESS),
+            d(ActionKind.REROLL), d(ActionKind.PROCESS),
+            d(ActionKind.PROCESS),
+            d(ActionKind.FINISH),
+        ])
+
+        # Neutralize DP-driven rerolls inside the roll loop so the scripted
+        # decision-loop rerolls are the only reroll spend.
+        def roll_plain(self, state, turn, rng, log_obj=None):
+            turns_left = self.turns_total - turn + 1
+            offers = self.pool.generate_offers(state, turn, turns_left, rng)
+            return self._resolve_effect_offers(offers, state, rng)
+
+        sim = GemSimulator(
+            rarity="epic", use_extra_ticket=None, use_reset_ticket=True,
+            goal=LastTurnGoal(),
+            astro_gem=AstroGem(
+                gem_type="chaos_distortion", first_effect="attack_power",
+                second_effect="ally_damage", optimize="dps"),
+        )
+        with mock.patch("arkgrid.simulator.decide_post_roll",
+                        side_effect=lambda ctx, ti: next(script)), \
+                mock.patch("arkgrid.simulator.ticket_enabled",
+                           return_value=True), \
+                mock.patch.object(GemSimulator, "roll_offers_with_rerolls",
+                                  roll_plain):
+            r = sim.simulate_one(seed=7)
+
+        self.assertTrue(r.reset_used)
+        # The ticket was never actually spent in either attempt (free rerolls
+        # covered every reroll), so it must not be reported consumed.
+        self.assertFalse(
+            r.extra_ticket_used,
+            "reroll ticket falsely marked consumed from stale attempt-1 counts")
+        # attempt 2 spent 1 of 2 free rerolls; the lent-but-unused ticket must
+        # be returned every turn — no phantom reroll may remain.
+        self.assertEqual(r.rerolls_left, 1)
+        # The reported per-turn counts describe the final cutting process only.
+        self.assertEqual(r.rerolls_by_turn, {2: 1})
+
     def test_common_has_5_turns(self) -> None:
         sim = GemSimulator(
             rarity="common", use_extra_ticket=False, use_reset_ticket=False,

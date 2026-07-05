@@ -665,9 +665,14 @@ class GemSimulator:
         ctx = self._decision_context(p_fresh=p_fresh)
 
         turn_log: List[Dict[str, Any]] = []
-        rerolls_by_turn: Dict[int, int] = {}
 
         for attempt in range(1, 3):
+            # Per-turn reroll counts of THIS cutting process. Must reset with
+            # each attempt: the ticket reconciliation below compares this
+            # turn's count against `free_before`, and a stale attempt-1 entry
+            # would falsely mark the renewed ticket consumed while leaking the
+            # lent +1 reroll into the budget.
+            rerolls_by_turn: Dict[int, int] = {}
             state = GemState(
                 will=1, chaos=1, first=1, second=1,
                 cost_ratio=0, rerolls=run_rerolls,
