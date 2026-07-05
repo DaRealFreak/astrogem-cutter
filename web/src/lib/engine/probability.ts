@@ -29,8 +29,13 @@ export interface GoalTableOpts {
   optimize?: string;
 }
 
-// String key builder for the DP map (mirrors Python tuple keys by value).
-const key = (...nums: number[]): string => nums.join(',');
+// The DP lives in flat Float64Arrays indexed arithmetically — the dense
+// state space makes string-keyed Maps needlessly slow (key hashing used to
+// dominate the build time).
+
+// Dense 0..624 index over the 4 stat levels (each 1..5).
+const s625 = (w: number, c: number, f: number, s: number): number =>
+  (((w - 1) * 5 + (c - 1)) * 5 + (f - 1)) * 5 + (s - 1);
 
 const clampLevel = (x: number): number => Math.min(5, Math.max(1, x));
 
@@ -62,6 +67,12 @@ type EaTransEntry = [number, string, string, number, number, number, number, num
 //   [prob, nw, nc, nf, ns, ncs, viewDelta]
 type RerollTransEntry = [number, number, number, number, number, number, number];
 
+// Standard (non-reroll, non-effect) transition entry with duplicate
+// destinations merged (mirrors Python's dict aggregation, in first-occurrence
+// order so float summation order is identical):
+//   [prob, nw, nc, nf, ns, ncs]
+type StdTransEntry = [number, number, number, number, number, number];
+
 export class GoalProbabilityTable {
   readonly goal: LastTurnGoal;
   readonly maxTurns: number;
@@ -78,10 +89,15 @@ export class GoalProbabilityTable {
 
   private _effectTuple: readonly string[];
   private _effectCoeffs: readonly number[];
-  // change-effect destinations keyed by "fi,si"
-  private _changeDests: Map<string, number[]>;
+  // change-effect destinations indexed by fi*4+si
+  private _changeDests: (number[] | null)[];
 
-  private _dp: Map<string, number>;
+  // Flat DP storage. Index layout mirrors the Python tuple keys:
+  //   (state625, cs, fi*4+si [EA only], r [reroll only], tl)
+  private _dp: Float64Array;
+  private readonly _eaDim: number; // 16 when effect-aware, else 1
+  private readonly _rDim: number;  // maxRerolls+1 when reroll-aware, else 1
+  private readonly _tlDim: number; // maxTurns+1
 
   constructor(goal: LastTurnGoal, maxTurns: number, pool: OptionPool, opts?: GoalTableOpts) {
     this.goal = goal;
@@ -111,7 +127,7 @@ export class GoalProbabilityTable {
       this._effectTuple = effects;
       this._effectCoeffs = effects.map((e) => (targetSet.has(e) ? (coeffMap[e] ?? 0) : 0));
       // Precompute change-effect destinations for each (fi, si) pair.
-      this._changeDests = new Map();
+      this._changeDests = new Array(16).fill(null);
       for (let fi = 0; fi < 4; fi++) {
         for (let si = 0; si < 4; si++) {
           if (fi === si) continue;
@@ -119,16 +135,20 @@ export class GoalProbabilityTable {
           for (let i = 0; i < 4; i++) {
             if (i !== fi && i !== si) dests.push(i);
           }
-          this._changeDests.set(key(fi, si), dests);
+          this._changeDests[fi * 4 + si] = dests;
         }
       }
     } else {
       this._effectTuple = [];
       this._effectCoeffs = [];
-      this._changeDests = new Map();
+      this._changeDests = new Array(16).fill(null);
     }
 
-    this._dp = new Map();
+    this._eaDim = this.effectAware ? 16 : 1;
+    this._rDim = this._maxRerolls > 0 ? this._maxRerolls + 1 : 1;
+    this._tlDim = maxTurns + 1;
+    // Unwritten slots stay 0.0, matching Python's dict .get(key, 0.0).
+    this._dp = new Float64Array(625 * 2 * this._eaDim * this._rDim * this._tlDim);
     if (this.effectAware) {
       if (this._maxRerolls > 0) {
         this._buildEffectAwareWithRerolls();
@@ -142,6 +162,13 @@ export class GoalProbabilityTable {
     } else {
       this._build();
     }
+  }
+
+  // Flat-array index. `st` is s625(w,c,f,s); `ea` is fi*4+si for
+  // effect-aware tables (else 0); `r` is the reroll count for reroll-aware
+  // tables (else 0).
+  private _idx(st: number, cs: number, ea: number, r: number, tl: number): number {
+    return (((st * 2 + cs) * this._eaDim + ea) * this._rDim + r) * this._tlDim + tl;
   }
 
   // ------------------------------------------------------------------
@@ -180,13 +207,15 @@ export class GoalProbabilityTable {
     cs: number,
     turn: number,
     turnsLeft: number
-  ): Map<string, number> {
+  ): StdTransEntry[] {
     const eligible = this._eligible(w, c, f, s, cs, turn, turnsLeft);
-    const dest = new Map<string, number>();
     if (eligible.length === 0) {
-      dest.set(key(w, c, f, s, cs), 1.0);
-      return dest;
+      return [[1.0, w, c, f, s, cs]];
     }
+    // Merge duplicate destinations in first-occurrence order (mirrors the
+    // Python dict aggregation, keeping float summation order identical).
+    const list: StdTransEntry[] = [];
+    const seen = new Map<number, number>();
     for (const [o, p] of this._optionProbs(eligible)) {
       let nw = w, nc = c, nf = f, ns = s, ncs = cs;
       if (o.kind === 'will') nw = clampLevel(w + o.delta);
@@ -195,10 +224,16 @@ export class GoalProbabilityTable {
       else if (o.kind === 'second') ns = clampLevel(s + o.delta);
       else if (o.kind === 'cost') ncs = 1 - cs;
       // view/other/maintain -> no state change
-      const k = key(nw, nc, nf, ns, ncs);
-      dest.set(k, (dest.get(k) ?? 0) + p);
+      const packed = s625(nw, nc, nf, ns) * 2 + ncs;
+      const at = seen.get(packed);
+      if (at !== undefined) {
+        list[at]![0] += p;
+      } else {
+        seen.set(packed, list.length);
+        list.push([p, nw, nc, nf, ns, ncs]);
+      }
     }
-    return dest;
+    return list;
   }
 
   private _build(): void {
@@ -211,16 +246,18 @@ export class GoalProbabilityTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const sat = this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s) ? 1.0 : 0.0;
+            const st = s625(w, c, f, s);
             for (let cs = 0; cs <= 1; cs++) {
-              dp.set(key(w, c, f, s, cs, 0), sat);
+              dp[this._idx(st, cs, 0, 0, 0)] = sat;
             }
           }
         }
       }
     }
 
-    // Precompute transition tables for three turn types x cost states.
-    const transCache: Record<string, Map<string, Map<string, number>>> = {};
+    // Precompute transition tables for three turn types x cost states,
+    // indexed by state625.
+    const transCache: Record<string, StdTransEntry[][]> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
       ['last', mt, 1],
@@ -228,12 +265,12 @@ export class GoalProbabilityTable {
     ];
     for (const [label, turn, tl] of turnSpecs) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache = new Map<string, Map<string, number>>();
+        const cache: StdTransEntry[][] = new Array(625);
         for (let w = 1; w <= 5; w++) {
           for (let c = 1; c <= 5; c++) {
             for (let f = 1; f <= 5; f++) {
               for (let s = 1; s <= 5; s++) {
-                cache.set(key(w, c, f, s), this._transitions(w, c, f, s, cs, turn, tl));
+                cache[s625(w, c, f, s)] = this._transitions(w, c, f, s, cs, turn, tl);
               }
             }
           }
@@ -254,21 +291,20 @@ export class GoalProbabilityTable {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
+              const st = s625(w, c, f, s);
               if (this.earlyFinish && this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s)) {
                 for (let cs = 0; cs <= 1; cs++) {
-                  dp.set(key(w, c, f, s, cs, tl), 1.0);
+                  dp[this._idx(st, cs, 0, 0, tl)] = 1.0;
                 }
                 continue;
               }
               for (let cs = 0; cs <= 1; cs++) {
-                const tc = transCache[`${label},${cs}`]!;
+                const trans = transCache[`${label},${cs}`]![st]!;
                 let val = 0.0;
-                const trans = tc.get(key(w, c, f, s))!;
-                for (const [destKey, p] of trans) {
-                  // destKey is "nw,nc,nf,ns,ncs"; append tl-1 for the DP lookup.
-                  val += p * dp.get(`${destKey},${tl - 1}`)!;
+                for (const [p, nw, nc, nf, ns, ncs] of trans) {
+                  val += p * dp[this._idx(s625(nw, nc, nf, ns), ncs, 0, 0, tl - 1)]!;
                 }
-                dp.set(key(w, c, f, s, cs, tl), val);
+                dp[this._idx(st, cs, 0, 0, tl)] = val;
               }
             }
           }
@@ -321,9 +357,10 @@ export class GoalProbabilityTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const sat = this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s) ? 1.0 : 0.0;
+            const st = s625(w, c, f, s);
             for (let cs = 0; cs <= 1; cs++) {
               for (let r = 0; r <= maxR; r++) {
-                dp.set(key(w, c, f, s, cs, r, 0), sat);
+                dp[this._idx(st, cs, 0, r, 0)] = sat;
               }
             }
           }
@@ -331,8 +368,9 @@ export class GoalProbabilityTable {
       }
     }
 
-    // Precompute transition tables (with view deltas) per cost state
-    const transCache: Record<string, Map<string, RerollTransEntry[]>> = {};
+    // Precompute transition tables (with view deltas) per cost state,
+    // indexed by state625.
+    const transCache: Record<string, RerollTransEntry[][]> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
       ['last', mt, 1],
@@ -340,12 +378,12 @@ export class GoalProbabilityTable {
     ];
     for (const [label, turn, tl] of turnSpecs) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache = new Map<string, RerollTransEntry[]>();
+        const cache: RerollTransEntry[][] = new Array(625);
         for (let w = 1; w <= 5; w++) {
           for (let c = 1; c <= 5; c++) {
             for (let f = 1; f <= 5; f++) {
               for (let s = 1; s <= 5; s++) {
-                cache.set(key(w, c, f, s), this._transitionsReroll(w, c, f, s, cs, turn, tl));
+                cache[s625(w, c, f, s)] = this._transitionsReroll(w, c, f, s, cs, turn, tl);
               }
             }
           }
@@ -366,30 +404,31 @@ export class GoalProbabilityTable {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const trans = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                const trans = transCache[`${label},${cs}`]![st]!;
                 for (let r = 0; r <= maxR; r++) {
                   if (this.earlyFinish && this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s)) {
-                    dp.set(key(w, c, f, s, cs, r, tl), 1.0);
+                    dp[this._idx(st, cs, 0, r, tl)] = 1.0;
                     continue;
                   }
 
                   if (r > 0 && turnNumber !== 1) {
-                    const rerollVal = dp.get(key(w, c, f, s, cs, r - 1, tl))!;
+                    const rerollVal = dp[this._idx(st, cs, 0, r - 1, tl)]!;
                     let val = 0.0;
                     for (const [p, nw, nc, nf, ns, ncs, vd] of trans) {
                       const nr = Math.min(maxR, r + vd);
-                      const post = dp.get(key(nw, nc, nf, ns, ncs, nr, tl - 1))!;
+                      const post = dp[this._idx(s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]!;
                       val += p * Math.max(post, rerollVal);
                     }
-                    dp.set(key(w, c, f, s, cs, r, tl), val);
+                    dp[this._idx(st, cs, 0, r, tl)] = val;
                   } else {
                     let val = 0.0;
                     for (const [p, nw, nc, nf, ns, ncs, vd] of trans) {
                       const nr = Math.min(maxR, r + vd);
-                      val += p * dp.get(key(nw, nc, nf, ns, ncs, nr, tl - 1))!;
+                      val += p * dp[this._idx(s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]!;
                     }
-                    dp.set(key(w, c, f, s, cs, r, tl), val);
+                    dp[this._idx(st, cs, 0, r, tl)] = val;
                   }
                 }
               }
@@ -448,9 +487,9 @@ export class GoalProbabilityTable {
     return pairs;
   }
 
-  private _buildEaTransCache(): Record<string, Map<string, EaTransEntry[]>> {
+  private _buildEaTransCache(): Record<string, EaTransEntry[][]> {
     const mt = this.maxTurns;
-    const transCache: Record<string, Map<string, EaTransEntry[]>> = {};
+    const transCache: Record<string, EaTransEntry[][]> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
       ['last', mt, 1],
@@ -458,12 +497,12 @@ export class GoalProbabilityTable {
     ];
     for (const [label, turn, tl] of turnSpecs) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache = new Map<string, EaTransEntry[]>();
+        const cache: EaTransEntry[][] = new Array(625);
         for (let w = 1; w <= 5; w++) {
           for (let c = 1; c <= 5; c++) {
             for (let f = 1; f <= 5; f++) {
               for (let s = 1; s <= 5; s++) {
-                cache.set(key(w, c, f, s), this._effectAwareTransitions(w, c, f, s, cs, turn, tl));
+                cache[s625(w, c, f, s)] = this._effectAwareTransitions(w, c, f, s, cs, turn, tl);
               }
             }
           }
@@ -474,7 +513,7 @@ export class GoalProbabilityTable {
     return transCache;
   }
 
-  private _build_effect_aware_turnTable(turnNumber: number, tl: number, cs: number, transCache: Record<string, Map<string, EaTransEntry[]>>): Map<string, EaTransEntry[]> {
+  private _build_effect_aware_turnTable(turnNumber: number, tl: number, cs: number, transCache: Record<string, EaTransEntry[][]>): EaTransEntry[][] {
     if (turnNumber === 1) return transCache[`first,${cs}`]!;
     if (tl === 1) return transCache[`last,${cs}`]!;
     return transCache[`middle,${cs}`]!;
@@ -491,10 +530,11 @@ export class GoalProbabilityTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const goalSat = this.goal.satisfied(w, c, f, s);
+            const st = s625(w, c, f, s);
             for (const [fi, si] of validPairs) {
               const sat = goalSat && this._coeffSatisfiedIdx(f, s, fi, si) ? 1.0 : 0.0;
               for (let cs = 0; cs <= 1; cs++) {
-                dp.set(key(w, c, f, s, cs, fi, si, 0), sat);
+                dp[this._idx(st, cs, fi * 4 + si, 0, 0)] = sat;
               }
             }
           }
@@ -513,30 +553,32 @@ export class GoalProbabilityTable {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
               const goalSat = this.goal.satisfied(w, c, f, s);
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache).get(key(w, c, f, s))!;
+                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache)[st]!;
                 for (const [fi, si] of validPairs) {
                   if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
-                    dp.set(key(w, c, f, s, cs, fi, si, tl), 1.0);
+                    dp[this._idx(st, cs, fi * 4 + si, 0, tl)] = 1.0;
                     continue;
                   }
-                  const dests = this._changeDests.get(key(fi, si))!;
+                  const dests = this._changeDests[fi * 4 + si]!;
                   const nDests = dests.length; // always 2
                   let val = 0.0;
                   for (const [p, optKey, , nw, nc, nf, ns, ncs] of trans) {
+                    const nst = s625(nw, nc, nf, ns);
                     if (optKey === 'change_first_effect') {
                       for (const newFi of dests) {
-                        val += (p / nDests) * dp.get(key(nw, nc, nf, ns, ncs, newFi, si, tl - 1))!;
+                        val += (p / nDests) * dp[this._idx(nst, ncs, newFi * 4 + si, 0, tl - 1)]!;
                       }
                     } else if (optKey === 'change_second_effect') {
                       for (const newSi of dests) {
-                        val += (p / nDests) * dp.get(key(nw, nc, nf, ns, ncs, fi, newSi, tl - 1))!;
+                        val += (p / nDests) * dp[this._idx(nst, ncs, fi * 4 + newSi, 0, tl - 1)]!;
                       }
                     } else {
-                      val += p * dp.get(key(nw, nc, nf, ns, ncs, fi, si, tl - 1))!;
+                      val += p * dp[this._idx(nst, ncs, fi * 4 + si, 0, tl - 1)]!;
                     }
                   }
-                  dp.set(key(w, c, f, s, cs, fi, si, tl), val);
+                  dp[this._idx(st, cs, fi * 4 + si, 0, tl)] = val;
                 }
               }
             }
@@ -558,11 +600,12 @@ export class GoalProbabilityTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const goalSat = this.goal.satisfied(w, c, f, s);
+            const st = s625(w, c, f, s);
             for (const [fi, si] of validPairs) {
               const sat = goalSat && this._coeffSatisfiedIdx(f, s, fi, si) ? 1.0 : 0.0;
               for (let cs = 0; cs <= 1; cs++) {
                 for (let r = 0; r <= maxR; r++) {
-                  dp.set(key(w, c, f, s, cs, fi, si, r, 0), sat);
+                  dp[this._idx(st, cs, fi * 4 + si, r, 0)] = sat;
                 }
               }
             }
@@ -582,62 +625,60 @@ export class GoalProbabilityTable {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
               const goalSat = this.goal.satisfied(w, c, f, s);
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache).get(key(w, c, f, s))!;
+                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache)[st]!;
                 for (const [fi, si] of validPairs) {
-                  const dests = this._changeDests.get(key(fi, si))!;
+                  const dests = this._changeDests[fi * 4 + si]!;
                   const nDests = dests.length;
 
                   // post_val: V at a transition destination, routing
                   // change_effect uniformly across non-equipped pool members.
                   const postVal = (
                     optKey: string,
-                    nw: number,
-                    nc: number,
-                    nf: number,
-                    ns: number,
+                    nst: number,
                     ncs: number,
                     nr: number
                   ): number => {
                     if (optKey === 'change_first_effect') {
                       let v = 0.0;
                       for (const newFi of dests) {
-                        v += dp.get(key(nw, nc, nf, ns, ncs, newFi, si, nr, tl - 1))! / nDests;
+                        v += dp[this._idx(nst, ncs, newFi * 4 + si, nr, tl - 1)]! / nDests;
                       }
                       return v;
                     }
                     if (optKey === 'change_second_effect') {
                       let v = 0.0;
                       for (const newSi of dests) {
-                        v += dp.get(key(nw, nc, nf, ns, ncs, fi, newSi, nr, tl - 1))! / nDests;
+                        v += dp[this._idx(nst, ncs, fi * 4 + newSi, nr, tl - 1)]! / nDests;
                       }
                       return v;
                     }
-                    return dp.get(key(nw, nc, nf, ns, ncs, fi, si, nr, tl - 1))!;
+                    return dp[this._idx(nst, ncs, fi * 4 + si, nr, tl - 1)]!;
                   };
 
                   for (let r = 0; r <= maxR; r++) {
                     if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
-                      dp.set(key(w, c, f, s, cs, fi, si, r, tl), 1.0);
+                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = 1.0;
                       continue;
                     }
 
                     if (r > 0 && turnNumber !== 1) {
-                      const rerollVal = dp.get(key(w, c, f, s, cs, fi, si, r - 1, tl))!;
+                      const rerollVal = dp[this._idx(st, cs, fi * 4 + si, r - 1, tl)]!;
                       let val = 0.0;
                       for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
                         const nr = Math.min(maxR, r + vd);
-                        const post = postVal(optKey, nw, nc, nf, ns, ncs, nr);
+                        const post = postVal(optKey, s625(nw, nc, nf, ns), ncs, nr);
                         val += p * Math.max(post, rerollVal);
                       }
-                      dp.set(key(w, c, f, s, cs, fi, si, r, tl), val);
+                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = val;
                     } else {
                       let val = 0.0;
                       for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
                         const nr = Math.min(maxR, r + vd);
-                        val += p * postVal(optKey, nw, nc, nf, ns, ncs, nr);
+                        val += p * postVal(optKey, s625(nw, nc, nf, ns), ncs, nr);
                       }
-                      dp.set(key(w, c, f, s, cs, fi, si, r, tl), val);
+                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = val;
                     }
                   }
                 }
@@ -668,23 +709,18 @@ export class GoalProbabilityTable {
   }
 
   lookup(state: GemState, turnsLeft: number, rerolls?: number): number {
+    if (turnsLeft < 0 || turnsLeft >= this._tlDim) return 0.0;
     const cs = state.costRatio !== 0 ? 1 : 0;
+    const st = s625(state.will, state.chaos, state.first, state.second);
     if (this.effectAware) {
       const idx = this._effectIndices(state);
       if (idx === null) return 0.0;
       const [fi, si] = idx;
-      const w = state.will, c = state.chaos, f = state.first, s = state.second;
-      if (this._maxRerolls > 0) {
-        const r = Math.min(this._maxRerolls, rerolls ?? 0);
-        return this._dp.get(key(w, c, f, s, cs, fi, si, r, turnsLeft)) ?? 0.0;
-      }
-      return this._dp.get(key(w, c, f, s, cs, fi, si, turnsLeft)) ?? 0.0;
+      const r = this._maxRerolls > 0 ? Math.min(this._maxRerolls, rerolls ?? 0) : 0;
+      return this._dp[this._idx(st, cs, fi * 4 + si, r, turnsLeft)]!;
     }
-    if (this._maxRerolls > 0) {
-      const r = Math.min(this._maxRerolls, rerolls ?? 0);
-      return this._dp.get(key(state.will, state.chaos, state.first, state.second, cs, r, turnsLeft)) ?? 0.0;
-    }
-    return this._dp.get(key(state.will, state.chaos, state.first, state.second, cs, turnsLeft)) ?? 0.0;
+    const r = this._maxRerolls > 0 ? Math.min(this._maxRerolls, rerolls ?? 0) : 0;
+    return this._dp[this._idx(st, cs, 0, r, turnsLeft)]!;
   }
 
   /** Post-click P(goal) for a single offer.
@@ -695,12 +731,14 @@ export class GoalProbabilityTable {
    * — `Option.resolvedEffect` is never consulted here.
    */
   probAfterOption(state: GemState, o: Option, turnsLeftAfter: number, rerolls?: number): number {
+    if (turnsLeftAfter < 0 || turnsLeftAfter >= this._tlDim) return 0.0;
     const nw = o.kind === 'will' ? clampLevel(state.will + o.delta) : state.will;
     const nc = o.kind === 'chaos' ? clampLevel(state.chaos + o.delta) : state.chaos;
     const nf = o.kind === 'first' ? clampLevel(state.first + o.delta) : state.first;
     const ns = o.kind === 'second' ? clampLevel(state.second + o.delta) : state.second;
     const cs = state.costRatio !== 0 ? 1 : 0;
     const ncs = o.kind === 'cost' ? 1 - cs : cs;
+    const nst = s625(nw, nc, nf, ns);
 
     if (this.effectAware) {
       const idx = this._effectIndices(state);
@@ -709,31 +747,31 @@ export class GoalProbabilityTable {
       const r = rerolls ?? 0;
       const vd = o.kind === 'view' ? o.delta : 0;
       const nr = this._maxRerolls > 0 ? Math.min(this._maxRerolls, r + vd) : 0;
-      const dests = this._changeDests.get(key(fi, si))!;
+      const dests = this._changeDests[fi * 4 + si]!;
       const nDests = dests.length;
       if (o.key === 'change_first_effect') {
         let v = 0.0;
         for (const newFi of dests) {
-          v += this._dpLookupEa(nw, nc, nf, ns, ncs, newFi, si, nr, turnsLeftAfter) / nDests;
+          v += this._dp[this._idx(nst, ncs, newFi * 4 + si, nr, turnsLeftAfter)]! / nDests;
         }
         return v;
       }
       if (o.key === 'change_second_effect') {
         let v = 0.0;
         for (const newSi of dests) {
-          v += this._dpLookupEa(nw, nc, nf, ns, ncs, fi, newSi, nr, turnsLeftAfter) / nDests;
+          v += this._dp[this._idx(nst, ncs, fi * 4 + newSi, nr, turnsLeftAfter)]! / nDests;
         }
         return v;
       }
-      return this._dpLookupEa(nw, nc, nf, ns, ncs, fi, si, nr, turnsLeftAfter);
+      return this._dp[this._idx(nst, ncs, fi * 4 + si, nr, turnsLeftAfter)]!;
     }
+    let nr = 0;
     if (this._maxRerolls > 0) {
       const r = rerolls ?? 0;
       const vd = o.kind === 'view' ? o.delta : 0;
-      const nr = Math.min(this._maxRerolls, r + vd);
-      return this._dp.get(key(nw, nc, nf, ns, ncs, nr, turnsLeftAfter)) ?? 0.0;
+      nr = Math.min(this._maxRerolls, r + vd);
     }
-    return this._dp.get(key(nw, nc, nf, ns, ncs, turnsLeftAfter)) ?? 0.0;
+    return this._dp[this._idx(nst, ncs, 0, nr, turnsLeftAfter)]!;
   }
 
   expectedProbAfterClick(
@@ -748,23 +786,6 @@ export class GoalProbabilityTable {
       total += this.probAfterOption(state, o, turnsLeftAfter, rerolls);
     }
     return total / offers.length;
-  }
-
-  private _dpLookupEa(
-    w: number,
-    c: number,
-    f: number,
-    s: number,
-    cs: number,
-    fi: number,
-    si: number,
-    r: number,
-    tl: number
-  ): number {
-    if (this._maxRerolls > 0) {
-      return this._dp.get(key(w, c, f, s, cs, fi, si, r, tl)) ?? 0.0;
-    }
-    return this._dp.get(key(w, c, f, s, cs, fi, si, tl)) ?? 0.0;
   }
 
   shouldRerollDp(state: GemState, offers: Option[], turnsLeft: number, rerolls: number): boolean {
@@ -823,8 +844,12 @@ export class SideValueTable {
 
   private _effectTuple: readonly string[];
   private _effectCoeffs: readonly number[];
-  private _changeDests: Map<string, number[]>;
-  private _dp: Map<string, number>;
+  private _changeDests: (number[] | null)[];
+  // Flat DP storage, index layout (state625, cs, fi*4+si, r, tl) — mirrors
+  // the Python tuple keys (see GoalProbabilityTable._idx).
+  private _dp: Float64Array;
+  private readonly _rDim: number;
+  private readonly _tlDim: number;
 
   constructor(
     goal: LastTurnGoal,
@@ -869,12 +894,17 @@ export class SideValueTable {
       (this as any).ancientCoeff = 0;
     }
 
-    this._dp = new Map();
+    this._rDim = this._maxRerolls > 0 ? this._maxRerolls + 1 : 1;
+    this._tlDim = maxTurns + 1;
+    // Unwritten slots stay 0.0, matching Python's dict .get(key, 0.0).
+    // (Disabled tables keep an empty array — lookups return 0 before access.)
+    this._dp = new Float64Array(
+      this.enabled ? 625 * 2 * 16 * this._rDim * this._tlDim : 0);
 
     if (!this.enabled) {
       this._effectTuple = [];
       this._effectCoeffs = [];
-      this._changeDests = new Map();
+      this._changeDests = new Array(16).fill(null);
       return;
     }
 
@@ -883,7 +913,7 @@ export class SideValueTable {
     const targetSet = this._optimize === 'dps' ? DPS_EFFECTS : SUPPORT_EFFECTS;
     this._effectTuple = effects;
     this._effectCoeffs = effects.map((e) => (targetSet.has(e) ? (coeffMap[e] ?? 0) : 0));
-    this._changeDests = new Map();
+    this._changeDests = new Array(16).fill(null);
     for (let fi = 0; fi < 4; fi++) {
       for (let si = 0; si < 4; si++) {
         if (fi === si) continue;
@@ -891,7 +921,7 @@ export class SideValueTable {
         for (let i = 0; i < 4; i++) {
           if (i !== fi && i !== si) dests.push(i);
         }
-        this._changeDests.set(key(fi, si), dests);
+        this._changeDests[fi * 4 + si] = dests;
       }
     }
 
@@ -967,16 +997,18 @@ export class SideValueTable {
     return result;
   }
 
-  // V at a transition destination *in map `dpd`*, routing change_effect
+  // Flat-array index (state625, cs, fi*4+si, r, tl).
+  private _idx(st: number, cs: number, ea: number, r: number, tl: number): number {
+    return (((st * 2 + cs) * 16 + ea) * this._rDim + r) * this._tlDim + tl;
+  }
+
+  // V at a transition destination *in array `dpd`*, routing change_effect
   // uniformly across the two non-equipped pool members. Parameterizing the
-  // map lets _buildPolicyEval read its two coupled tables (policy, display).
+  // array lets _buildPolicyEval read its two coupled tables (policy, display).
   private _postValIn(
-    dpd: Map<string, number>,
+    dpd: Float64Array,
     optKey: string,
-    nw: number,
-    nc: number,
-    nf: number,
-    ns: number,
+    nst: number,
     ncs: number,
     fi: number,
     si: number,
@@ -987,26 +1019,23 @@ export class SideValueTable {
     if (optKey === 'change_first_effect') {
       let v = 0.0;
       for (const d of dests) {
-        v += (dpd.get(key(nw, nc, nf, ns, ncs, d, si, tl)) ?? 0.0);
+        v += dpd[this._idx(nst, ncs, d * 4 + si, 0, tl)]!;
       }
       return v / nd;
     }
     if (optKey === 'change_second_effect') {
       let v = 0.0;
       for (const d of dests) {
-        v += (dpd.get(key(nw, nc, nf, ns, ncs, fi, d, tl)) ?? 0.0);
+        v += dpd[this._idx(nst, ncs, fi * 4 + d, 0, tl)]!;
       }
       return v / nd;
     }
-    return dpd.get(key(nw, nc, nf, ns, ncs, fi, si, tl)) ?? 0.0;
+    return dpd[this._idx(nst, ncs, fi * 4 + si, 0, tl)]!;
   }
 
   private _postVal(
     optKey: string,
-    nw: number,
-    nc: number,
-    nf: number,
-    ns: number,
+    nst: number,
     ncs: number,
     fi: number,
     si: number,
@@ -1014,7 +1043,7 @@ export class SideValueTable {
     nd: number,
     tl: number
   ): number {
-    return this._postValIn(this._dp, optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl);
+    return this._postValIn(this._dp, optKey, nst, ncs, fi, si, dests, nd, tl);
   }
 
   private _build(): void {
@@ -1032,10 +1061,11 @@ export class SideValueTable {
       for (let c = 1; c <= 5; c++) {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
+            const st = s625(w, c, f, s);
             for (const [fi, si] of validPairs) {
               const v = this._gemValueIdx(w, c, f, s, fi, si);
               for (let cs = 0; cs <= 1; cs++) {
-                dp.set(key(w, c, f, s, cs, fi, si, 0), v);
+                dp[this._idx(st, cs, fi * 4 + si, 0, 0)] = v;
               }
             }
           }
@@ -1045,7 +1075,7 @@ export class SideValueTable {
 
     // Option-level transition cache (independent of fi/si).
     // Mirror Python's three-label cache strategy, per cost state.
-    const transCache: Record<string, Map<string, SvTransEntry[]>> = {};
+    const transCache: Record<string, SvTransEntry[][]> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
       ['last', mt, 1],
@@ -1053,12 +1083,12 @@ export class SideValueTable {
     ];
     for (const [label, turn, tl] of turnSpecs) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache = new Map<string, SvTransEntry[]>();
+        const cache: SvTransEntry[][] = new Array(625);
         for (let w = 1; w <= 5; w++) {
           for (let c = 1; c <= 5; c++) {
             for (let f = 1; f <= 5; f++) {
               for (let s = 1; s <= 5; s++) {
-                cache.set(key(w, c, f, s), this._transitions(w, c, f, s, cs, turn, tl));
+                cache[s625(w, c, f, s)] = this._transitions(w, c, f, s, cs, turn, tl);
               }
             }
           }
@@ -1079,17 +1109,18 @@ export class SideValueTable {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const trans = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                const trans = transCache[`${label},${cs}`]![st]!;
                 for (const [fi, si] of validPairs) {
-                  const dests = this._changeDests.get(key(fi, si))!;
+                  const dests = this._changeDests[fi * 4 + si]!;
                   const nd = dests.length;
                   const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
                   let proc = 0.0;
                   for (const [p, optKey, , nw, nc, nf, ns, ncs] of trans) {
-                    proc += p * this._postVal(optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl - 1);
+                    proc += p * this._postVal(optKey, s625(nw, nc, nf, ns), ncs, fi, si, dests, nd, tl - 1);
                   }
-                  dp.set(key(w, c, f, s, cs, fi, si, tl), finishVal > proc ? finishVal : proc);
+                  dp[this._idx(st, cs, fi * 4 + si, 0, tl)] = finishVal > proc ? finishVal : proc;
                 }
               }
             }
@@ -1111,7 +1142,7 @@ export class SideValueTable {
   // Mirrors arkgrid/probability.py::SideValueTable._build_policy_eval.
   private _buildPolicyEval(): void {
     const dpS = this._dp;
-    const dpW = new Map<string, number>();
+    const dpW = new Float64Array(dpS.length);
     const mt = this._maxTurns;
     const validPairs: [number, number][] = [];
     for (let fi = 0; fi < 4; fi++) {
@@ -1129,11 +1160,12 @@ export class SideValueTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const fw = wcFinish(w, c, f, s);
+            const st = s625(w, c, f, s);
             for (const [fi, si] of validPairs) {
               const v = this._gemValueIdx(w, c, f, s, fi, si);
               for (let cs = 0; cs <= 1; cs++) {
-                dpW.set(key(w, c, f, s, cs, fi, si, 0), fw);
-                dpS.set(key(w, c, f, s, cs, fi, si, 0), v);
+                dpW[this._idx(st, cs, fi * 4 + si, 0, 0)] = fw;
+                dpS[this._idx(st, cs, fi * 4 + si, 0, 0)] = v;
               }
             }
           }
@@ -1142,7 +1174,7 @@ export class SideValueTable {
     }
 
     // Option-level transition cache (same three-turn-type strategy as _build).
-    const transCache: Record<string, Map<string, SvTransEntry[]>> = {};
+    const transCache: Record<string, SvTransEntry[][]> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
       ['last', mt, 1],
@@ -1150,12 +1182,12 @@ export class SideValueTable {
     ];
     for (const [label, turn, tl] of turnSpecs) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache = new Map<string, SvTransEntry[]>();
+        const cache: SvTransEntry[][] = new Array(625);
         for (let w = 1; w <= 5; w++) {
           for (let c = 1; c <= 5; c++) {
             for (let f = 1; f <= 5; f++) {
               for (let s = 1; s <= 5; s++) {
-                cache.set(key(w, c, f, s), this._transitions(w, c, f, s, cs, turn, tl));
+                cache[s625(w, c, f, s)] = this._transitions(w, c, f, s, cs, turn, tl);
               }
             }
           }
@@ -1176,25 +1208,28 @@ export class SideValueTable {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const trans = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                const trans = transCache[`${label},${cs}`]![st]!;
                 for (const [fi, si] of validPairs) {
-                  const dests = this._changeDests.get(key(fi, si))!;
+                  const dests = this._changeDests[fi * 4 + si]!;
                   const nd = dests.length;
                   const finishW = wcFinish(w, c, f, s);
                   const finishS = this._gemValueIdx(w, c, f, s, fi, si);
                   let procW = 0.0;
                   let procS = 0.0;
                   for (const [p, optKey, , nw, nc, nf, ns, ncs] of trans) {
-                    procW += p * this._postValIn(dpW, optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl - 1);
-                    procS += p * this._postValIn(dpS, optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl - 1);
+                    const nst = s625(nw, nc, nf, ns);
+                    procW += p * this._postValIn(dpW, optKey, nst, ncs, fi, si, dests, nd, tl - 1);
+                    procS += p * this._postValIn(dpS, optKey, nst, ncs, fi, si, dests, nd, tl - 1);
                   }
+                  const ea = fi * 4 + si;
                   if (finishW >= procW) {
-                    dpW.set(key(w, c, f, s, cs, fi, si, tl), finishW);
-                    dpS.set(key(w, c, f, s, cs, fi, si, tl), finishS);
+                    dpW[this._idx(st, cs, ea, 0, tl)] = finishW;
+                    dpS[this._idx(st, cs, ea, 0, tl)] = finishS;
                   } else {
-                    dpW.set(key(w, c, f, s, cs, fi, si, tl), procW);
-                    dpS.set(key(w, c, f, s, cs, fi, si, tl), procS);
+                    dpW[this._idx(st, cs, ea, 0, tl)] = procW;
+                    dpS[this._idx(st, cs, ea, 0, tl)] = procS;
                   }
                 }
               }
@@ -1220,8 +1255,9 @@ export class SideValueTable {
           for (let s = 1; s <= 5; s++)
             for (const [fi, si] of validPairs) {
               const v = this._gemValueIdx(w, c, f, s, fi, si);
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++)
-                for (let r = 0; r <= maxR; r++) dp.set(key(w, c, f, s, cs, fi, si, r, 0), v);
+                for (let r = 0; r <= maxR; r++) dp[this._idx(st, cs, fi * 4 + si, r, 0)] = v;
             }
 
     type RTrans = [number, string, string, number, number, number, number, number, number];
@@ -1248,35 +1284,35 @@ export class SideValueTable {
 
     const labels: [string, number, number][] = [
       ['first', 1, mt], ['last', mt, 1], ['middle', 2, mt > 2 ? mt - 1 : 2]];
-    const transCache: Record<string, Map<string, [RTrans[], number]>> = {};
+    const transCache: Record<string, [RTrans[], number][]> = {};
     for (const [label, turn, tl] of labels) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache = new Map<string, [RTrans[], number]>();
+        const cache: [RTrans[], number][] = new Array(625);
         for (let w = 1; w <= 5; w++)
           for (let c = 1; c <= 5; c++)
             for (let f = 1; f <= 5; f++)
               for (let s = 1; s <= 5; s++)
-                cache.set(key(w, c, f, s), transitions(w, c, f, s, cs, turn, tl));
+                cache[s625(w, c, f, s)] = transitions(w, c, f, s, cs, turn, tl);
         transCache[`${label},${cs}`] = cache;
       }
     }
 
     const cd = this._changeDests;
-    const postVal = (optKey: string, nw: number, nc: number, nf: number, ns: number,
+    const postVal = (optKey: string, nst: number,
                      ncs: number, fi: number, si: number, nr: number, tl: number): number => {
       if (optKey === 'change_first_effect') {
-        const d = cd.get(key(fi, si))!;
+        const d = cd[fi * 4 + si]!;
         let sum = 0;
-        for (const di of d) sum += dp.get(key(nw, nc, nf, ns, ncs, di, si, nr, tl))!;
+        for (const di of d) sum += dp[this._idx(nst, ncs, di * 4 + si, nr, tl)]!;
         return sum / d.length;
       }
       if (optKey === 'change_second_effect') {
-        const d = cd.get(key(fi, si))!;
+        const d = cd[fi * 4 + si]!;
         let sum = 0;
-        for (const di of d) sum += dp.get(key(nw, nc, nf, ns, ncs, fi, di, nr, tl))!;
+        for (const di of d) sum += dp[this._idx(nst, ncs, fi * 4 + di, nr, tl)]!;
         return sum / d.length;
       }
-      return dp.get(key(nw, nc, nf, ns, ncs, fi, si, nr, tl))!;
+      return dp[this._idx(nst, ncs, fi * 4 + si, nr, tl)]!;
     };
 
     for (let tl = 1; tl <= mt; tl++) {
@@ -1286,8 +1322,9 @@ export class SideValueTable {
         for (let c = 1; c <= 5; c++)
           for (let f = 1; f <= 5; f++)
             for (let s = 1; s <= 5; s++) {
+              const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const [trans, nElig] = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                const [trans, nElig] = transCache[`${label},${cs}`]![st]!;
                 const fpc = nElig > 4 ? (nElig - 4) / (nElig - 1) : 0.0;
                 for (const [fi, si] of validPairs) {
                   const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
@@ -1296,7 +1333,7 @@ export class SideValueTable {
                     let mu = 0;
                     for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
                       const nr = Math.min(maxR, r + vd);
-                      const x = postVal(optKey, nw, nc, nf, ns, ncs, fi, si, nr, tl - 1);
+                      const x = postVal(optKey, s625(nw, nc, nf, ns), ncs, fi, si, nr, tl - 1);
                       xs.push([p, x]);
                       mu += p * x;
                     }
@@ -1305,12 +1342,12 @@ export class SideValueTable {
                     const sd = Math.sqrt(Math.max(0.0, (varv / 4.0) * fpc));
                     let t: number;
                     if (r > 0 && turnNumber !== 1) {
-                      const rc = dp.get(key(w, c, f, s, cs, fi, si, r - 1, tl))!;
+                      const rc = dp[this._idx(st, cs, fi * 4 + si, r - 1, tl)]!;
                       t = finishVal > rc ? finishVal : rc;
                     } else {
                       t = finishVal;
                     }
-                    dp.set(key(w, c, f, s, cs, fi, si, r, tl), eMax(mu, sd, t));
+                    dp[this._idx(st, cs, fi * 4 + si, r, tl)] = eMax(mu, sd, t);
                   }
                 }
               }
@@ -1332,16 +1369,14 @@ export class SideValueTable {
   /** Expected final gem value under optimal play from this state. */
   lookup(state: GemState, turnsLeft: number, rerolls?: number): number {
     if (!this.enabled) return 0.0;
+    if (turnsLeft < 0 || turnsLeft >= this._tlDim) return 0.0;
     const idx = this._effectIndices(state);
     if (idx === null) return 0.0;
     const [fi, si] = idx;
-    const w = state.will, c = state.chaos, f = state.first, s = state.second;
+    const st = s625(state.will, state.chaos, state.first, state.second);
     const cs = state.costRatio !== 0 ? 1 : 0;
-    if (this._maxRerolls > 0) {
-      const r = Math.min(this._maxRerolls, rerolls ?? 0);
-      return this._dp.get(key(w, c, f, s, cs, fi, si, r, turnsLeft)) ?? 0.0;
-    }
-    return this._dp.get(key(w, c, f, s, cs, fi, si, turnsLeft)) ?? 0.0;
+    const r = this._maxRerolls > 0 ? Math.min(this._maxRerolls, rerolls ?? 0) : 0;
+    return this._dp[this._idx(st, cs, fi * 4 + si, r, turnsLeft)]!;
   }
 
   /** Mean V across the 4 actual visible offers (uniform 25% pick).
@@ -1352,10 +1387,11 @@ export class SideValueTable {
   expectedValueAfterClick(state: GemState, offers: Option[], turnsLeftAfter: number,
                           rerolls?: number): number {
     if (!this.enabled || offers.length === 0) return 0.0;
+    if (turnsLeftAfter < 0 || turnsLeftAfter >= this._tlDim) return 0.0;
     const idx = this._effectIndices(state);
     if (idx === null) return 0.0;
     const [fi, si] = idx;
-    const dests = this._changeDests.get(key(fi, si))!;
+    const dests = this._changeDests[fi * 4 + si]!;
     const nd = dests.length;
     const ra = this._maxRerolls > 0;
     const cs = state.costRatio !== 0 ? 1 : 0;
@@ -1366,24 +1402,22 @@ export class SideValueTable {
       const nf = o.kind === 'first' ? clampLevel(state.first + o.delta) : state.first;
       const ns = o.kind === 'second' ? clampLevel(state.second + o.delta) : state.second;
       const ncs = o.kind === 'cost' ? 1 - cs : cs;
-      let kk: (a: number, b: number) => string;
+      const nst = s625(nw, nc, nf, ns);
+      let nr = 0;
       if (ra) {
         const vd = o.kind === 'view' ? o.delta : 0;
-        const nr = Math.min(this._maxRerolls, (rerolls ?? 0) + vd);
-        kk = (a, b) => key(nw, nc, nf, ns, ncs, a, b, nr, turnsLeftAfter);
-      } else {
-        kk = (a, b) => key(nw, nc, nf, ns, ncs, a, b, turnsLeftAfter);
+        nr = Math.min(this._maxRerolls, (rerolls ?? 0) + vd);
       }
       if (o.key === 'change_first_effect') {
         let sum = 0;
-        for (const d of dests) sum += this._dp.get(kk(d, si)) ?? 0.0;
+        for (const d of dests) sum += this._dp[this._idx(nst, ncs, d * 4 + si, nr, turnsLeftAfter)]!;
         total += sum / nd;
       } else if (o.key === 'change_second_effect') {
         let sum = 0;
-        for (const d of dests) sum += this._dp.get(kk(fi, d)) ?? 0.0;
+        for (const d of dests) sum += this._dp[this._idx(nst, ncs, fi * 4 + d, nr, turnsLeftAfter)]!;
         total += sum / nd;
       } else {
-        total += this._dp.get(kk(fi, si)) ?? 0.0;
+        total += this._dp[this._idx(nst, ncs, fi * 4 + si, nr, turnsLeftAfter)]!;
       }
     }
     return total / offers.length;

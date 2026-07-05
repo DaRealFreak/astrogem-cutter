@@ -129,6 +129,27 @@ function sideCoeffs(gem: AstroGem, optimize: string): [number, number] {
 // buildEngineContext
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Table cache
+// ---------------------------------------------------------------------------
+// DP tables are immutable after construction, so engine contexts share them.
+// Keyed by table kind + every parameter that affects the build. This makes a
+// repeated config free and — because relic/ancient/grade tables are
+// goal-independent — keeps goal-slider changes from rebuilding everything.
+// Wholesale-cleared at the cap: a session touches few distinct configs, so
+// LRU bookkeeping isn't worth the complexity.
+const _tableCache = new Map<string, unknown>();
+const TABLE_CACHE_MAX = 48;
+
+function cachedTable<T>(cacheKey: string, make: () => T): T {
+  const hit = _tableCache.get(cacheKey);
+  if (hit !== undefined) return hit as T;
+  if (_tableCache.size >= TABLE_CACHE_MAX) _tableCache.clear();
+  const v = make();
+  _tableCache.set(cacheKey, v);
+  return v;
+}
+
 export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): EngineContext {
   const rarity = config.rarity;
   const turnsTotal = RARITY_TURNS[rarity]!;
@@ -184,59 +205,75 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   const dpMinSideCoeff =
     gemType in GEM_TYPES || scf > 0 || scs > 0 ? minSideCoeff : 0;
 
+  // Cache-key fragment for the goal (config is the goal's only source).
+  const goalKey = JSON.stringify([
+    config.minWill, config.minChaos, config.minFirst, config.minSecond,
+    config.minTotalWillChaos, config.minTotal,
+  ]);
+
   // 1. Reroll-aware goal table (effect-aware; for optimal reroll timing)
-  const probTable = new GoalProbabilityTable(goal, turnsTotal, pool, {
-    sideCoeffFirst: scf,
-    sideCoeffSecond: scs,
-    minSideCoeff: dpMinSideCoeff,
-    earlyFinish: true,
-    maxRerolls: dpMaxRerolls,
-    effectAware: true,
-    gemType,
-    optimize,
-  });
+  const probTable = cachedTable(
+    `prob:${goalKey}:${turnsTotal}:${scf}:${scs}:${dpMinSideCoeff}:${dpMaxRerolls}:${gemType}:${optimize}`,
+    () => new GoalProbabilityTable(goal, turnsTotal, pool, {
+      sideCoeffFirst: scf,
+      sideCoeffSecond: scs,
+      minSideCoeff: dpMinSideCoeff,
+      earlyFinish: true,
+      maxRerolls: dpMaxRerolls,
+      effectAware: true,
+      gemType,
+      optimize,
+    }));
 
   // 2. Standard goal table (no reroll dimension; for reset decisions / pFresh)
-  const resetProbTable = new GoalProbabilityTable(goal, turnsTotal, pool, {
-    sideCoeffFirst: scf,
-    sideCoeffSecond: scs,
-    minSideCoeff: dpMinSideCoeff,
-    earlyFinish: true,
-    effectAware: true,
-    gemType,
-    optimize,
-  });
+  const resetProbTable = cachedTable(
+    `reset:${goalKey}:${turnsTotal}:${scf}:${scs}:${dpMinSideCoeff}:${gemType}:${optimize}`,
+    () => new GoalProbabilityTable(goal, turnsTotal, pool, {
+      sideCoeffFirst: scf,
+      sideCoeffSecond: scs,
+      minSideCoeff: dpMinSideCoeff,
+      earlyFinish: true,
+      effectAware: true,
+      gemType,
+      optimize,
+    }));
 
-  // 3. Relic+ table: P(total_points >= 16), reroll-aware.
-  const relicProbTable = new GoalProbabilityTable(
-    new LastTurnGoal({ minTotal: 16 }),
-    turnsTotal,
-    pool,
-    { earlyFinish: false, maxRerolls: dpMaxRerolls }
-  );
+  // 3. Relic+ table: P(total_points >= 16), reroll-aware. Goal-independent.
+  const relicProbTable = cachedTable(
+    `relic:${turnsTotal}:${dpMaxRerolls}`,
+    () => new GoalProbabilityTable(
+      new LastTurnGoal({ minTotal: 16 }),
+      turnsTotal,
+      pool,
+      { earlyFinish: false, maxRerolls: dpMaxRerolls }
+    ));
 
-  // 4. Ancient table: P(total_points >= 19), reroll-aware.
+  // 4. Ancient table: P(total_points >= 19), reroll-aware. Goal-independent.
   //    This is the only addition beyond the Python (Python tracks P(ancient)
   //    via Monte Carlo; the advisor needs a DP value).
-  const ancientProbTable = new GoalProbabilityTable(
-    new LastTurnGoal({ minTotal: 19 }),
-    turnsTotal,
-    pool,
-    { earlyFinish: false, maxRerolls: dpMaxRerolls }
-  );
+  const ancientProbTable = cachedTable(
+    `ancient:${turnsTotal}:${dpMaxRerolls}`,
+    () => new GoalProbabilityTable(
+      new LastTurnGoal({ minTotal: 19 }),
+      turnsTotal,
+      pool,
+      { earlyFinish: false, maxRerolls: dpMaxRerolls }
+    ));
 
   // 5. Reroll-aware value table (goal-conditioned). Phase B: used for BOTH the
   // finish/continue decision gate AND the displayed eValue matrix, threaded with
   // the live reroll budget. (When dpMaxRerolls === 0 a reroll-aware build is
   // byte-identical to a flat one.)
-  const sideValueTable = new SideValueTable(goal, turnsTotal, pool, gemType, {
-    optimize,
-    minSideCoeff,
-    relicCoeff,
-    ancientCoeff,
-    valueMode: ignoreSide ? 'will_chaos' : 'side',
-    maxRerolls: dpMaxRerolls,
-  });
+  const sideValueTable = cachedTable(
+    `sv:${goalKey}:${turnsTotal}:${gemType}:${optimize}:${minSideCoeff}:${relicCoeff}:${ancientCoeff}:${ignoreSide}:${dpMaxRerolls}`,
+    () => new SideValueTable(goal, turnsTotal, pool, gemType, {
+      optimize,
+      minSideCoeff,
+      relicCoeff,
+      ancientCoeff,
+      valueMode: ignoreSide ? 'will_chaos' : 'side',
+      maxRerolls: dpMaxRerolls,
+    }));
 
   // 6. Grade-value table (goal-independent; dead-goal decisions), reroll-aware.
   // Always 'grade_only', regardless of ignoreSide: a gem that missed its goal
@@ -244,26 +281,31 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   // its fusion grade (relic/ancient) matters. The dead-goal decision finishes
   // the instant no higher grade is reachable instead of clicking on to pump a
   // side coefficient the dead gem can never cash in.
-  const gradeValueTable = new SideValueTable(new LastTurnGoal(), turnsTotal, pool, gemType, {
-    optimize,
-    minSideCoeff: 0,
-    relicCoeff,
-    ancientCoeff,
-    valueMode: 'grade_only',
-    maxRerolls: dpMaxRerolls,
-  });
+  // Goal-independent (trivial always-satisfied goal) — survives goal changes.
+  const gradeValueTable = cachedTable(
+    `grade:${turnsTotal}:${gemType}:${optimize}:${relicCoeff}:${ancientCoeff}:${dpMaxRerolls}`,
+    () => new SideValueTable(new LastTurnGoal(), turnsTotal, pool, gemType, {
+      optimize,
+      minSideCoeff: 0,
+      relicCoeff,
+      ancientCoeff,
+      valueMode: 'grade_only',
+      maxRerolls: dpMaxRerolls,
+    }));
 
   // 7. Maxed-oracle (side-mode; only when ignoreSide is set, at will/chaos cap),
   // reroll-aware.
   const maxedValueTable = ignoreSide
-    ? new SideValueTable(goal, turnsTotal, pool, gemType, {
-        optimize,
-        minSideCoeff,
-        relicCoeff,
-        ancientCoeff,
-        valueMode: 'side',
-        maxRerolls: dpMaxRerolls,
-      })
+    ? cachedTable(
+        `maxed:${goalKey}:${turnsTotal}:${gemType}:${optimize}:${minSideCoeff}:${relicCoeff}:${ancientCoeff}:${dpMaxRerolls}`,
+        () => new SideValueTable(goal, turnsTotal, pool, gemType, {
+          optimize,
+          minSideCoeff,
+          relicCoeff,
+          ancientCoeff,
+          valueMode: 'side',
+          maxRerolls: dpMaxRerolls,
+        }))
     : null;
 
   // Display value table: the shown eValue is always an expected side
@@ -279,30 +321,36 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   // per-state argmax to follow, and under ignoreSide rerolls aren't spent on the
   // side node anyway, so the side value earns no reroll boost.
   const displayValueTable = ignoreSide
-    ? new SideValueTable(goal, turnsTotal, pool, gemType, {
-        optimize,
-        minSideCoeff,
-        relicCoeff,
-        ancientCoeff,
-        valueMode: 'side',
-        policyValueMode: 'will_chaos',
-      })
+    ? cachedTable(
+        `disp:${goalKey}:${turnsTotal}:${gemType}:${optimize}:${minSideCoeff}:${relicCoeff}:${ancientCoeff}`,
+        () => new SideValueTable(goal, turnsTotal, pool, gemType, {
+          optimize,
+          minSideCoeff,
+          relicCoeff,
+          ancientCoeff,
+          valueMode: 'side',
+          policyValueMode: 'will_chaos',
+        }))
     : sideValueTable;
 
   // 8. Goal-conditioned expected side-coefficient table (grade coeffs 0 ->
   //    value == E[side_coeff]) for the per-turn --reroll-min-coeff ticket
   //    enabler. ~0 once the goal is unreachable.
   const expectedCoeffTable = rerollMinCoeff > 0
-    ? new SideValueTable(goal, turnsTotal, pool, gemType, {
-        optimize, minSideCoeff, relicCoeff: 0, ancientCoeff: 0, valueMode: 'side',
-      })
+    ? cachedTable(
+        `ecoeff:${goalKey}:${turnsTotal}:${gemType}:${optimize}:${minSideCoeff}`,
+        () => new SideValueTable(goal, turnsTotal, pool, gemType, {
+          optimize, minSideCoeff, relicCoeff: 0, ancientCoeff: 0, valueMode: 'side',
+        }))
     : null;
 
   // 9. Will/chaos-total table for the --reroll-goal ticket enabler.
   const rerollGoalProbTable = goalRerollActive
-    ? new GoalProbabilityTable(
-        new LastTurnGoal({ minTotalWillChaos: rerollGoal }), turnsTotal, pool,
-        { earlyFinish: false, maxRerolls: dpMaxRerolls })
+    ? cachedTable(
+        `rgoal:${rerollGoal}:${turnsTotal}:${dpMaxRerolls}`,
+        () => new GoalProbabilityTable(
+          new LastTurnGoal({ minTotalWillChaos: rerollGoal }), turnsTotal, pool,
+          { earlyFinish: false, maxRerolls: dpMaxRerolls }))
     : null;
 
   // Fresh state (used for reset projection in advise() and pFresh below)
