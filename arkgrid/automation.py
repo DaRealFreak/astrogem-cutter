@@ -570,6 +570,58 @@ def _infer_picked(old: GemState, new: GemState) -> str:
     return ", ".join(parts) if parts else "maintain / cost"
 
 
+def _offer_signature(det) -> Optional[tuple]:
+    """Signature of the 4 detected option cards, or None when the hand is
+    not fully detected (mid-animation frames must not release the settle
+    gate below on a garbled read)."""
+    if len(det.options) != 4:
+        return None
+    sig = tuple((o.name_key, o.delta_key) for o in det.options)
+    if any(not name for name, _ in sig):
+        return None
+    return sig
+
+
+def _still_waiting(det_turn, det_rerolls, det_sig, waiting) -> bool:
+    """Release predicate for the post-action settle gate.
+
+    `waiting` is (turn, reroll_key, target_turn, offer_signature). Reset
+    flows hold until the turn flips to `target_turn`; everything else
+    releases when the turn or reroll counter changes. A Charge (ticket)
+    reroll changes NEITHER — the free counter is already 0 and stays 0 —
+    so for rerolls the pre-action offer signature is carried along and a
+    fully-detected different hand releases the gate (regression: the gate
+    used to wait forever after a Charge reroll).
+    """
+    wait_turn, wait_rerolls, target_turn, wait_offers = waiting
+    if target_turn is not None:
+        return det_turn != target_turn
+    if det_turn != wait_turn or det_rerolls != wait_rerolls:
+        return False
+    if (wait_offers is not None and det_sig is not None
+            and det_sig != wait_offers):
+        return False
+    return True
+
+
+def _run_success(goal: LastTurnGoal, state: GemState, optimize: str,
+                 bis_only: bool, min_side_coeff: int) -> bool:
+    """End-of-gem success — mirrors `GemSimulator`'s check (goal +
+    `bis_only` target effects + `min_side_coeff` floor) so the auto JSONL
+    agrees with `sim` batches."""
+    if not goal.satisfied(state.will, state.chaos, state.first, state.second):
+        return False
+    if bis_only:
+        target = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        if (state.first_effect not in target
+                or state.second_effect not in target):
+            return False
+    if min_side_coeff > 0:
+        if GemAnalyzer._side_coeff(state, optimize) < min_side_coeff:
+            return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Main automation loop
 # ---------------------------------------------------------------------------
@@ -705,12 +757,15 @@ def run_auto(
         turn_history: List[dict] = []
         current_turn_rerolls = 0
         consecutive_failures = 0
-        # (turn, reroll_key, target_turn). If target_turn is set, wait until
-        # det_turn == target_turn (used for reset which always returns to
-        # turn 1 — avoids clearing on mid-animation frames where the reroll
-        # counter has already decremented but the turn hasn't flipped yet).
+        # (turn, reroll_key, target_turn, offer_signature). If target_turn is
+        # set, wait until det_turn == target_turn (used for reset which always
+        # returns to turn 1 — avoids clearing on mid-animation frames where
+        # the reroll counter has already decremented but the turn hasn't
+        # flipped yet). offer_signature is set for rerolls so a Charge
+        # (ticket) reroll — which changes neither turn nor counter — releases
+        # on the new hand (see _still_waiting).
         waiting_for_change: Optional[
-            Tuple[int, Optional[str], Optional[int]]
+            Tuple[int, Optional[str], Optional[int], Optional[tuple]]
         ] = None
         finish_state: Optional[dict] = None  # Set from finish screen detection
         gem_completed = False
@@ -823,20 +878,12 @@ def run_auto(
                 time.sleep(DETECT_RETRY_WAIT)
                 continue
 
-            # --- Wait for state change (turn or reroll count) ---
+            # --- Wait for state change (turn, reroll count, or — for a
+            # Charge reroll, which changes neither — the offer cards) ---
             if waiting_for_change is not None:
                 det_turn = det.total_steps - det.current_step + 1
-                wait_turn, wait_rerolls, target_turn = waiting_for_change
-                if target_turn is not None:
-                    # Reset flow: hold until the turn indicator flips to
-                    # target_turn (reset always returns to turn 1). The
-                    # reroll counter decrements before the reset animation
-                    # finishes, so relying on a generic "anything changed"
-                    # check would release too early on a mid-animation frame.
-                    if det_turn != target_turn:
-                        time.sleep(animation_delay)
-                        continue
-                elif det_turn == wait_turn and det.rerolls == wait_rerolls:
+                if _still_waiting(det_turn, det.rerolls,
+                                  _offer_signature(det), waiting_for_change):
                     time.sleep(animation_delay)
                     continue
                 waiting_for_change = None
@@ -860,7 +907,14 @@ def run_auto(
                 # reroll-aware tables to cover free rerolls + the ticket whenever
                 # the player owns it, so GoalProbabilityTable.lookup never clamps
                 # the lent reroll (or the free+1 look-ahead in ticket_enabled).
-                dp_max_rerolls = base_rerolls + (1 if ownable else 0)
+                # Mirror the simulator's sizing exactly: +1 headroom when the
+                # relic/goal ticket enablers do a "with the ticket" look-ahead,
+                # so `sim` and `auto` gate the ticket identically.
+                goal_reroll_lookahead = (reroll_goal is not None
+                                         and reroll_goal_threshold > 0.0)
+                dp_max_rerolls = base_rerolls + (1 if ownable else 0) + (
+                    1 if (relic_reroll_threshold > 0.0
+                          or goal_reroll_lookahead) else 0)
                 prob_table, target_effects, side_coeff_first, side_coeff_second = (
                     _build_prob_table(
                         goal, det.total_steps, pool, temp_state,
@@ -1036,7 +1090,10 @@ def run_auto(
             # Rebuild DecisionContext if anything it depends on changed.
             if decision_ctx is None and prob_table is not None:
                 rarity_name = RARITY_FROM_TOTAL_STEPS.get(det.total_steps, "rare")
-                _base = GemSimulator.RARITY_REROLLS.get(rarity_name, 0)
+                # Mirror the simulator's ctx.base_rerolls: rarity free rerolls
+                # + the owned reroll ticket (GemSimulator.__init__ line 94).
+                _base = GemSimulator.RARITY_REROLLS.get(rarity_name, 0) + (
+                    1 if ownable else 0)
                 decision_ctx = DecisionContext(
                     goal=goal,
                     pool=pool,
@@ -1292,7 +1349,9 @@ def run_auto(
                 # In dry-run no click happens, so wait for the game state
                 # to change (turn or reroll count) before re-evaluating.
                 target = 1 if action == "reset" else None
-                waiting_for_change = (analysis.current_turn, det.rerolls, target)
+                waiting_for_change = (
+                    analysis.current_turn, det.rerolls, target,
+                    _offer_signature(det) if action == "reroll" else None)
                 prev_analysis = analysis
                 prev_action = action
                 prev_action_reason = action_reason
@@ -1376,7 +1435,10 @@ def run_auto(
                         f"confirm click to avoid misclick on cutting screen"
                     )
                     target = 1 if action == "reset" else None
-                    waiting_for_change = (analysis.current_turn, det.rerolls, target)
+                    # No offer signature: the action did NOT complete (dialog
+                    # unverified), so the hand is not expected to change.
+                    waiting_for_change = (
+                        analysis.current_turn, det.rerolls, target, None)
                     # Mirror the post-action bookkeeping block below (must stay
                     # in sync with prev_analysis / prev_action / prev_action_reason
                     # assignments at the end of the normal action path).
@@ -1446,11 +1508,14 @@ def run_auto(
                 current_turn_rerolls = 0
 
             # F4: also guard after reroll — block re-decision until the
-            # reroll count decrements on-screen, confirming the animation
-            # has settled and the new offer set is visible.
+            # reroll count decrements on-screen (or, for a Charge reroll
+            # where it can't, until the offer cards change), confirming the
+            # animation has settled and the new offer set is visible.
             if action in ("process", "reset", "reroll"):
                 target = 1 if action == "reset" else None
-                waiting_for_change = (analysis.current_turn, det.rerolls, target)
+                waiting_for_change = (
+                    analysis.current_turn, det.rerolls, target,
+                    _offer_signature(det) if action == "reroll" else None)
 
             prev_analysis = analysis
             prev_action = action
@@ -1526,11 +1591,8 @@ def run_auto(
             final_state_obj = GemState()
 
         side_coeff_value = GemAnalyzer._side_coeff(final_state_obj, optimize)
-        goal_satisfied = goal.satisfied(
-            final_state_obj.will, final_state_obj.chaos,
-            final_state_obj.first, final_state_obj.second)
-        success = goal_satisfied and (
-            min_side_coeff <= 0 or side_coeff_value >= min_side_coeff)
+        success = _run_success(goal, final_state_obj, optimize,
+                               bis_only, min_side_coeff)
 
         if pending_turn_record is not None:
             pending_turn_record["state_after"] = final_state_obj
