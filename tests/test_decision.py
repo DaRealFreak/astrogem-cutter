@@ -1515,5 +1515,55 @@ class TestDestinationBlindMetrics(unittest.TestCase):
         self.assertEqual(m_peek.feasible_count, m_blind.feasible_count)
 
 
+class TestExplicitMarginUnderConfirm(unittest.TestCase):
+    """--confirm-min-coeff must not silently zero an explicitly passed
+    --endgame-risk margin. The confirm gate only disables the AUTO-gate
+    (grade-protect); an explicit margin is the player's finish bar and
+    applies to gated and ungated gems alike.
+    """
+
+    def test_side_value_finish_honors_explicit_margin(self):
+        # Maxed gem, last turn, no rerolls: finishing is EV-optimal, but the
+        # player demanded a huge margin -> continue (return None), even with
+        # the confirm gate active. Pre-fix the margin was zeroed -> FINISH.
+        ctx = build_ctx(confirm_min_coeff=0, endgame_risk=1e9)
+        state = GemState(will=5, chaos=5, first=5, second=5, rerolls=0,
+                         first_effect="additional_damage",
+                         second_effect="boss_damage")
+        ti = build_ti(state=state,
+                      offers=make_offers("will-1", "chaos-1",
+                                         "first-1", "second-1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        m = compute_post_roll_metrics(ctx, ti)
+        d = _side_value_finish_decision(ctx, ti, m)
+        self.assertIsNone(d)
+
+    def test_grade_value_decision_honors_explicit_margin(self):
+        # Dead goal at relic grade, last turn, no rerolls: locking the grade
+        # is EV-optimal, but the explicit margin says continue -> PROCESS.
+        goal = LastTurnGoal(min_will=5, min_chaos=5)
+        ctx = build_ctx(goal=goal, confirm_min_coeff=0, endgame_risk=1e9,
+                        relic_coeff=3000, ancient_coeff=4000)
+        state = GemState(will=5, chaos=1, first=5, second=5, rerolls=0,
+                         first_effect="additional_damage",
+                         second_effect="boss_damage")
+        ti = build_ti(state=state, offers=make_offers("first-1", "second-1"),
+                      turn=9, turns_left=1, rerolls=0, reset_available=False)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.PROCESS)
+
+
+class TestLegalActionsTurnOne(unittest.TestCase):
+    def test_no_reroll_choice_on_turn_1(self):
+        # The game disallows rerolling on turn 1 — the confirm menu must not
+        # offer a dead button.
+        ti = build_ti(turn=1, turns_left=9, rerolls=2)
+        self.assertNotIn(ActionKind.REROLL, _legal_actions(ti))
+
+    def test_reroll_choice_after_turn_1(self):
+        ti = build_ti(turn=2, turns_left=8, rerolls=2)
+        self.assertIn(ActionKind.REROLL, _legal_actions(ti))
+
+
 if __name__ == "__main__":
     unittest.main()

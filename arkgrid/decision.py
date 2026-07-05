@@ -313,7 +313,8 @@ def _legal_actions(ti: TurnInput) -> tuple:
     menu. Fixed order: finish, process, reroll, reset.
     """
     choices = [ActionKind.FINISH, ActionKind.PROCESS]
-    if ti.rerolls > 0:
+    if ti.rerolls > 0 and ti.turn != 1:
+        # Rerolling is disallowed on turn 1 — don't offer a dead button.
         choices.append(ActionKind.REROLL)
     if ti.reset_available:
         choices.append(ActionKind.RESET)
@@ -323,8 +324,9 @@ def _legal_actions(ti: TurnInput) -> tuple:
 def _maybe_confirm(ctx: DecisionContext, ti: TurnInput,
                    decision: Decision) -> Decision:
     """Stamp `needs_confirmation` on a reset / infeasibility decision
-    when `--confirm-risk` is active and the gem's side coefficient meets
-    the floor. Returns the decision unchanged otherwise.
+    when the confirmation gate (`--confirm-min-coeff`) is active and the
+    gem's side coefficient meets the floor. Returns the decision
+    unchanged otherwise.
     """
     if not ctx.confirm_active:
         return decision
@@ -544,8 +546,10 @@ def _side_value_finish_decision(
         if benchmark > 0 and _side_coeff(ctx, ti.state) < benchmark:
             grade_protect = True
 
-    margin = (0.0 if (ctx.confirm_active or ctx.endgame_risk is None)
-              else ctx.endgame_risk)
+    # The confirm gate disables only the AUTO-gate above; an explicitly
+    # passed --endgame-risk is the player's finish bar and applies to gated
+    # and ungated gems alike.
+    margin = 0.0 if ctx.endgame_risk is None else ctx.endgame_risk
     metrics = {"finish_val": finish_val, "process_ev": process_ev,
                "margin": margin, "grade_protect": grade_protect}
     if not grade_protect and finish_val < process_ev + margin:
@@ -663,8 +667,9 @@ def _grade_value_decision(
     # below-grade-band offer already tanks process_ev via the lost
     # tier_bonus, so the value comparison protects the grade implicitly —
     # no separate benchmark gate is needed here.
-    margin = (0.0 if (ctx.confirm_active or ctx.endgame_risk is None)
-              else ctx.endgame_risk)
+    # Explicit --endgame-risk margin applies regardless of the confirm gate
+    # (mirrors _side_value_finish_decision).
+    margin = 0.0 if ctx.endgame_risk is None else ctx.endgame_risk
     metrics["margin"] = margin
     if finish_val >= process_ev + margin:
         return Decision(
@@ -780,11 +785,12 @@ def _reset_or_chase_relic(
                         f"(P(goal|reroll)={p_reroll_goal:.1%})"),
                 metrics={**base_metrics, "p_reroll_goal": p_reroll_goal},
             )
-        # Goal AND relic+ both unreachable
+        # Goal unreachable and no further relic+ upside (the gem may already
+        # sit at relic+ — the chase above found nothing better to gain).
         return Decision(
             action=ActionKind.FINISH,
             branch=branch,
-            reason="goal & relic+ both unreachable",
+            reason="goal unreachable, no relic+ upside left",
             metrics=base_metrics,
         )
 

@@ -251,7 +251,8 @@ function handIsWcSafe(offers: Option[]): boolean {
 
 function legalActions(ti: TurnInput): string[] {
   const choices: string[] = [ActionKind.FINISH, ActionKind.PROCESS];
-  if (ti.rerolls > 0) {
+  if (ti.rerolls > 0 && ti.turn !== 1) {
+    // Rerolling is disallowed on turn 1 — don't offer a dead button.
     choices.push(ActionKind.REROLL);
   }
   if (ti.resetAvailable) {
@@ -442,8 +443,10 @@ function sideValueFinishDecision(
     }
   }
 
-  const margin =
-    ctx.confirmActive || ctx.endgameRisk === undefined ? 0.0 : ctx.endgameRisk;
+  // The confirm gate disables only the AUTO-gate above; an explicitly
+  // passed endgameRisk is the player's finish bar and applies to gated
+  // and ungated gems alike.
+  const margin = ctx.endgameRisk === undefined ? 0.0 : ctx.endgameRisk;
   const metrics = {
     finish_val: finishVal,
     process_ev: processEv,
@@ -551,8 +554,9 @@ function gradeValueDecision(
   }
 
   // No reroll (exhausted, or turn 1): finish vs process by value.
-  const margin =
-    ctx.confirmActive || ctx.endgameRisk === undefined ? 0.0 : ctx.endgameRisk;
+  // Explicit endgameRisk margin applies regardless of the confirm gate
+  // (mirrors sideValueFinishDecision).
+  const margin = ctx.endgameRisk === undefined ? 0.0 : ctx.endgameRisk;
   metrics['margin'] = margin;
   if (finishVal >= processEv + margin) {
     return makeDecision({
