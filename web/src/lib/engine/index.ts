@@ -8,6 +8,7 @@
 import {
   DPS_COEFF,
   DPS_EFFECTS,
+  GEM_TYPES,
   SUPPORT_COEFF,
   SUPPORT_EFFECTS,
 } from './constants';
@@ -174,9 +175,14 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
 
   // Side coefficients from the gem's effects (mirrors simulator.py:108-117)
   const [scf, scs] = sideCoeffs(gem, optimize);
-  // If both are 0 (gem type unknown / cross-type w/o coeff), don't pass
-  // min_side_coeff to the DP (it would think the goal is always infeasible).
-  const dpMinSideCoeff = scf > 0 || scs > 0 ? minSideCoeff : 0;
+  // With a known gem type the goal tables are effect-aware and price the
+  // floor via effect identity — even when the starting effects contribute 0,
+  // change_effect can bring in a target effect (mirrors Python
+  // `_get_ea_tables`, which passes min_side_coeff unguarded). Only the flat
+  // fallback (unknown gem type -> effectAware self-disables) must drop the
+  // floor, or the DP would deem the goal always infeasible (0 < threshold).
+  const dpMinSideCoeff =
+    gemType in GEM_TYPES || scf > 0 || scs > 0 ? minSideCoeff : 0;
 
   // 1. Reroll-aware goal table (effect-aware; for optimal reroll timing)
   const probTable = new GoalProbabilityTable(goal, turnsTotal, pool, {
