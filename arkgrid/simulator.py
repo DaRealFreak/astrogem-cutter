@@ -16,6 +16,10 @@ from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
 from arkgrid.policy import RerollPolicy
 from arkgrid.probability import GoalProbabilityTable, SideValueTable
+from arkgrid.table_cache import (
+    goal_table as cached_goal_table,
+    side_value_table as cached_side_value_table,
+)
 
 
 class GemSimulator:
@@ -134,7 +138,7 @@ class GemSimulator:
 
         # Reroll-aware DP table: extends state with reroll count so the
         # DP itself decides optimal reroll timing via backward induction.
-        self.prob_table = GoalProbabilityTable(
+        self.prob_table = cached_goal_table(
             goal, self.turns_total, self.pool,
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
@@ -145,7 +149,7 @@ class GemSimulator:
         # Standard (non-reroll) DP for reset decisions — the reroll-aware
         # DP overestimates p_fresh because the per-option max model
         # overstates reroll value vs actual 4-draw-pick-1 mechanics.
-        self._reset_prob_table = GoalProbabilityTable(
+        self._reset_prob_table = cached_goal_table(
             goal, self.turns_total, self.pool,
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
@@ -163,7 +167,7 @@ class GemSimulator:
         # rerolls when chasing relic+.  Without max_rerolls the table
         # is the no-reroll DP and systematically underestimates P(r+),
         # making the override fire too rarely.
-        self._relic_prob_table: Optional[GoalProbabilityTable] = GoalProbabilityTable(
+        self._relic_prob_table: Optional[GoalProbabilityTable] = cached_goal_table(
             LastTurnGoal(min_total=16), self.turns_total, self.pool,
             early_finish=False,
             max_rerolls=dp_max_rerolls,
@@ -173,7 +177,7 @@ class GemSimulator:
         # success goal). Non-effect-aware: effects don't affect will/chaos.
         self._reroll_goal_prob_table: Optional[GoalProbabilityTable] = None
         if goal_reroll_active:
-            self._reroll_goal_prob_table = GoalProbabilityTable(
+            self._reroll_goal_prob_table = cached_goal_table(
                 LastTurnGoal(min_total_will_chaos=reroll_goal),
                 self.turns_total, self.pool,
                 early_finish=False,
@@ -187,7 +191,7 @@ class GemSimulator:
         if gem_type in self._ea_table_cache:
             return (self._ea_table_cache[gem_type],
                     self._ea_reset_table_cache[gem_type])
-        reroll_tbl = GoalProbabilityTable(
+        reroll_tbl = cached_goal_table(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
             early_finish=True,
@@ -196,7 +200,7 @@ class GemSimulator:
             gem_type=gem_type,
             optimize=self.optimize,
         )
-        reset_tbl = GoalProbabilityTable(
+        reset_tbl = cached_goal_table(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
             early_finish=True,
@@ -218,7 +222,7 @@ class GemSimulator:
         cached = self._side_value_table_cache.get(gem_type)
         if cached is not None:
             return cached
-        table = SideValueTable(
+        table = cached_side_value_table(
             self.goal, self.turns_total, self.pool,
             gem_type=gem_type, optimize=self.optimize,
             min_side_coeff=self.min_side_coeff,
@@ -253,7 +257,7 @@ class GemSimulator:
         cached = self._grade_value_table_cache.get(gem_type)
         if cached is not None:
             return cached
-        table = SideValueTable(
+        table = cached_side_value_table(
             LastTurnGoal(), self.turns_total, self.pool,
             gem_type=gem_type, optimize=self.optimize,
             min_side_coeff=0,
@@ -279,7 +283,7 @@ class GemSimulator:
         cached = self._maxed_value_table_cache.get(gem_type)
         if cached is not None:
             return cached
-        table = SideValueTable(
+        table = cached_side_value_table(
             self.goal, self.turns_total, self.pool,
             gem_type=gem_type, optimize=self.optimize,
             min_side_coeff=self.min_side_coeff,
@@ -305,7 +309,7 @@ class GemSimulator:
         cached = self._expected_coeff_table_cache.get(gem_type)
         if cached is not None:
             return cached
-        table = SideValueTable(
+        table = cached_side_value_table(
             self.goal, self.turns_total, self.pool,
             gem_type=gem_type, optimize=self.optimize,
             min_side_coeff=self.min_side_coeff,

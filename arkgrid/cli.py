@@ -12,6 +12,10 @@ from arkgrid.constants import (
 from arkgrid.models import LastTurnGoal, AstroGem, GemState
 from arkgrid.pool import OptionPool
 from arkgrid.probability import GoalProbabilityTable
+from arkgrid.table_cache import (
+    goal_table as cached_goal_table,
+    side_value_table as cached_side_value_table,
+)
 from arkgrid.simulator import GemSimulator
 from arkgrid.analyzer import GemAnalyzer, pprint_result
 
@@ -474,7 +478,7 @@ def _compute_dp_prob(
                 set(GEM_TYPES[astro_gem.gem_type]) & target_set)
 
     if astro_gem and astro_gem.gem_type in GEM_TYPES:
-        table = GoalProbabilityTable(
+        table = cached_goal_table(
             goal, turns, pool,
             min_side_coeff=min_side_coeff,
             early_finish=early_finish,
@@ -495,7 +499,7 @@ def _compute_dp_prob(
         total_p = 0.0
         n_configs = 0
         for gem_type, effs in GEM_TYPES.items():
-            table = GoalProbabilityTable(
+            table = cached_goal_table(
                 goal, turns, pool,
                 min_side_coeff=min_side_coeff,
                 early_finish=early_finish,
@@ -516,7 +520,7 @@ def _compute_dp_prob(
                     n_configs += 1
         return total_p / n_configs if n_configs else 0.0
     elif bis_only and astro_gem:
-        table = GoalProbabilityTable(
+        table = cached_goal_table(
             goal, turns, pool,
             bis_only=True,
             target_effects=target_effects,
@@ -535,7 +539,7 @@ def _compute_dp_prob(
         # No configured gem — average over all starting (ft, st) combos.
         # The BIS DP is gem-type-independent (only tracks target/non-target
         # binary state), so one table covers all gem types.
-        table = GoalProbabilityTable(
+        table = cached_goal_table(
             goal, turns, pool,
             bis_only=True,
             early_finish=early_finish,
@@ -549,7 +553,7 @@ def _compute_dp_prob(
         prob_sum = 0.0
         initial = GemState(will=1, chaos=1, first=1, second=1)
         for (cf, cs), count in pairs.items():
-            table = GoalProbabilityTable(
+            table = cached_goal_table(
                 goal, turns, pool,
                 side_coeff_first=cf,
                 side_coeff_second=cs,
@@ -559,7 +563,7 @@ def _compute_dp_prob(
             prob_sum += table.lookup(initial, turns) * count
         return prob_sum / total_count
     else:
-        table = GoalProbabilityTable(
+        table = cached_goal_table(
             goal, turns, pool,
             side_coeff_first=side_coeff_first,
             side_coeff_second=side_coeff_second,
@@ -907,7 +911,7 @@ def cmd_live(args: argparse.Namespace) -> None:
             side_coeff_second = coeff_map[state.second_effect]
 
     optimize = getattr(args, "optimize", "dps")
-    prob_table = GoalProbabilityTable(
+    prob_table = cached_goal_table(
         goal, turns_total, pool,
         bis_only=bis_only, target_effects=target_effects,
         side_coeff_first=side_coeff_first,
@@ -1017,7 +1021,7 @@ def cmd_live(args: argparse.Namespace) -> None:
     print(f"P(goal)~:   {p_current:.1%}  (reroll-aware DP, optimistic estimate)")
 
     # Relic+ (>=16 total points) probability from current state
-    relic_table = GoalProbabilityTable(
+    relic_table = cached_goal_table(
         LastTurnGoal(min_total=16), turns_total, pool,
         early_finish=False,
         max_rerolls=reroll_count,
@@ -1074,7 +1078,7 @@ def cmd_live(args: argparse.Namespace) -> None:
                                state.first, state.second)
             and gem_type_domain in GEM_TYPES):
         from arkgrid.probability import SideValueTable
-        svt = SideValueTable(
+        svt = cached_side_value_table(
             goal, current_turn + turns_left - 1, pool,
             gem_type=gem_type_domain,
             optimize=getattr(args, "optimize", "dps"),

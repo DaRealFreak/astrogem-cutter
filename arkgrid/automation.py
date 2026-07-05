@@ -40,6 +40,10 @@ from arkgrid.decision import (
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
 from arkgrid.probability import GoalProbabilityTable, SideValueTable
+from arkgrid.table_cache import (
+    goal_table as cached_goal_table,
+    side_value_table as cached_side_value_table,
+)
 from arkgrid.run_logger import RunLogger
 from arkgrid.simulator import GemSimulator
 from arkgrid.vision.capture import grab_screen
@@ -351,7 +355,7 @@ def _build_prob_table(
         print(f"  [dp] Building effect-aware table "
               f"({gem_type_domain}, rerolls={max_rerolls})...", flush=True)
         t0 = time.time()
-        table = GoalProbabilityTable(
+        table = cached_goal_table(
             goal, turns_total, pool,
             min_side_coeff=min_side_coeff,
             early_finish=early_finish,
@@ -364,7 +368,7 @@ def _build_prob_table(
               f"({len(table._dp)} states)", flush=True)
         _DP_CACHE[cache_key] = table
     else:
-        table = GoalProbabilityTable(
+        table = cached_goal_table(
             goal, turns_total, pool,
             bis_only=bis_only, target_effects=target_effects,
             side_coeff_first=side_coeff_first,
@@ -400,13 +404,13 @@ def _build_reset_table(
     matches the goal prob_table's own fallback in ``_build_prob_table``.
     """
     if effect_aware and gem_type_domain in GEM_TYPES:
-        return GoalProbabilityTable(
+        return cached_goal_table(
             goal, turns_total, pool,
             min_side_coeff=min_side_coeff,
             early_finish=True,
             effect_aware=True, gem_type=gem_type_domain, optimize=optimize,
         )
-    return GoalProbabilityTable(goal, turns_total, pool, early_finish=True)
+    return cached_goal_table(goal, turns_total, pool, early_finish=True)
 
 
 def _parse_view_delta(delta_key: Optional[str]) -> int:
@@ -928,14 +932,14 @@ def run_auto(
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
                 if relic_table is None:
-                    relic_table = GoalProbabilityTable(
+                    relic_table = cached_goal_table(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,
                         max_rerolls=dp_max_rerolls,
                     )
                 if (reroll_goal is not None and reroll_goal_threshold > 0.0
                         and reroll_goal_table is None):
-                    reroll_goal_table = GoalProbabilityTable(
+                    reroll_goal_table = cached_goal_table(
                         LastTurnGoal(min_total_will_chaos=reroll_goal),
                         det.total_steps, pool,
                         early_finish=False,
@@ -961,7 +965,7 @@ def run_auto(
                 )
                 # Side-value DP table: built once per gem type detected.
                 if side_value_table is None:
-                    side_value_table = SideValueTable(
+                    side_value_table = cached_side_value_table(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
@@ -979,7 +983,7 @@ def run_auto(
                 # and the dead-goal decision finishes once no higher grade is
                 # reachable rather than chasing a worthless side coefficient.
                 if grade_value_table is None:
-                    grade_value_table = SideValueTable(
+                    grade_value_table = cached_side_value_table(
                         LastTurnGoal(), det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=0,
@@ -993,7 +997,7 @@ def run_auto(
                 # Built only under the flag; the maxed branch never fires
                 # otherwise, so it stays None for the default value model.
                 if maxed_value_table is None and ignore_side_node_values:
-                    maxed_value_table = SideValueTable(
+                    maxed_value_table = cached_side_value_table(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
@@ -1006,7 +1010,7 @@ def run_auto(
                 # forced to 0 -> value == E[side_coeff]) for the per-turn
                 # --reroll-min-coeff ticket enabler. ~0 when the goal is dead.
                 if expected_coeff_table is None and reroll_min_coeff > 0:
-                    expected_coeff_table = SideValueTable(
+                    expected_coeff_table = cached_side_value_table(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
