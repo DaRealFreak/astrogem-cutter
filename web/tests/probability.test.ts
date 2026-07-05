@@ -18,16 +18,18 @@ describe('GoalProbabilityTable parity', () => {
     const pool = new OptionPool();
     for (const r of recs) {
       const i = r.inputs;
-      const ckey = JSON.stringify([i.gem_type, i.goal, i.rarity]);
+      const ckey = JSON.stringify([i.gem_type, i.goal, i.rarity, i.min_side_coeff ?? 0]);
       if (!cache.has(ckey)) {
         const turns: number = RT[i.rarity]!;
         const mr = i.max_rerolls;  // resolved dp_max_rerolls emitted by the exporter
+        const msc = i.min_side_coeff ?? 0;
         cache.set(ckey, {
           roll: new GoalProbabilityTable(goalOf(i.goal), turns, pool, {
-            earlyFinish: true, maxRerolls: mr, effectAware: true,
+            earlyFinish: true, maxRerolls: mr, effectAware: true, minSideCoeff: msc,
             gemType: i.gem_type, optimize: i.optimize }),
           reset: new GoalProbabilityTable(goalOf(i.goal), turns, pool, {
-            earlyFinish: true, effectAware: true, gemType: i.gem_type, optimize: i.optimize }),
+            earlyFinish: true, effectAware: true, minSideCoeff: msc,
+            gemType: i.gem_type, optimize: i.optimize }),
           relic: new GoalProbabilityTable(new LastTurnGoal({ minTotal: 16 }), turns, pool, {
             maxRerolls: mr }),
           anc: new GoalProbabilityTable(new LastTurnGoal({ minTotal: 19 }), turns, pool, {

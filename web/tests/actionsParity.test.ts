@@ -10,6 +10,7 @@ const recs: Array<{
   inputs: {
     gt: string; fe: string; se: string; opt: string;
     goal: Record<string, number>; rarity: string;
+    ignore_side?: boolean;
     turns_total: number; base_rerolls: number;
     state: [number, number, number, number];
     turn: number; turns_left: number; rerolls: number;
@@ -41,11 +42,12 @@ describe('advise().actions parity', () => {
 
     for (const rec of recs) {
       const i = rec.inputs;
-      const ckey = JSON.stringify([i.gt, i.fe, i.se, i.opt, i.goal, i.rarity]);
+      const ckey = JSON.stringify([i.gt, i.fe, i.se, i.opt, i.goal, i.rarity, i.ignore_side ?? false]);
       if (!ctxCache.has(ckey)) {
         ctxCache.set(ckey, buildEngineContext(
           { gemType: i.gt, firstEffect: i.fe, secondEffect: i.se, optimize: i.opt as 'dps' | 'support' },
-          { rarity: i.rarity as 'common' | 'rare' | 'epic', ...goalFieldsFromFixture(i.goal) }
+          { rarity: i.rarity as 'common' | 'rare' | 'epic', ...goalFieldsFromFixture(i.goal),
+            ignoreSideNodeValues: i.ignore_side ?? false }
         ));
       }
       const ctx = ctxCache.get(ckey)!;

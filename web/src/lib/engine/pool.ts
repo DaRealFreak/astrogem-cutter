@@ -106,11 +106,11 @@ export class OptionPool {
       return true;
     }
 
-    // view options excluded on turn 1 and last turn
+    // view options excluded on the last turn only (per the official
+    // disclosure and verified in-game: they CAN appear among the turn-1
+    // picks — the reroll BUTTON is what's locked on turn 1, and rerolls
+    // banked from a turn-1 view pick are usable from turn 2).
     if (opt.kind === "view") {
-      if (turn === 1) {
-        return false;
-      }
       if (turnsLeft === 1) {
         return false;
       }

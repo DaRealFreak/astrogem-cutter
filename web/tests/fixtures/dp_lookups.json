@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "0d39aa4"
+  "arkgrid_sha": "e95a635"
  },
  "records": [
   {
@@ -17,6 +17,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -54,6 +55,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -91,6 +93,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -128,6 +131,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -165,6 +169,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -202,6 +207,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -239,6 +245,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -255,12 +262,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.12247081463410288,
-    "epac": 0.21593112618668853,
+    "lookup": 0.1239207468129937,
+    "epac": 0.2168521530894694,
     "reroll": false,
-    "reset_lookup": 0.10895593257119957,
-    "relic_lookup": 0.15619096638660027,
-    "ancient_lookup": 0.009071240365216953
+    "reset_lookup": 0.10826973163919562,
+    "relic_lookup": 0.15807852502107386,
+    "ancient_lookup": 0.009164137702648983
    }
   },
   {
@@ -276,6 +283,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -292,12 +300,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.18284018389466772,
-    "epac": 0.29220197627943156,
+    "lookup": 0.1843668097452208,
+    "epac": 0.2935217440885873,
     "reroll": false,
-    "reset_lookup": 0.10895593257119957,
-    "relic_lookup": 0.27530993888012595,
-    "ancient_lookup": 0.022211426699438496
+    "reset_lookup": 0.10826973163919562,
+    "relic_lookup": 0.2763409442480362,
+    "ancient_lookup": 0.022161056259606095
    }
   },
   {
@@ -313,6 +321,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -329,12 +338,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.24359328277337244,
-    "epac": 0.35972202598316255,
+    "lookup": 0.24465054371482947,
+    "epac": 0.3612739025487589,
     "reroll": false,
-    "reset_lookup": 0.10895593257119957,
-    "relic_lookup": 0.3921434638205929,
-    "ancient_lookup": 0.04077831698549213
+    "reset_lookup": 0.10826973163919562,
+    "relic_lookup": 0.39090238052899196,
+    "ancient_lookup": 0.0403563609790408
    }
   },
   {
@@ -350,6 +359,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -387,6 +397,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -424,6 +435,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -461,6 +473,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -498,6 +511,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -535,6 +549,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -572,6 +587,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -589,11 +605,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.8983187889819652,
+    "epac": 0.8989729513535006,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9214374325412488,
-    "ancient_lookup": 0.45730313324645694
+    "relic_lookup": 0.9243577112717726,
+    "ancient_lookup": 0.46722107164330995
    }
   },
   {
@@ -609,6 +625,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -626,11 +643,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9427793623949063,
+    "epac": 0.9434239114159493,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9698682447031726,
-    "ancient_lookup": 0.6365472121047799
+    "relic_lookup": 0.9711154867659029,
+    "ancient_lookup": 0.6447267657023105
    }
   },
   {
@@ -646,6 +663,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -663,11 +681,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9628521475614302,
+    "epac": 0.9634671791949221,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9888126413349331,
-    "ancient_lookup": 0.7655656808754862
+    "relic_lookup": 0.9892662011392378,
+    "ancient_lookup": 0.7709309876293412
    }
   },
   {
@@ -683,6 +701,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -720,6 +739,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -757,6 +777,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -794,6 +815,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -831,6 +853,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -868,6 +891,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -905,6 +929,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -922,11 +947,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9752071339199251,
+    "epac": 0.975682496778552,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9940148643215462,
-    "ancient_lookup": 0.7373117809446393
+    "relic_lookup": 0.9945303899713598,
+    "ancient_lookup": 0.7554030690273453
    }
   },
   {
@@ -942,6 +967,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -959,11 +985,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9872494292246354,
+    "epac": 0.9876152416993559,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9984936413708498,
-    "ancient_lookup": 0.86792918104298
+    "relic_lookup": 0.998620464329762,
+    "ancient_lookup": 0.8767786525803248
    }
   },
   {
@@ -979,6 +1005,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -996,11 +1023,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.992489874166997,
+    "epac": 0.9927803845777381,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9996223969511676,
-    "ancient_lookup": 0.9329466540924155
+    "relic_lookup": 0.9996502736203146,
+    "ancient_lookup": 0.936252151991988
    }
   },
   {
@@ -1016,6 +1043,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1053,6 +1081,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1090,6 +1119,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1127,6 +1157,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1164,6 +1195,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1181,7 +1213,7 @@
    },
    "expected": {
     "lookup": 0.4023209777832835,
-    "epac": 0.3618921669583428,
+    "epac": 0.36189216695834275,
     "reroll": false,
     "reset_lookup": 0.2725696628198815,
     "relic_lookup": 0.009054439256553568,
@@ -1201,6 +1233,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1238,6 +1271,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1254,12 +1288,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.7675093707219248,
-    "epac": 0.7219923183007881,
+    "lookup": 0.7713791494825908,
+    "epac": 0.723076079159275,
     "reroll": false,
-    "reset_lookup": 0.7443174740254913,
-    "relic_lookup": 0.6975935806479235,
-    "ancient_lookup": 0.17270000117523857
+    "reset_lookup": 0.7438466043747135,
+    "relic_lookup": 0.7053220809356111,
+    "ancient_lookup": 0.17747369624772408
    }
   },
   {
@@ -1275,6 +1309,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1291,12 +1326,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.8451683241833051,
-    "epac": 0.7994728216398438,
+    "lookup": 0.8477108050955823,
+    "epac": 0.800718518356919,
     "reroll": false,
-    "reset_lookup": 0.7443174740254913,
-    "relic_lookup": 0.8436945033726448,
-    "ancient_lookup": 0.30912888271215294
+    "reset_lookup": 0.7438466043747135,
+    "relic_lookup": 0.8487713617950308,
+    "ancient_lookup": 0.31438145723310035
    }
   },
   {
@@ -1312,6 +1347,7 @@
     },
     "rarity": "epic",
     "max_rerolls": 3,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -1328,12 +1364,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.8862204621652076,
-    "epac": 0.8448323973770628,
+    "lookup": 0.8880199867900304,
+    "epac": 0.8461207683902672,
     "reroll": true,
-    "reset_lookup": 0.7443174740254913,
-    "relic_lookup": 0.9234927499960968,
-    "ancient_lookup": 0.44051129449599485
+    "reset_lookup": 0.7438466043747135,
+    "relic_lookup": 0.9261964311662424,
+    "ancient_lookup": 0.44479177756850863
    }
   },
   {
@@ -1348,6 +1384,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1384,6 +1421,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1420,6 +1458,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1456,6 +1495,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1492,6 +1532,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1528,6 +1569,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1564,6 +1606,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1580,12 +1623,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.1847845189186695,
-    "epac": 0.39299559971327924,
+    "lookup": 0.1861815462746379,
+    "epac": 0.39374814167123035,
     "reroll": false,
-    "reset_lookup": 0.17137283193459232,
-    "relic_lookup": 0.03359817723740969,
-    "ancient_lookup": 0.0007720983809435127
+    "reset_lookup": 0.16970055858509264,
+    "relic_lookup": 0.03352228186294728,
+    "ancient_lookup": 0.0007664930569540348
    }
   },
   {
@@ -1600,6 +1643,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1616,12 +1660,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.2684744201548039,
-    "epac": 0.49871878017109367,
+    "lookup": 0.2691207451855776,
+    "epac": 0.49969424922776967,
     "reroll": false,
-    "reset_lookup": 0.17137283193459232,
-    "relic_lookup": 0.07096287875479099,
-    "ancient_lookup": 0.0021705794868486982
+    "reset_lookup": 0.16970055858509264,
+    "relic_lookup": 0.07004163099032874,
+    "ancient_lookup": 0.0021297532209712837
    }
   },
   {
@@ -1636,6 +1680,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      1,
      1,
@@ -1652,12 +1697,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.3493888183780937,
-    "epac": 0.5800981983394173,
+    "lookup": 0.34710999650050756,
+    "epac": 0.5810746924328795,
     "reroll": false,
-    "reset_lookup": 0.17137283193459232,
-    "relic_lookup": 0.11478220072976594,
-    "ancient_lookup": 0.004466756211786894
+    "reset_lookup": 0.16970055858509264,
+    "relic_lookup": 0.11226339586870841,
+    "ancient_lookup": 0.0043430329222457174
    }
   },
   {
@@ -1672,6 +1717,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1708,6 +1754,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1744,6 +1791,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1780,6 +1828,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1816,6 +1865,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1852,6 +1902,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1888,6 +1939,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1908,8 +1960,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.8707606275165332,
-    "ancient_lookup": 0.3260644309172082
+    "relic_lookup": 0.8748805850975369,
+    "ancient_lookup": 0.3343840009545683
    }
   },
   {
@@ -1924,6 +1976,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1944,8 +1997,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9480749359676565,
-    "ancient_lookup": 0.5095426625374008
+    "relic_lookup": 0.9496866846368439,
+    "ancient_lookup": 0.515591112405235
    }
   },
   {
@@ -1960,6 +2013,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      5,
@@ -1980,8 +2034,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9785740864360268,
-    "ancient_lookup": 0.6480197001541004
+    "relic_lookup": 0.9785645729743773,
+    "ancient_lookup": 0.648147573949569
    }
   },
   {
@@ -1996,6 +2050,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2032,6 +2087,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2068,6 +2124,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2104,6 +2161,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2140,6 +2198,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2176,6 +2235,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2212,6 +2272,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2232,8 +2293,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9956498794391435,
-    "ancient_lookup": 0.7276580684451338
+    "relic_lookup": 0.9960478826103192,
+    "ancient_lookup": 0.7461153613241155
    }
   },
   {
@@ -2248,6 +2309,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2268,8 +2330,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9989819045049471,
-    "ancient_lookup": 0.8635986621710068
+    "relic_lookup": 0.999068692609436,
+    "ancient_lookup": 0.8710449347870252
    }
   },
   {
@@ -2284,6 +2346,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      5,
      5,
@@ -2304,8 +2367,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9997353803188314,
-    "ancient_lookup": 0.923252526880947
+    "relic_lookup": 0.9997436354737468,
+    "ancient_lookup": 0.9235556287652094
    }
   },
   {
@@ -2320,6 +2383,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2356,6 +2420,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2392,6 +2457,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2428,6 +2494,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2464,6 +2531,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2481,7 +2549,7 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.790754463979241,
+    "epac": 0.7907544639792409,
     "reroll": true,
     "reset_lookup": 1.0,
     "relic_lookup": 0.009054439256553568,
@@ -2500,6 +2568,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2536,6 +2605,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2553,11 +2623,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9383537372531854,
+    "epac": 0.9385982119055756,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.4987940709844159,
-    "ancient_lookup": 0.06029937180971957
+    "relic_lookup": 0.5055088727702035,
+    "ancient_lookup": 0.06118274648181734
    }
   },
   {
@@ -2572,6 +2642,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2589,11 +2660,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9727657940993351,
+    "epac": 0.9729647181341198,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.6957715115722936,
-    "ancient_lookup": 0.12851671451848448
+    "relic_lookup": 0.6996197432182406,
+    "ancient_lookup": 0.12843143003419288
    }
   },
   {
@@ -2608,6 +2679,7 @@
     },
     "rarity": "rare",
     "max_rerolls": 2,
+    "min_side_coeff": 0,
     "state": [
      4,
      4,
@@ -2625,11 +2697,1379 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9837814599519897,
+    "epac": 0.983946995215828,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.8140412436227651,
-    "ancient_lookup": 0.2071398368615762
+    "relic_lookup": 0.8128976013528463,
+    "ancient_lookup": 0.20398665945271138
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.05287852405555819,
+    "epac": 0.10278951308207356,
+    "reroll": false,
+    "reset_lookup": 0.044423489146105145,
+    "relic_lookup": 0.15807852502107386,
+    "ancient_lookup": 0.009164137702648983
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.09390048260062614,
+    "epac": 0.16622947124076543,
+    "reroll": false,
+    "reset_lookup": 0.044423489146105145,
+    "relic_lookup": 0.2763409442480362,
+    "ancient_lookup": 0.022161056259606095
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will+2",
+     "will+3",
+     "will+4"
+    ]
+   },
+   "expected": {
+    "lookup": 0.13825516862807685,
+    "epac": 0.22712963657322252,
+    "reroll": false,
+    "reset_lookup": 0.044423489146105145,
+    "relic_lookup": 0.39090238052899196,
+    "ancient_lookup": 0.0403563609790408
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.049429657794676805,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.049429657794676805,
+    "relic_lookup": 0.16045627376425858,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.09397273344995591,
+    "epac": 0.0,
+    "reroll": true,
+    "reset_lookup": 0.049429657794676805,
+    "relic_lookup": 0.2951663317382065,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.13411231113170932,
+    "epac": 0.0,
+    "reroll": true,
+    "reset_lookup": 0.049429657794676805,
+    "relic_lookup": 0.4082613157710875,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.1001830978525038,
+    "epac": 0.038759584090607827,
+    "reroll": false,
+    "reset_lookup": 0.09777110227814556,
+    "relic_lookup": 0.4826439414750706,
+    "ancient_lookup": 0.004351910607870733
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.1553577151399181,
+    "epac": 0.07343000199291856,
+    "reroll": true,
+    "reset_lookup": 0.09777110227814556,
+    "relic_lookup": 0.745436365653157,
+    "ancient_lookup": 0.012408075806744242
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.207533626150357,
+    "epac": 0.10445075072277035,
+    "reroll": true,
+    "reset_lookup": 0.09777110227814556,
+    "relic_lookup": 0.8845517914217166,
+    "ancient_lookup": 0.02359707872576808
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.6103373792821081,
+    "epac": 0.5267630288840224,
+    "reroll": false,
+    "reset_lookup": 0.5581611436686169,
+    "relic_lookup": 0.9243577112717726,
+    "ancient_lookup": 0.46722107164330995
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.7177636727838251,
+    "epac": 0.6474225465914585,
+    "reroll": false,
+    "reset_lookup": 0.5581611436686169,
+    "relic_lookup": 0.9711154867659029,
+    "ancient_lookup": 0.6447267657023105
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     5,
+     3,
+     2
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos-1",
+     "first+1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.7937555218519304,
+    "epac": 0.736509344297784,
+    "reroll": false,
+    "reset_lookup": 0.5581611436686169,
+    "relic_lookup": 0.9892662011392378,
+    "ancient_lookup": 0.7709309876293412
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.32098765432098764,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.32098765432098764,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.5389422344154854,
+    "epac": 0.0,
+    "reroll": true,
+    "reset_lookup": 0.32098765432098764,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.6869360850969346,
+    "epac": 0.0,
+    "reroll": true,
+    "reset_lookup": 0.32098765432098764,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.45137930620920286,
+    "epac": 0.17829153605015674,
+    "reroll": false,
+    "reset_lookup": 0.4210330923826027,
+    "relic_lookup": 0.9999999999999999,
+    "ancient_lookup": 0.8328108672936257
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.6316262192788787,
+    "epac": 0.3202540757264571,
+    "reroll": true,
+    "reset_lookup": 0.4210330923826027,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 0.9371075362860034
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.7498171378772832,
+    "epac": 0.43329007910507866,
+    "reroll": true,
+    "reset_lookup": 0.4210330923826027,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 0.976341392960252
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.870358418312904,
+    "epac": 0.8014247681025062,
+    "reroll": false,
+    "reset_lookup": 0.8241398404292354,
+    "relic_lookup": 0.9945303899713598,
+    "ancient_lookup": 0.7554030690273453
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.9149430742946087,
+    "epac": 0.8699920047484351,
+    "reroll": true,
+    "reset_lookup": 0.8241398404292354,
+    "relic_lookup": 0.998620464329762,
+    "ancient_lookup": 0.8767786525803248
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.9422683831170064,
+    "epac": 0.9128339740718183,
+    "reroll": true,
+    "reset_lookup": 0.8241398404292354,
+    "relic_lookup": 0.9996502736203146,
+    "ancient_lookup": 0.936252151991988
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 1,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.0,
+    "relic_lookup": 0.0,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.020254237943190603,
+    "epac": 0.0,
+    "reroll": false,
+    "reset_lookup": 0.020254237943190603,
+    "relic_lookup": 0.0032577177451812178,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0470968900872739,
+    "epac": 0.0,
+    "reroll": true,
+    "reset_lookup": 0.020254237943190603,
+    "relic_lookup": 0.009054439256553568,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.0747563959545337,
+    "epac": 0.0,
+    "reroll": true,
+    "reset_lookup": 0.020254237943190603,
+    "relic_lookup": 0.01680595883220439,
+    "ancient_lookup": 0.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.41965609260542,
+    "epac": 0.3362393460953529,
+    "reroll": false,
+    "reset_lookup": 0.38024825076128477,
+    "relic_lookup": 0.7053220809356111,
+    "ancient_lookup": 0.17747369624772408
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 1,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.5336361333618442,
+    "epac": 0.4489512850928068,
+    "reroll": false,
+    "reset_lookup": 0.38024825076128477,
+    "relic_lookup": 0.8487713617950308,
+    "ancient_lookup": 0.31438145723310035
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 9,
+    "rerolls": 2,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.6150208096689739,
+    "epac": 0.5332421872360753,
+    "reroll": true,
+    "reset_lookup": 0.38024825076128477,
+    "relic_lookup": 0.9261964311662424,
+    "ancient_lookup": 0.44479177756850863
    }
   }
  ]

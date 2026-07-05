@@ -1462,5 +1462,58 @@ class TestGoalMetGuardOnNoFeasibleOffer(unittest.TestCase):
         self.assertEqual(d.action, ActionKind.REROLL)
 
 
+class TestDestinationBlindMetrics(unittest.TestCase):
+    """The change-effect card does NOT reveal its destination in-game, so
+    decision metrics must not consult `Option.resolved_effect` — the
+    post-click P for a change offer is the average over the 2 non-equipped
+    destinations (same model as `expected_prob_after_click`).
+
+    Regression: `feasible_count` used the pre-resolved destination when
+    present (simulator's superhuman peek) and treated the change as a
+    no-op when absent (automation path) — so a goal reachable only via
+    change_effect read `feasible_count == 0` in automation.
+    """
+
+    def _ea_ctx(self, goal):
+        ctx = build_ctx(goal=goal)
+        # Effect-aware goal table with a side-coeff floor the starting
+        # effects can't meet (both support, dps optimize): only a
+        # change_effect can reach the goal.
+        ctx.prob_table = GoalProbabilityTable(
+            goal, 9, _POOL, min_side_coeff=2000,
+            early_finish=True, max_rerolls=2,
+            effect_aware=True, gem_type="chaos_distortion", optimize="dps",
+        )
+        return ctx
+
+    def _ti(self, offers):
+        state = GemState(will=5, chaos=5, first=5, second=5, rerolls=0,
+                         first_effect="ally_damage",
+                         second_effect="ally_attack")
+        return build_ti(state=state, offers=offers, turn=9, turns_left=1,
+                        rerolls=0, reset_available=False)
+
+    def test_change_offer_counts_feasible_via_destination_average(self):
+        # first=5: both destinations meet the 2000 floor
+        # (attack_power 5*400, boss_damage 5*1000) -> avg P > 0.
+        goal = LastTurnGoal(min_will=2)
+        ctx = self._ea_ctx(goal)
+        m = compute_post_roll_metrics(
+            ctx, self._ti(make_offers("change_first_effect")))
+        self.assertEqual(m.feasible_count, 1)
+
+    def test_feasible_count_ignores_resolved_effect(self):
+        # The simulator pre-resolves destinations for click application;
+        # metrics must be identical with and without the peek.
+        from dataclasses import replace
+        goal = LastTurnGoal(min_will=2)
+        ctx = self._ea_ctx(goal)
+        chg = make_offers("change_first_effect")[0]
+        peeked = replace(chg, resolved_effect="attack_power")
+        m_blind = compute_post_roll_metrics(ctx, self._ti([chg]))
+        m_peek = compute_post_roll_metrics(ctx, self._ti([peeked]))
+        self.assertEqual(m_peek.feasible_count, m_blind.feasible_count)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -250,37 +250,6 @@ class TurnMetrics:
     feasible_count: int           # # offers where prob_table DP > 0 after pick
 
 
-def _apply_option_for_metrics(state: GemState, opt: Option) -> GemState:
-    """Apply an option to a cloned state for metrics purposes.
-
-    Mirrors `GemSimulator.apply_option` but doesn't take an RNG:
-    `change_*_effect` options use `opt.resolved_effect` if the caller
-    pre-resolved them (simulator), otherwise leave the effect unchanged
-    (automation, where the destination is only known after clicking).
-    """
-    s = state.clone()
-    if opt.kind == "will":
-        s.will = min(5, max(1, s.will + opt.delta))
-    elif opt.kind == "chaos":
-        s.chaos = min(5, max(1, s.chaos + opt.delta))
-    elif opt.kind == "first":
-        s.first = min(5, max(1, s.first + opt.delta))
-    elif opt.kind == "second":
-        s.second = min(5, max(1, s.second + opt.delta))
-    elif opt.kind == "view":
-        s.rerolls = max(0, s.rerolls + opt.delta)
-    elif opt.kind == "cost":
-        if opt.key == "cost+100":
-            s.cost_ratio = min(100, s.cost_ratio + 100)
-        elif opt.key == "cost-100":
-            s.cost_ratio = max(-100, s.cost_ratio - 100)
-    elif opt.key == "change_first_effect" and opt.resolved_effect:
-        s.first_effect = opt.resolved_effect
-    elif opt.key == "change_second_effect" and opt.resolved_effect:
-        s.second_effect = opt.resolved_effect
-    return s
-
-
 def _goal_fully_satisfied(ctx: DecisionContext, state: GemState) -> bool:
     """Check goal + bis_only + min_side_coeff all together.
 
@@ -393,17 +362,13 @@ def compute_post_roll_metrics(ctx: DecisionContext, ti: TurnInput) -> TurnMetric
         p_keep_relic = 0.0
         p_reroll_relic = 0.0
 
-    # Per-offer post-click feasibility under the goal DP.
-    max_r = ctx.prob_table._max_rerolls
-
+    # Per-offer post-click feasibility under the goal DP. Destination-blind:
+    # change offers count via their destination-average P (the card doesn't
+    # reveal the destination in-game), consistent with p_keep_goal above.
     feasible_count = 0
-
     for o in ti.offers:
-        ns = _apply_option_for_metrics(ti.state, o)
-        view_delta = o.delta if o.kind == "view" else 0
-        nr = (min(max_r, ti.rerolls + view_delta)
-              if max_r > 0 else ti.rerolls)
-        if ctx.prob_table.lookup(ns, tla, rerolls=nr) > 0:
+        if ctx.prob_table.prob_after_option(
+                ti.state, o, tla, rerolls=ti.rerolls) > 0:
             feasible_count += 1
 
     return TurnMetrics(

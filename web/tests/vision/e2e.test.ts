@@ -38,5 +38,5 @@ describe('e2e: screenshot -> detect -> adapt -> advise', () => {
       expect(out.pRelic).toBeGreaterThanOrEqual(out.pAncient);
       expect(out.perOffer).toHaveLength(4);
     }
-  }, 60_000);
+  }, 240_000);
 });

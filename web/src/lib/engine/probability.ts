@@ -7,11 +7,11 @@
 //
 // The Python _dp is a dict keyed by tuples; here it is a Map<string, number>
 // with a comma-joined key builder. The key arity must match Python's tuple
-// shapes per mode EXACTLY:
-//   effect-aware + reroll: (w, c, f, s, fi, si, r, tl)
-//   effect-aware:          (w, c, f, s, fi, si, tl)
-//   reroll:                (w, c, f, s, r, tl)
-//   standard:              (w, c, f, s, tl)
+// shapes per mode EXACTLY (cs = cost-saturation flag, 1 at cost_ratio ±100):
+//   effect-aware + reroll: (w, c, f, s, cs, fi, si, r, tl)
+//   effect-aware:          (w, c, f, s, cs, fi, si, tl)
+//   reroll:                (w, c, f, s, cs, r, tl)
+//   standard:              (w, c, f, s, cs, tl)
 
 import { DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, SUPPORT_EFFECTS, fusionAvgCoeff } from './constants';
 import type { Option, LastTurnGoal } from './models';
@@ -55,12 +55,12 @@ function eMax(mu: number, sd: number, t: number): number {
 }
 
 // Effect-aware option-level transition entry:
-//   [prob, optionKey, optionKind, nw, nc, nf, ns, viewDelta]
-type EaTransEntry = [number, string, string, number, number, number, number, number];
+//   [prob, optionKey, optionKind, nw, nc, nf, ns, ncs, viewDelta]
+type EaTransEntry = [number, string, string, number, number, number, number, number, number];
 
 // Reroll-aware (non-effect) transition entry:
-//   [prob, nw, nc, nf, ns, viewDelta]
-type RerollTransEntry = [number, number, number, number, number, number];
+//   [prob, nw, nc, nf, ns, ncs, viewDelta]
+type RerollTransEntry = [number, number, number, number, number, number, number];
 
 export class GoalProbabilityTable {
   readonly goal: LastTurnGoal;
@@ -157,8 +157,8 @@ export class GoalProbabilityTable {
     return eligible.map((o) => [o, o.weight / totalW]);
   }
 
-  private _eligible(w: number, c: number, f: number, s: number, turn: number, turnsLeft: number): Option[] {
-    const state = new GemState({ will: w, chaos: c, first: f, second: s });
+  private _eligible(w: number, c: number, f: number, s: number, cs: number, turn: number, turnsLeft: number): Option[] {
+    const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
     return this.pool.pool.filter((o) => this.pool.eligible(o, state, turn, turnsLeft));
   }
 
@@ -177,23 +177,25 @@ export class GoalProbabilityTable {
     c: number,
     f: number,
     s: number,
+    cs: number,
     turn: number,
     turnsLeft: number
   ): Map<string, number> {
-    const eligible = this._eligible(w, c, f, s, turn, turnsLeft);
+    const eligible = this._eligible(w, c, f, s, cs, turn, turnsLeft);
     const dest = new Map<string, number>();
     if (eligible.length === 0) {
-      dest.set(key(w, c, f, s), 1.0);
+      dest.set(key(w, c, f, s, cs), 1.0);
       return dest;
     }
     for (const [o, p] of this._optionProbs(eligible)) {
-      let nw = w, nc = c, nf = f, ns = s;
+      let nw = w, nc = c, nf = f, ns = s, ncs = cs;
       if (o.kind === 'will') nw = clampLevel(w + o.delta);
       else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
       else if (o.kind === 'first') nf = clampLevel(f + o.delta);
       else if (o.kind === 'second') ns = clampLevel(s + o.delta);
-      // cost/view/other/maintain -> no stat change
-      const k = key(nw, nc, nf, ns);
+      else if (o.kind === 'cost') ncs = 1 - cs;
+      // view/other/maintain -> no state change
+      const k = key(nw, nc, nf, ns, ncs);
       dest.set(k, (dest.get(k) ?? 0) + p);
     }
     return dest;
@@ -209,13 +211,15 @@ export class GoalProbabilityTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const sat = this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s) ? 1.0 : 0.0;
-            dp.set(key(w, c, f, s, 0), sat);
+            for (let cs = 0; cs <= 1; cs++) {
+              dp.set(key(w, c, f, s, cs, 0), sat);
+            }
           }
         }
       }
     }
 
-    // Precompute transition tables for three turn types.
+    // Precompute transition tables for three turn types x cost states.
     const transCache: Record<string, Map<string, Map<string, number>>> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
@@ -223,42 +227,49 @@ export class GoalProbabilityTable {
       ['middle', 2, mt > 2 ? mt - 1 : 2],
     ];
     for (const [label, turn, tl] of turnSpecs) {
-      const cache = new Map<string, Map<string, number>>();
-      for (let w = 1; w <= 5; w++) {
-        for (let c = 1; c <= 5; c++) {
-          for (let f = 1; f <= 5; f++) {
-            for (let s = 1; s <= 5; s++) {
-              cache.set(key(w, c, f, s), this._transitions(w, c, f, s, turn, tl));
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache = new Map<string, Map<string, number>>();
+        for (let w = 1; w <= 5; w++) {
+          for (let c = 1; c <= 5; c++) {
+            for (let f = 1; f <= 5; f++) {
+              for (let s = 1; s <= 5; s++) {
+                cache.set(key(w, c, f, s), this._transitions(w, c, f, s, cs, turn, tl));
+              }
             }
           }
         }
+        transCache[`${label},${cs}`] = cache;
       }
-      transCache[label] = cache;
     }
 
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      let tc: Map<string, Map<string, number>>;
-      if (turnNumber === 1) tc = transCache['first']!;
-      else if (tl === 1) tc = transCache['last']!;
-      else tc = transCache['middle']!;
+      let label: string;
+      if (turnNumber === 1) label = 'first';
+      else if (tl === 1) label = 'last';
+      else label = 'middle';
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
               if (this.earlyFinish && this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s)) {
-                dp.set(key(w, c, f, s, tl), 1.0);
+                for (let cs = 0; cs <= 1; cs++) {
+                  dp.set(key(w, c, f, s, cs, tl), 1.0);
+                }
                 continue;
               }
-              let val = 0.0;
-              const trans = tc.get(key(w, c, f, s))!;
-              for (const [destKey, p] of trans) {
-                // destKey is "nw,nc,nf,ns"; append tl-1 for the DP lookup.
-                val += p * dp.get(`${destKey},${tl - 1}`)!;
+              for (let cs = 0; cs <= 1; cs++) {
+                const tc = transCache[`${label},${cs}`]!;
+                let val = 0.0;
+                const trans = tc.get(key(w, c, f, s))!;
+                for (const [destKey, p] of trans) {
+                  // destKey is "nw,nc,nf,ns,ncs"; append tl-1 for the DP lookup.
+                  val += p * dp.get(`${destKey},${tl - 1}`)!;
+                }
+                dp.set(key(w, c, f, s, cs, tl), val);
               }
-              dp.set(key(w, c, f, s, tl), val);
             }
           }
         }
@@ -275,24 +286,26 @@ export class GoalProbabilityTable {
     c: number,
     f: number,
     s: number,
+    cs: number,
     turn: number,
     turnsLeft: number
   ): RerollTransEntry[] {
-    const eligible = this._eligible(w, c, f, s, turn, turnsLeft);
+    const eligible = this._eligible(w, c, f, s, cs, turn, turnsLeft);
     if (eligible.length === 0) {
-      return [[1.0, w, c, f, s, 0]];
+      return [[1.0, w, c, f, s, cs, 0]];
     }
     const result: RerollTransEntry[] = [];
     for (const [o, p] of this._optionProbs(eligible)) {
-      let nw = w, nc = c, nf = f, ns = s;
+      let nw = w, nc = c, nf = f, ns = s, ncs = cs;
       let vd = 0;
       if (o.kind === 'will') nw = clampLevel(w + o.delta);
       else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
       else if (o.kind === 'first') nf = clampLevel(f + o.delta);
       else if (o.kind === 'second') ns = clampLevel(s + o.delta);
       else if (o.kind === 'view') vd = o.delta;
-      // cost/other/maintain -> no stat change, no view delta
-      result.push([p, nw, nc, nf, ns, vd]);
+      else if (o.kind === 'cost') ncs = 1 - cs;
+      // other/maintain -> no state change, no view delta
+      result.push([p, nw, nc, nf, ns, ncs, vd]);
     }
     return result;
   }
@@ -308,15 +321,17 @@ export class GoalProbabilityTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             const sat = this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s) ? 1.0 : 0.0;
-            for (let r = 0; r <= maxR; r++) {
-              dp.set(key(w, c, f, s, r, 0), sat);
+            for (let cs = 0; cs <= 1; cs++) {
+              for (let r = 0; r <= maxR; r++) {
+                dp.set(key(w, c, f, s, cs, r, 0), sat);
+              }
             }
           }
         }
       }
     }
 
-    // Precompute transition tables (with view deltas)
+    // Precompute transition tables (with view deltas) per cost state
     const transCache: Record<string, Map<string, RerollTransEntry[]>> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
@@ -324,54 +339,58 @@ export class GoalProbabilityTable {
       ['middle', 2, mt > 2 ? mt - 1 : 2],
     ];
     for (const [label, turn, tl] of turnSpecs) {
-      const cache = new Map<string, RerollTransEntry[]>();
-      for (let w = 1; w <= 5; w++) {
-        for (let c = 1; c <= 5; c++) {
-          for (let f = 1; f <= 5; f++) {
-            for (let s = 1; s <= 5; s++) {
-              cache.set(key(w, c, f, s), this._transitionsReroll(w, c, f, s, turn, tl));
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache = new Map<string, RerollTransEntry[]>();
+        for (let w = 1; w <= 5; w++) {
+          for (let c = 1; c <= 5; c++) {
+            for (let f = 1; f <= 5; f++) {
+              for (let s = 1; s <= 5; s++) {
+                cache.set(key(w, c, f, s), this._transitionsReroll(w, c, f, s, cs, turn, tl));
+              }
             }
           }
         }
+        transCache[`${label},${cs}`] = cache;
       }
-      transCache[label] = cache;
     }
 
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      let tc: Map<string, RerollTransEntry[]>;
-      if (turnNumber === 1) tc = transCache['first']!;
-      else if (tl === 1) tc = transCache['last']!;
-      else tc = transCache['middle']!;
+      let label: string;
+      if (turnNumber === 1) label = 'first';
+      else if (tl === 1) label = 'last';
+      else label = 'middle';
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
-              const trans = tc.get(key(w, c, f, s))!;
-              for (let r = 0; r <= maxR; r++) {
-                if (this.earlyFinish && this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s)) {
-                  dp.set(key(w, c, f, s, r, tl), 1.0);
-                  continue;
-                }
+              for (let cs = 0; cs <= 1; cs++) {
+                const trans = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                for (let r = 0; r <= maxR; r++) {
+                  if (this.earlyFinish && this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s)) {
+                    dp.set(key(w, c, f, s, cs, r, tl), 1.0);
+                    continue;
+                  }
 
-                if (r > 0 && turnNumber !== 1) {
-                  const rerollVal = dp.get(key(w, c, f, s, r - 1, tl))!;
-                  let val = 0.0;
-                  for (const [p, nw, nc, nf, ns, vd] of trans) {
-                    const nr = Math.min(maxR, r + vd);
-                    const post = dp.get(key(nw, nc, nf, ns, nr, tl - 1))!;
-                    val += p * Math.max(post, rerollVal);
+                  if (r > 0 && turnNumber !== 1) {
+                    const rerollVal = dp.get(key(w, c, f, s, cs, r - 1, tl))!;
+                    let val = 0.0;
+                    for (const [p, nw, nc, nf, ns, ncs, vd] of trans) {
+                      const nr = Math.min(maxR, r + vd);
+                      const post = dp.get(key(nw, nc, nf, ns, ncs, nr, tl - 1))!;
+                      val += p * Math.max(post, rerollVal);
+                    }
+                    dp.set(key(w, c, f, s, cs, r, tl), val);
+                  } else {
+                    let val = 0.0;
+                    for (const [p, nw, nc, nf, ns, ncs, vd] of trans) {
+                      const nr = Math.min(maxR, r + vd);
+                      val += p * dp.get(key(nw, nc, nf, ns, ncs, nr, tl - 1))!;
+                    }
+                    dp.set(key(w, c, f, s, cs, r, tl), val);
                   }
-                  dp.set(key(w, c, f, s, r, tl), val);
-                } else {
-                  let val = 0.0;
-                  for (const [p, nw, nc, nf, ns, vd] of trans) {
-                    const nr = Math.min(maxR, r + vd);
-                    val += p * dp.get(key(nw, nc, nf, ns, nr, tl - 1))!;
-                  }
-                  dp.set(key(w, c, f, s, r, tl), val);
                 }
               }
             }
@@ -390,23 +409,25 @@ export class GoalProbabilityTable {
     c: number,
     f: number,
     s: number,
+    cs: number,
     turn: number,
     turnsLeft: number
   ): EaTransEntry[] {
-    const eligible = this._eligible(w, c, f, s, turn, turnsLeft);
+    const eligible = this._eligible(w, c, f, s, cs, turn, turnsLeft);
     if (eligible.length === 0) {
-      return [[1.0, '', '', w, c, f, s, 0]];
+      return [[1.0, '', '', w, c, f, s, cs, 0]];
     }
     const result: EaTransEntry[] = [];
     for (const [o, p] of this._optionProbs(eligible)) {
-      let nw = w, nc = c, nf = f, ns = s;
+      let nw = w, nc = c, nf = f, ns = s, ncs = cs;
       let vd = 0;
       if (o.kind === 'will') nw = clampLevel(w + o.delta);
       else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
       else if (o.kind === 'first') nf = clampLevel(f + o.delta);
       else if (o.kind === 'second') ns = clampLevel(s + o.delta);
       else if (o.kind === 'view') vd = o.delta;
-      result.push([p, o.key, o.kind, nw, nc, nf, ns, vd]);
+      else if (o.kind === 'cost') ncs = 1 - cs;
+      result.push([p, o.key, o.kind, nw, nc, nf, ns, ncs, vd]);
     }
     return result;
   }
@@ -436,25 +457,27 @@ export class GoalProbabilityTable {
       ['middle', 2, mt > 2 ? mt - 1 : 2],
     ];
     for (const [label, turn, tl] of turnSpecs) {
-      const cache = new Map<string, EaTransEntry[]>();
-      for (let w = 1; w <= 5; w++) {
-        for (let c = 1; c <= 5; c++) {
-          for (let f = 1; f <= 5; f++) {
-            for (let s = 1; s <= 5; s++) {
-              cache.set(key(w, c, f, s), this._effectAwareTransitions(w, c, f, s, turn, tl));
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache = new Map<string, EaTransEntry[]>();
+        for (let w = 1; w <= 5; w++) {
+          for (let c = 1; c <= 5; c++) {
+            for (let f = 1; f <= 5; f++) {
+              for (let s = 1; s <= 5; s++) {
+                cache.set(key(w, c, f, s), this._effectAwareTransitions(w, c, f, s, cs, turn, tl));
+              }
             }
           }
         }
+        transCache[`${label},${cs}`] = cache;
       }
-      transCache[label] = cache;
     }
     return transCache;
   }
 
-  private _build_effect_aware_turnTable(turnNumber: number, tl: number, transCache: Record<string, Map<string, EaTransEntry[]>>): Map<string, EaTransEntry[]> {
-    if (turnNumber === 1) return transCache['first']!;
-    if (tl === 1) return transCache['last']!;
-    return transCache['middle']!;
+  private _build_effect_aware_turnTable(turnNumber: number, tl: number, cs: number, transCache: Record<string, Map<string, EaTransEntry[]>>): Map<string, EaTransEntry[]> {
+    if (turnNumber === 1) return transCache[`first,${cs}`]!;
+    if (tl === 1) return transCache[`last,${cs}`]!;
+    return transCache[`middle,${cs}`]!;
   }
 
   private _buildEffectAware(): void {
@@ -470,7 +493,9 @@ export class GoalProbabilityTable {
             const goalSat = this.goal.satisfied(w, c, f, s);
             for (const [fi, si] of validPairs) {
               const sat = goalSat && this._coeffSatisfiedIdx(f, s, fi, si) ? 1.0 : 0.0;
-              dp.set(key(w, c, f, s, fi, si, 0), sat);
+              for (let cs = 0; cs <= 1; cs++) {
+                dp.set(key(w, c, f, s, cs, fi, si, 0), sat);
+              }
             }
           }
         }
@@ -482,36 +507,37 @@ export class GoalProbabilityTable {
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      const tc = this._build_effect_aware_turnTable(turnNumber, tl, transCache);
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
-              const trans = tc.get(key(w, c, f, s))!;
               const goalSat = this.goal.satisfied(w, c, f, s);
-              for (const [fi, si] of validPairs) {
-                if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
-                  dp.set(key(w, c, f, s, fi, si, tl), 1.0);
-                  continue;
-                }
-                const dests = this._changeDests.get(key(fi, si))!;
-                const nDests = dests.length; // always 2
-                let val = 0.0;
-                for (const [p, optKey, , nw, nc, nf, ns] of trans) {
-                  if (optKey === 'change_first_effect') {
-                    for (const newFi of dests) {
-                      val += (p / nDests) * dp.get(key(nw, nc, nf, ns, newFi, si, tl - 1))!;
-                    }
-                  } else if (optKey === 'change_second_effect') {
-                    for (const newSi of dests) {
-                      val += (p / nDests) * dp.get(key(nw, nc, nf, ns, fi, newSi, tl - 1))!;
-                    }
-                  } else {
-                    val += p * dp.get(key(nw, nc, nf, ns, fi, si, tl - 1))!;
+              for (let cs = 0; cs <= 1; cs++) {
+                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache).get(key(w, c, f, s))!;
+                for (const [fi, si] of validPairs) {
+                  if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
+                    dp.set(key(w, c, f, s, cs, fi, si, tl), 1.0);
+                    continue;
                   }
+                  const dests = this._changeDests.get(key(fi, si))!;
+                  const nDests = dests.length; // always 2
+                  let val = 0.0;
+                  for (const [p, optKey, , nw, nc, nf, ns, ncs] of trans) {
+                    if (optKey === 'change_first_effect') {
+                      for (const newFi of dests) {
+                        val += (p / nDests) * dp.get(key(nw, nc, nf, ns, ncs, newFi, si, tl - 1))!;
+                      }
+                    } else if (optKey === 'change_second_effect') {
+                      for (const newSi of dests) {
+                        val += (p / nDests) * dp.get(key(nw, nc, nf, ns, ncs, fi, newSi, tl - 1))!;
+                      }
+                    } else {
+                      val += p * dp.get(key(nw, nc, nf, ns, ncs, fi, si, tl - 1))!;
+                    }
+                  }
+                  dp.set(key(w, c, f, s, cs, fi, si, tl), val);
                 }
-                dp.set(key(w, c, f, s, fi, si, tl), val);
               }
             }
           }
@@ -534,8 +560,10 @@ export class GoalProbabilityTable {
             const goalSat = this.goal.satisfied(w, c, f, s);
             for (const [fi, si] of validPairs) {
               const sat = goalSat && this._coeffSatisfiedIdx(f, s, fi, si) ? 1.0 : 0.0;
-              for (let r = 0; r <= maxR; r++) {
-                dp.set(key(w, c, f, s, fi, si, r, 0), sat);
+              for (let cs = 0; cs <= 1; cs++) {
+                for (let r = 0; r <= maxR; r++) {
+                  dp.set(key(w, c, f, s, cs, fi, si, r, 0), sat);
+                }
               }
             }
           }
@@ -548,67 +576,69 @@ export class GoalProbabilityTable {
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      const tc = this._build_effect_aware_turnTable(turnNumber, tl, transCache);
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
-              const trans = tc.get(key(w, c, f, s))!;
               const goalSat = this.goal.satisfied(w, c, f, s);
-              for (const [fi, si] of validPairs) {
-                const dests = this._changeDests.get(key(fi, si))!;
-                const nDests = dests.length;
+              for (let cs = 0; cs <= 1; cs++) {
+                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache).get(key(w, c, f, s))!;
+                for (const [fi, si] of validPairs) {
+                  const dests = this._changeDests.get(key(fi, si))!;
+                  const nDests = dests.length;
 
-                // post_val: V at a transition destination, routing
-                // change_effect uniformly across non-equipped pool members.
-                const postVal = (
-                  optKey: string,
-                  nw: number,
-                  nc: number,
-                  nf: number,
-                  ns: number,
-                  nr: number
-                ): number => {
-                  if (optKey === 'change_first_effect') {
-                    let v = 0.0;
-                    for (const newFi of dests) {
-                      v += dp.get(key(nw, nc, nf, ns, newFi, si, nr, tl - 1))! / nDests;
+                  // post_val: V at a transition destination, routing
+                  // change_effect uniformly across non-equipped pool members.
+                  const postVal = (
+                    optKey: string,
+                    nw: number,
+                    nc: number,
+                    nf: number,
+                    ns: number,
+                    ncs: number,
+                    nr: number
+                  ): number => {
+                    if (optKey === 'change_first_effect') {
+                      let v = 0.0;
+                      for (const newFi of dests) {
+                        v += dp.get(key(nw, nc, nf, ns, ncs, newFi, si, nr, tl - 1))! / nDests;
+                      }
+                      return v;
                     }
-                    return v;
-                  }
-                  if (optKey === 'change_second_effect') {
-                    let v = 0.0;
-                    for (const newSi of dests) {
-                      v += dp.get(key(nw, nc, nf, ns, fi, newSi, nr, tl - 1))! / nDests;
+                    if (optKey === 'change_second_effect') {
+                      let v = 0.0;
+                      for (const newSi of dests) {
+                        v += dp.get(key(nw, nc, nf, ns, ncs, fi, newSi, nr, tl - 1))! / nDests;
+                      }
+                      return v;
                     }
-                    return v;
-                  }
-                  return dp.get(key(nw, nc, nf, ns, fi, si, nr, tl - 1))!;
-                };
+                    return dp.get(key(nw, nc, nf, ns, ncs, fi, si, nr, tl - 1))!;
+                  };
 
-                for (let r = 0; r <= maxR; r++) {
-                  if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
-                    dp.set(key(w, c, f, s, fi, si, r, tl), 1.0);
-                    continue;
-                  }
+                  for (let r = 0; r <= maxR; r++) {
+                    if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
+                      dp.set(key(w, c, f, s, cs, fi, si, r, tl), 1.0);
+                      continue;
+                    }
 
-                  if (r > 0 && turnNumber !== 1) {
-                    const rerollVal = dp.get(key(w, c, f, s, fi, si, r - 1, tl))!;
-                    let val = 0.0;
-                    for (const [p, optKey, , nw, nc, nf, ns, vd] of trans) {
-                      const nr = Math.min(maxR, r + vd);
-                      const post = postVal(optKey, nw, nc, nf, ns, nr);
-                      val += p * Math.max(post, rerollVal);
+                    if (r > 0 && turnNumber !== 1) {
+                      const rerollVal = dp.get(key(w, c, f, s, cs, fi, si, r - 1, tl))!;
+                      let val = 0.0;
+                      for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
+                        const nr = Math.min(maxR, r + vd);
+                        const post = postVal(optKey, nw, nc, nf, ns, ncs, nr);
+                        val += p * Math.max(post, rerollVal);
+                      }
+                      dp.set(key(w, c, f, s, cs, fi, si, r, tl), val);
+                    } else {
+                      let val = 0.0;
+                      for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
+                        const nr = Math.min(maxR, r + vd);
+                        val += p * postVal(optKey, nw, nc, nf, ns, ncs, nr);
+                      }
+                      dp.set(key(w, c, f, s, cs, fi, si, r, tl), val);
                     }
-                    dp.set(key(w, c, f, s, fi, si, r, tl), val);
-                  } else {
-                    let val = 0.0;
-                    for (const [p, optKey, , nw, nc, nf, ns, vd] of trans) {
-                      const nr = Math.min(maxR, r + vd);
-                      val += p * postVal(optKey, nw, nc, nf, ns, nr);
-                    }
-                    dp.set(key(w, c, f, s, fi, si, r, tl), val);
                   }
                 }
               }
@@ -638,6 +668,7 @@ export class GoalProbabilityTable {
   }
 
   lookup(state: GemState, turnsLeft: number, rerolls?: number): number {
+    const cs = state.costRatio !== 0 ? 1 : 0;
     if (this.effectAware) {
       const idx = this._effectIndices(state);
       if (idx === null) return 0.0;
@@ -645,15 +676,64 @@ export class GoalProbabilityTable {
       const w = state.will, c = state.chaos, f = state.first, s = state.second;
       if (this._maxRerolls > 0) {
         const r = Math.min(this._maxRerolls, rerolls ?? 0);
-        return this._dp.get(key(w, c, f, s, fi, si, r, turnsLeft)) ?? 0.0;
+        return this._dp.get(key(w, c, f, s, cs, fi, si, r, turnsLeft)) ?? 0.0;
       }
-      return this._dp.get(key(w, c, f, s, fi, si, turnsLeft)) ?? 0.0;
+      return this._dp.get(key(w, c, f, s, cs, fi, si, turnsLeft)) ?? 0.0;
     }
     if (this._maxRerolls > 0) {
       const r = Math.min(this._maxRerolls, rerolls ?? 0);
-      return this._dp.get(key(state.will, state.chaos, state.first, state.second, r, turnsLeft)) ?? 0.0;
+      return this._dp.get(key(state.will, state.chaos, state.first, state.second, cs, r, turnsLeft)) ?? 0.0;
     }
-    return this._dp.get(key(state.will, state.chaos, state.first, state.second, turnsLeft)) ?? 0.0;
+    return this._dp.get(key(state.will, state.chaos, state.first, state.second, cs, turnsLeft)) ?? 0.0;
+  }
+
+  /** Post-click P(goal) for a single offer.
+   *
+   * Destination-blind by design: the change-effect card does not reveal
+   * its destination in-game, so change offers are valued as the average
+   * over the 2 non-equipped destinations (matching the transition model)
+   * — `Option.resolvedEffect` is never consulted here.
+   */
+  probAfterOption(state: GemState, o: Option, turnsLeftAfter: number, rerolls?: number): number {
+    const nw = o.kind === 'will' ? clampLevel(state.will + o.delta) : state.will;
+    const nc = o.kind === 'chaos' ? clampLevel(state.chaos + o.delta) : state.chaos;
+    const nf = o.kind === 'first' ? clampLevel(state.first + o.delta) : state.first;
+    const ns = o.kind === 'second' ? clampLevel(state.second + o.delta) : state.second;
+    const cs = state.costRatio !== 0 ? 1 : 0;
+    const ncs = o.kind === 'cost' ? 1 - cs : cs;
+
+    if (this.effectAware) {
+      const idx = this._effectIndices(state);
+      if (idx === null) return 0.0;
+      const [fi, si] = idx;
+      const r = rerolls ?? 0;
+      const vd = o.kind === 'view' ? o.delta : 0;
+      const nr = this._maxRerolls > 0 ? Math.min(this._maxRerolls, r + vd) : 0;
+      const dests = this._changeDests.get(key(fi, si))!;
+      const nDests = dests.length;
+      if (o.key === 'change_first_effect') {
+        let v = 0.0;
+        for (const newFi of dests) {
+          v += this._dpLookupEa(nw, nc, nf, ns, ncs, newFi, si, nr, turnsLeftAfter) / nDests;
+        }
+        return v;
+      }
+      if (o.key === 'change_second_effect') {
+        let v = 0.0;
+        for (const newSi of dests) {
+          v += this._dpLookupEa(nw, nc, nf, ns, ncs, fi, newSi, nr, turnsLeftAfter) / nDests;
+        }
+        return v;
+      }
+      return this._dpLookupEa(nw, nc, nf, ns, ncs, fi, si, nr, turnsLeftAfter);
+    }
+    if (this._maxRerolls > 0) {
+      const r = rerolls ?? 0;
+      const vd = o.kind === 'view' ? o.delta : 0;
+      const nr = Math.min(this._maxRerolls, r + vd);
+      return this._dp.get(key(nw, nc, nf, ns, ncs, nr, turnsLeftAfter)) ?? 0.0;
+    }
+    return this._dp.get(key(nw, nc, nf, ns, ncs, turnsLeftAfter)) ?? 0.0;
   }
 
   expectedProbAfterClick(
@@ -665,43 +745,7 @@ export class GoalProbabilityTable {
     if (offers.length === 0) return 0.0;
     let total = 0.0;
     for (const o of offers) {
-      const nw = o.kind === 'will' ? clampLevel(state.will + o.delta) : state.will;
-      const nc = o.kind === 'chaos' ? clampLevel(state.chaos + o.delta) : state.chaos;
-      const nf = o.kind === 'first' ? clampLevel(state.first + o.delta) : state.first;
-      const ns = o.kind === 'second' ? clampLevel(state.second + o.delta) : state.second;
-
-      if (this.effectAware) {
-        const idx = this._effectIndices(state);
-        if (idx === null) continue;
-        const [fi, si] = idx;
-        const r = rerolls ?? 0;
-        const vd = o.kind === 'view' ? o.delta : 0;
-        const nr = this._maxRerolls > 0 ? Math.min(this._maxRerolls, r + vd) : 0;
-        const dests = this._changeDests.get(key(fi, si))!;
-        const nDests = dests.length;
-        if (o.key === 'change_first_effect') {
-          let v = 0.0;
-          for (const newFi of dests) {
-            v += this._dpLookupEa(nw, nc, nf, ns, newFi, si, nr, turnsLeftAfter) / nDests;
-          }
-          total += v;
-        } else if (o.key === 'change_second_effect') {
-          let v = 0.0;
-          for (const newSi of dests) {
-            v += this._dpLookupEa(nw, nc, nf, ns, fi, newSi, nr, turnsLeftAfter) / nDests;
-          }
-          total += v;
-        } else {
-          total += this._dpLookupEa(nw, nc, nf, ns, fi, si, nr, turnsLeftAfter);
-        }
-      } else if (this._maxRerolls > 0) {
-        const r = rerolls ?? 0;
-        const vd = o.kind === 'view' ? o.delta : 0;
-        const nr = Math.min(this._maxRerolls, r + vd);
-        total += this._dp.get(key(nw, nc, nf, ns, nr, turnsLeftAfter)) ?? 0.0;
-      } else {
-        total += this._dp.get(key(nw, nc, nf, ns, turnsLeftAfter)) ?? 0.0;
-      }
+      total += this.probAfterOption(state, o, turnsLeftAfter, rerolls);
     }
     return total / offers.length;
   }
@@ -711,15 +755,16 @@ export class GoalProbabilityTable {
     c: number,
     f: number,
     s: number,
+    cs: number,
     fi: number,
     si: number,
     r: number,
     tl: number
   ): number {
     if (this._maxRerolls > 0) {
-      return this._dp.get(key(w, c, f, s, fi, si, r, tl)) ?? 0.0;
+      return this._dp.get(key(w, c, f, s, cs, fi, si, r, tl)) ?? 0.0;
     }
-    return this._dp.get(key(w, c, f, s, fi, si, tl)) ?? 0.0;
+    return this._dp.get(key(w, c, f, s, cs, fi, si, tl)) ?? 0.0;
   }
 
   shouldRerollDp(state: GemState, offers: Option[], turnsLeft: number, rerolls: number): boolean {
@@ -758,8 +803,8 @@ export interface SideValueOpts {
 }
 
 // SideValue-only transition entry (no reroll/view-delta bookkeeping):
-//   [prob, optionKey, optionKind, nw, nc, nf, ns]
-type SvTransEntry = [number, string, string, number, number, number, number];
+//   [prob, optionKey, optionKind, nw, nc, nf, ns, ncs]
+type SvTransEntry = [number, string, string, number, number, number, number, number];
 
 export class SideValueTable {
   readonly enabled: boolean;
@@ -896,26 +941,28 @@ export class SideValueTable {
     c: number,
     f: number,
     s: number,
+    cs: number,
     turn: number,
     turnsLeft: number
   ): SvTransEntry[] {
-    const state = new GemState({ will: w, chaos: c, first: f, second: s });
+    const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
     const eligible = this._pool.pool.filter((o) => this._pool.eligible(o, state, turn, turnsLeft));
     if (eligible.length === 0) {
-      return [[1.0, '', '', w, c, f, s]];
+      return [[1.0, '', '', w, c, f, s, cs]];
     }
     let totalW = 0;
     for (const o of eligible) totalW += o.weight;
     const result: SvTransEntry[] = [];
     for (const o of eligible) {
       const p = o.weight / totalW;
-      let nw = w, nc = c, nf = f, ns = s;
+      let nw = w, nc = c, nf = f, ns = s, ncs = cs;
       if (o.kind === 'will') nw = clampLevel(w + o.delta);
       else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
       else if (o.kind === 'first') nf = clampLevel(f + o.delta);
       else if (o.kind === 'second') ns = clampLevel(s + o.delta);
-      // cost/view/other/maintain -> no stat change
-      result.push([p, o.key, o.kind, nw, nc, nf, ns]);
+      else if (o.kind === 'cost') ncs = 1 - cs;
+      // view/other/maintain -> no state change
+      result.push([p, o.key, o.kind, nw, nc, nf, ns, ncs]);
     }
     return result;
   }
@@ -930,6 +977,7 @@ export class SideValueTable {
     nc: number,
     nf: number,
     ns: number,
+    ncs: number,
     fi: number,
     si: number,
     dests: number[],
@@ -939,18 +987,18 @@ export class SideValueTable {
     if (optKey === 'change_first_effect') {
       let v = 0.0;
       for (const d of dests) {
-        v += (dpd.get(key(nw, nc, nf, ns, d, si, tl)) ?? 0.0);
+        v += (dpd.get(key(nw, nc, nf, ns, ncs, d, si, tl)) ?? 0.0);
       }
       return v / nd;
     }
     if (optKey === 'change_second_effect') {
       let v = 0.0;
       for (const d of dests) {
-        v += (dpd.get(key(nw, nc, nf, ns, fi, d, tl)) ?? 0.0);
+        v += (dpd.get(key(nw, nc, nf, ns, ncs, fi, d, tl)) ?? 0.0);
       }
       return v / nd;
     }
-    return dpd.get(key(nw, nc, nf, ns, fi, si, tl)) ?? 0.0;
+    return dpd.get(key(nw, nc, nf, ns, ncs, fi, si, tl)) ?? 0.0;
   }
 
   private _postVal(
@@ -959,13 +1007,14 @@ export class SideValueTable {
     nc: number,
     nf: number,
     ns: number,
+    ncs: number,
     fi: number,
     si: number,
     dests: number[],
     nd: number,
     tl: number
   ): number {
-    return this._postValIn(this._dp, optKey, nw, nc, nf, ns, fi, si, dests, nd, tl);
+    return this._postValIn(this._dp, optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl);
   }
 
   private _build(): void {
@@ -984,7 +1033,10 @@ export class SideValueTable {
         for (let f = 1; f <= 5; f++) {
           for (let s = 1; s <= 5; s++) {
             for (const [fi, si] of validPairs) {
-              dp.set(key(w, c, f, s, fi, si, 0), this._gemValueIdx(w, c, f, s, fi, si));
+              const v = this._gemValueIdx(w, c, f, s, fi, si);
+              for (let cs = 0; cs <= 1; cs++) {
+                dp.set(key(w, c, f, s, cs, fi, si, 0), v);
+              }
             }
           }
         }
@@ -992,7 +1044,7 @@ export class SideValueTable {
     }
 
     // Option-level transition cache (independent of fi/si).
-    // Mirror Python's three-label cache strategy.
+    // Mirror Python's three-label cache strategy, per cost state.
     const transCache: Record<string, Map<string, SvTransEntry[]>> = {};
     const turnSpecs: [string, number, number][] = [
       ['first', 1, mt],
@@ -1000,41 +1052,45 @@ export class SideValueTable {
       ['middle', 2, mt > 2 ? mt - 1 : 2],
     ];
     for (const [label, turn, tl] of turnSpecs) {
-      const cache = new Map<string, SvTransEntry[]>();
-      for (let w = 1; w <= 5; w++) {
-        for (let c = 1; c <= 5; c++) {
-          for (let f = 1; f <= 5; f++) {
-            for (let s = 1; s <= 5; s++) {
-              cache.set(key(w, c, f, s), this._transitions(w, c, f, s, turn, tl));
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache = new Map<string, SvTransEntry[]>();
+        for (let w = 1; w <= 5; w++) {
+          for (let c = 1; c <= 5; c++) {
+            for (let f = 1; f <= 5; f++) {
+              for (let s = 1; s <= 5; s++) {
+                cache.set(key(w, c, f, s), this._transitions(w, c, f, s, cs, turn, tl));
+              }
             }
           }
         }
+        transCache[`${label},${cs}`] = cache;
       }
-      transCache[label] = cache;
     }
 
     // Backward induction: V = max(finish now, process).
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      let tc: Map<string, SvTransEntry[]>;
-      if (turnNumber === 1) tc = transCache['first']!;
-      else if (tl === 1) tc = transCache['last']!;
-      else tc = transCache['middle']!;
+      let label: string;
+      if (turnNumber === 1) label = 'first';
+      else if (tl === 1) label = 'last';
+      else label = 'middle';
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
-              const trans = tc.get(key(w, c, f, s))!;
-              for (const [fi, si] of validPairs) {
-                const dests = this._changeDests.get(key(fi, si))!;
-                const nd = dests.length;
-                const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
-                let proc = 0.0;
-                for (const [p, optKey, , nw, nc, nf, ns] of trans) {
-                  proc += p * this._postVal(optKey, nw, nc, nf, ns, fi, si, dests, nd, tl - 1);
+              for (let cs = 0; cs <= 1; cs++) {
+                const trans = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                for (const [fi, si] of validPairs) {
+                  const dests = this._changeDests.get(key(fi, si))!;
+                  const nd = dests.length;
+                  const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
+                  let proc = 0.0;
+                  for (const [p, optKey, , nw, nc, nf, ns, ncs] of trans) {
+                    proc += p * this._postVal(optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl - 1);
+                  }
+                  dp.set(key(w, c, f, s, cs, fi, si, tl), finishVal > proc ? finishVal : proc);
                 }
-                dp.set(key(w, c, f, s, fi, si, tl), finishVal > proc ? finishVal : proc);
               }
             }
           }
@@ -1074,8 +1130,11 @@ export class SideValueTable {
           for (let s = 1; s <= 5; s++) {
             const fw = wcFinish(w, c, f, s);
             for (const [fi, si] of validPairs) {
-              dpW.set(key(w, c, f, s, fi, si, 0), fw);
-              dpS.set(key(w, c, f, s, fi, si, 0), this._gemValueIdx(w, c, f, s, fi, si));
+              const v = this._gemValueIdx(w, c, f, s, fi, si);
+              for (let cs = 0; cs <= 1; cs++) {
+                dpW.set(key(w, c, f, s, cs, fi, si, 0), fw);
+                dpS.set(key(w, c, f, s, cs, fi, si, 0), v);
+              }
             }
           }
         }
@@ -1090,49 +1149,53 @@ export class SideValueTable {
       ['middle', 2, mt > 2 ? mt - 1 : 2],
     ];
     for (const [label, turn, tl] of turnSpecs) {
-      const cache = new Map<string, SvTransEntry[]>();
-      for (let w = 1; w <= 5; w++) {
-        for (let c = 1; c <= 5; c++) {
-          for (let f = 1; f <= 5; f++) {
-            for (let s = 1; s <= 5; s++) {
-              cache.set(key(w, c, f, s), this._transitions(w, c, f, s, turn, tl));
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache = new Map<string, SvTransEntry[]>();
+        for (let w = 1; w <= 5; w++) {
+          for (let c = 1; c <= 5; c++) {
+            for (let f = 1; f <= 5; f++) {
+              for (let s = 1; s <= 5; s++) {
+                cache.set(key(w, c, f, s), this._transitions(w, c, f, s, cs, turn, tl));
+              }
             }
           }
         }
+        transCache[`${label},${cs}`] = cache;
       }
-      transCache[label] = cache;
     }
 
     // Backward induction: follow the will_chaos finish-vs-continue choice.
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      let tc: Map<string, SvTransEntry[]>;
-      if (turnNumber === 1) tc = transCache['first']!;
-      else if (tl === 1) tc = transCache['last']!;
-      else tc = transCache['middle']!;
+      let label: string;
+      if (turnNumber === 1) label = 'first';
+      else if (tl === 1) label = 'last';
+      else label = 'middle';
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
           for (let f = 1; f <= 5; f++) {
             for (let s = 1; s <= 5; s++) {
-              const trans = tc.get(key(w, c, f, s))!;
-              for (const [fi, si] of validPairs) {
-                const dests = this._changeDests.get(key(fi, si))!;
-                const nd = dests.length;
-                const finishW = wcFinish(w, c, f, s);
-                const finishS = this._gemValueIdx(w, c, f, s, fi, si);
-                let procW = 0.0;
-                let procS = 0.0;
-                for (const [p, optKey, , nw, nc, nf, ns] of trans) {
-                  procW += p * this._postValIn(dpW, optKey, nw, nc, nf, ns, fi, si, dests, nd, tl - 1);
-                  procS += p * this._postValIn(dpS, optKey, nw, nc, nf, ns, fi, si, dests, nd, tl - 1);
-                }
-                if (finishW >= procW) {
-                  dpW.set(key(w, c, f, s, fi, si, tl), finishW);
-                  dpS.set(key(w, c, f, s, fi, si, tl), finishS);
-                } else {
-                  dpW.set(key(w, c, f, s, fi, si, tl), procW);
-                  dpS.set(key(w, c, f, s, fi, si, tl), procS);
+              for (let cs = 0; cs <= 1; cs++) {
+                const trans = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                for (const [fi, si] of validPairs) {
+                  const dests = this._changeDests.get(key(fi, si))!;
+                  const nd = dests.length;
+                  const finishW = wcFinish(w, c, f, s);
+                  const finishS = this._gemValueIdx(w, c, f, s, fi, si);
+                  let procW = 0.0;
+                  let procS = 0.0;
+                  for (const [p, optKey, , nw, nc, nf, ns, ncs] of trans) {
+                    procW += p * this._postValIn(dpW, optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl - 1);
+                    procS += p * this._postValIn(dpS, optKey, nw, nc, nf, ns, ncs, fi, si, dests, nd, tl - 1);
+                  }
+                  if (finishW >= procW) {
+                    dpW.set(key(w, c, f, s, cs, fi, si, tl), finishW);
+                    dpS.set(key(w, c, f, s, cs, fi, si, tl), finishS);
+                  } else {
+                    dpW.set(key(w, c, f, s, cs, fi, si, tl), procW);
+                    dpS.set(key(w, c, f, s, cs, fi, si, tl), procS);
+                  }
                 }
               }
             }
@@ -1157,26 +1220,28 @@ export class SideValueTable {
           for (let s = 1; s <= 5; s++)
             for (const [fi, si] of validPairs) {
               const v = this._gemValueIdx(w, c, f, s, fi, si);
-              for (let r = 0; r <= maxR; r++) dp.set(key(w, c, f, s, fi, si, r, 0), v);
+              for (let cs = 0; cs <= 1; cs++)
+                for (let r = 0; r <= maxR; r++) dp.set(key(w, c, f, s, cs, fi, si, r, 0), v);
             }
 
-    type RTrans = [number, string, string, number, number, number, number, number];
-    const transitions = (w: number, c: number, f: number, s: number,
+    type RTrans = [number, string, string, number, number, number, number, number, number];
+    const transitions = (w: number, c: number, f: number, s: number, cs: number,
                          turn: number, tl: number): [RTrans[], number] => {
-      const state = new GemState({ will: w, chaos: c, first: f, second: s });
+      const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
       const elig = this._pool.pool.filter((o) => this._pool.eligible(o, state, turn, tl));
-      if (elig.length === 0) return [[[1.0, '', '', w, c, f, s, 0]], 0];
+      if (elig.length === 0) return [[[1.0, '', '', w, c, f, s, cs, 0]], 0];
       let tot = 0;
       for (const o of elig) tot += o.weight;
       const out: RTrans[] = [];
       for (const o of elig) {
-        let nw = w, nc = c, nf = f, ns = s, vd = 0;
+        let nw = w, nc = c, nf = f, ns = s, ncs = cs, vd = 0;
         if (o.kind === 'will') nw = clampLevel(w + o.delta);
         else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
         else if (o.kind === 'first') nf = clampLevel(f + o.delta);
         else if (o.kind === 'second') ns = clampLevel(s + o.delta);
         else if (o.kind === 'view') vd = o.delta;
-        out.push([o.weight / tot, o.key, o.kind, nw, nc, nf, ns, vd]);
+        else if (o.kind === 'cost') ncs = 1 - cs;
+        out.push([o.weight / tot, o.key, o.kind, nw, nc, nf, ns, ncs, vd]);
       }
       return [out, elig.length];
     };
@@ -1185,65 +1250,68 @@ export class SideValueTable {
       ['first', 1, mt], ['last', mt, 1], ['middle', 2, mt > 2 ? mt - 1 : 2]];
     const transCache: Record<string, Map<string, [RTrans[], number]>> = {};
     for (const [label, turn, tl] of labels) {
-      const cache = new Map<string, [RTrans[], number]>();
-      for (let w = 1; w <= 5; w++)
-        for (let c = 1; c <= 5; c++)
-          for (let f = 1; f <= 5; f++)
-            for (let s = 1; s <= 5; s++)
-              cache.set(key(w, c, f, s), transitions(w, c, f, s, turn, tl));
-      transCache[label] = cache;
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache = new Map<string, [RTrans[], number]>();
+        for (let w = 1; w <= 5; w++)
+          for (let c = 1; c <= 5; c++)
+            for (let f = 1; f <= 5; f++)
+              for (let s = 1; s <= 5; s++)
+                cache.set(key(w, c, f, s), transitions(w, c, f, s, cs, turn, tl));
+        transCache[`${label},${cs}`] = cache;
+      }
     }
 
     const cd = this._changeDests;
     const postVal = (optKey: string, nw: number, nc: number, nf: number, ns: number,
-                     fi: number, si: number, nr: number, tl: number): number => {
+                     ncs: number, fi: number, si: number, nr: number, tl: number): number => {
       if (optKey === 'change_first_effect') {
         const d = cd.get(key(fi, si))!;
         let sum = 0;
-        for (const di of d) sum += dp.get(key(nw, nc, nf, ns, di, si, nr, tl))!;
+        for (const di of d) sum += dp.get(key(nw, nc, nf, ns, ncs, di, si, nr, tl))!;
         return sum / d.length;
       }
       if (optKey === 'change_second_effect') {
         const d = cd.get(key(fi, si))!;
         let sum = 0;
-        for (const di of d) sum += dp.get(key(nw, nc, nf, ns, fi, di, nr, tl))!;
+        for (const di of d) sum += dp.get(key(nw, nc, nf, ns, ncs, fi, di, nr, tl))!;
         return sum / d.length;
       }
-      return dp.get(key(nw, nc, nf, ns, fi, si, nr, tl))!;
+      return dp.get(key(nw, nc, nf, ns, ncs, fi, si, nr, tl))!;
     };
 
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
-      const tc = turnNumber === 1 ? transCache['first']!
-        : tl === 1 ? transCache['last']! : transCache['middle']!;
+      const label = turnNumber === 1 ? 'first' : tl === 1 ? 'last' : 'middle';
       for (let w = 1; w <= 5; w++)
         for (let c = 1; c <= 5; c++)
           for (let f = 1; f <= 5; f++)
             for (let s = 1; s <= 5; s++) {
-              const [trans, nElig] = tc.get(key(w, c, f, s))!;
-              const fpc = nElig > 4 ? (nElig - 4) / (nElig - 1) : 0.0;
-              for (const [fi, si] of validPairs) {
-                const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
-                for (let r = 0; r <= maxR; r++) {
-                  const xs: [number, number][] = [];
-                  let mu = 0;
-                  for (const [p, optKey, , nw, nc, nf, ns, vd] of trans) {
-                    const nr = Math.min(maxR, r + vd);
-                    const x = postVal(optKey, nw, nc, nf, ns, fi, si, nr, tl - 1);
-                    xs.push([p, x]);
-                    mu += p * x;
+              for (let cs = 0; cs <= 1; cs++) {
+                const [trans, nElig] = transCache[`${label},${cs}`]!.get(key(w, c, f, s))!;
+                const fpc = nElig > 4 ? (nElig - 4) / (nElig - 1) : 0.0;
+                for (const [fi, si] of validPairs) {
+                  const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
+                  for (let r = 0; r <= maxR; r++) {
+                    const xs: [number, number][] = [];
+                    let mu = 0;
+                    for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
+                      const nr = Math.min(maxR, r + vd);
+                      const x = postVal(optKey, nw, nc, nf, ns, ncs, fi, si, nr, tl - 1);
+                      xs.push([p, x]);
+                      mu += p * x;
+                    }
+                    let varv = 0;
+                    for (const [p, x] of xs) varv += p * (x - mu) * (x - mu);
+                    const sd = Math.sqrt(Math.max(0.0, (varv / 4.0) * fpc));
+                    let t: number;
+                    if (r > 0 && turnNumber !== 1) {
+                      const rc = dp.get(key(w, c, f, s, cs, fi, si, r - 1, tl))!;
+                      t = finishVal > rc ? finishVal : rc;
+                    } else {
+                      t = finishVal;
+                    }
+                    dp.set(key(w, c, f, s, cs, fi, si, r, tl), eMax(mu, sd, t));
                   }
-                  let varv = 0;
-                  for (const [p, x] of xs) varv += p * (x - mu) * (x - mu);
-                  const sd = Math.sqrt(Math.max(0.0, (varv / 4.0) * fpc));
-                  let t: number;
-                  if (r > 0 && turnNumber !== 1) {
-                    const rc = dp.get(key(w, c, f, s, fi, si, r - 1, tl))!;
-                    t = finishVal > rc ? finishVal : rc;
-                  } else {
-                    t = finishVal;
-                  }
-                  dp.set(key(w, c, f, s, fi, si, r, tl), eMax(mu, sd, t));
                 }
               }
             }
@@ -1268,11 +1336,12 @@ export class SideValueTable {
     if (idx === null) return 0.0;
     const [fi, si] = idx;
     const w = state.will, c = state.chaos, f = state.first, s = state.second;
+    const cs = state.costRatio !== 0 ? 1 : 0;
     if (this._maxRerolls > 0) {
       const r = Math.min(this._maxRerolls, rerolls ?? 0);
-      return this._dp.get(key(w, c, f, s, fi, si, r, turnsLeft)) ?? 0.0;
+      return this._dp.get(key(w, c, f, s, cs, fi, si, r, turnsLeft)) ?? 0.0;
     }
-    return this._dp.get(key(w, c, f, s, fi, si, turnsLeft)) ?? 0.0;
+    return this._dp.get(key(w, c, f, s, cs, fi, si, turnsLeft)) ?? 0.0;
   }
 
   /** Mean V across the 4 actual visible offers (uniform 25% pick).
@@ -1289,19 +1358,21 @@ export class SideValueTable {
     const dests = this._changeDests.get(key(fi, si))!;
     const nd = dests.length;
     const ra = this._maxRerolls > 0;
+    const cs = state.costRatio !== 0 ? 1 : 0;
     let total = 0.0;
     for (const o of offers) {
       const nw = o.kind === 'will' ? clampLevel(state.will + o.delta) : state.will;
       const nc = o.kind === 'chaos' ? clampLevel(state.chaos + o.delta) : state.chaos;
       const nf = o.kind === 'first' ? clampLevel(state.first + o.delta) : state.first;
       const ns = o.kind === 'second' ? clampLevel(state.second + o.delta) : state.second;
+      const ncs = o.kind === 'cost' ? 1 - cs : cs;
       let kk: (a: number, b: number) => string;
       if (ra) {
         const vd = o.kind === 'view' ? o.delta : 0;
         const nr = Math.min(this._maxRerolls, (rerolls ?? 0) + vd);
-        kk = (a, b) => key(nw, nc, nf, ns, a, b, nr, turnsLeftAfter);
+        kk = (a, b) => key(nw, nc, nf, ns, ncs, a, b, nr, turnsLeftAfter);
       } else {
-        kk = (a, b) => key(nw, nc, nf, ns, a, b, turnsLeftAfter);
+        kk = (a, b) => key(nw, nc, nf, ns, ncs, a, b, turnsLeftAfter);
       }
       if (o.key === 'change_first_effect') {
         let sum = 0;

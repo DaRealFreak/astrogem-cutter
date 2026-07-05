@@ -28,9 +28,11 @@ export default defineConfig({
           environment: 'node',
           include: ['tests/**/*.test.ts'],
           exclude: [...BROWSER_TESTS, '**/node_modules/**'],
-          // DP-table builds can take 10-20 s; raise the timeout from the vitest 3
-          // default of 5 s to accommodate the slowest parity tests.
-          testTimeout: 30_000,
+          // DP-table builds can take 20-60 s (the cost-saturation dimension
+          // doubled every table's state space); raise the timeout from the
+          // vitest 3 default of 5 s to accommodate the slowest parity tests
+          // under full-suite parallel load.
+          testTimeout: 120_000,
         },
       },
       {
@@ -48,6 +50,9 @@ export default defineConfig({
           name: 'browser',
           globals: true,
           include: BROWSER_TESTS,
+          // e2e builds full engine contexts (DP tables) in the browser; allow
+          // for the cost-saturation dimension's doubled build time.
+          testTimeout: 180_000,
           browser: {
             enabled: true,
             provider: 'playwright',

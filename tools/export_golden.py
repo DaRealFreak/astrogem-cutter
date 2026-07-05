@@ -133,18 +133,24 @@ def export_dp_lookups():
     recs = []
     cases = [
         ("chaos_distortion", "attack_power", "ally_damage", "dps",
-         {"min_will": 4, "min_chaos": 5}, "epic"),
+         {"min_will": 4, "min_chaos": 5}, "epic", 0),
         ("order_stability", "additional_damage", "brand_power", "dps",
-         {"min_total_will_chaos": 8}, "rare"),
+         {"min_total_will_chaos": 8}, "rare", 0),
+        # Off-target starting effects + side-coeff floor: pins the
+        # effect-aware min_side_coeff pricing (change_effect rescue).
+        ("chaos_distortion", "ally_damage", "ally_attack", "dps",
+         {"min_will": 4, "min_chaos": 4}, "epic", 2000),
     ]
-    for gt, fe, se, opt, g, rarity in cases:
+    for gt, fe, se, opt, g, rarity, msc in cases:
         goal = LastTurnGoal(**g)
         turns = RARITY_TURNS[rarity]
         mr = dp_max_rerolls(rarity, None, 0.0, False)
         scf, scs = side_coeffs(AstroGem(gt, fe, se, opt))
         roll = GoalProbabilityTable(goal, turns, pool, early_finish=True,
+            min_side_coeff=msc,
             max_rerolls=mr, effect_aware=True, gem_type=gt, optimize=opt)
         reset = GoalProbabilityTable(goal, turns, pool, early_finish=True,
+            min_side_coeff=msc,
             effect_aware=True, gem_type=gt, optimize=opt)
         relic = GoalProbabilityTable(LastTurnGoal(min_total=16), turns, pool,
             early_finish=False, max_rerolls=mr)
@@ -161,6 +167,7 @@ def export_dp_lookups():
                         "table": "roll", "gem_type": gt, "first_effect": fe,
                         "second_effect": se, "optimize": opt, "goal": g,
                         "rarity": rarity, "max_rerolls": mr,
+                        "min_side_coeff": msc,
                         "state": [w, c, f, s], "turns_left": tl,
                         "rerolls": r, "offers": okeys},
                       "expected": {
@@ -298,16 +305,21 @@ def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=Non
         min_side_coeff=min_side_coeff, relic_coeff=relic_coeff,
         ancient_coeff=ancient_coeff, value_mode="side", max_rerolls=mr)
         if ignore_side else None)
+    # ctx.base_rerolls mirrors the simulator/web semantics: rarity free
+    # rerolls + the owned reroll ticket — WITHOUT the +1 DP-sizing headroom
+    # the tables get for the relic/goal ticket look-ahead (`mr`). The web
+    # reset row reads ctx.baseRerolls as the fresh-start budget.
+    base_rerolls = RARITY_REROLLS[rarity] + (1 if extra_ticket is not False else 0)
     ctx = D.DecisionContext(goal=goal, pool=pool, optimize=opt, bis_only=False,
         min_side_coeff=min_side_coeff, prob_reset_threshold=0.0,
         relic_reroll_threshold=relic_thr, force_reroll_no_progress=force_reroll,
-        turns_total=turns, base_rerolls=mr, p_fresh=reset.lookup(
+        turns_total=turns, base_rerolls=base_rerolls, p_fresh=reset.lookup(
             GemState(first_effect=fe, second_effect=se), turns),
         prob_table=roll, reset_prob_table=reset, relic_prob_table=relic,
         gem_type=gt, force_reroll_active=False, confirm_active=False,
         confirm_min_coeff=0, endgame_risk=endgame_risk, side_value_table=svt,
         grade_value_table=gvt, maxed_value_table=mvt)
-    return ctx, pool, fe, se
+    return ctx, pool, fe, se, mr
 
 
 def export_decisions():
@@ -321,9 +333,15 @@ def export_decisions():
         dict(gt="chaos_distortion", fe="attack_power", se="ally_damage",
              opt="dps", g={"min_will": 5, "min_chaos": 5}, rarity="epic",
              ignore_side=True),
+        # Off-target starting effects + side-coeff floor: the effect-aware
+        # goal tables must keep pricing the floor (change_effect rescue) —
+        # pins the web dpMinSideCoeff guard fix numerically.
+        dict(gt="chaos_distortion", fe="ally_damage", se="ally_attack",
+             opt="dps", g={"min_will": 4, "min_chaos": 4}, rarity="epic",
+             min_side_coeff=2000),
     ]
     for cfg in configs:
-        ctx, pool, fe, se = build_ctx(**cfg)
+        ctx, pool, fe, se, mr = build_ctx(**cfg)
         for w, c, f, s in [(1, 1, 1, 1), (4, 5, 3, 2), (5, 5, 5, 5), (4, 4, 1, 1), (5, 5, 2, 2)]:
             st = GemState(will=w, chaos=c, first=f, second=s,
                           first_effect=fe, second_effect=se)
@@ -342,7 +360,7 @@ def export_decisions():
                             "config": {k: cfg[k] for k in cfg if k not in
                                 ("gt", "fe", "se", "opt", "g", "rarity")},
                             "turns_total": ctx.turns_total,
-                            "dp_max_rerolls": ctx.base_rerolls,
+                            "dp_max_rerolls": mr,
                             "state": [w, c, f, s], "turn": turn, "turns_left": tl,
                             "rerolls": r, "reset_available": reset_av,
                             "offers": [o.key for o in offers]},
@@ -376,9 +394,16 @@ def export_actions():
              opt="dps", g={"min_total_will_chaos": 8}, rarity="rare"),
         dict(gt="chaos_distortion", fe="attack_power", se="boss_damage",
              opt="dps", g={"min_will": 4, "min_chaos": 4}, rarity="epic"),
+        # ignore_side: the displayed eValue is a POLICY EVALUATION of the
+        # will+chaos policy (flat, coupled DP) — pins the web
+        # _displayValueTable semantics under --ignore-side-node-values.
+        dict(gt="order_fortitude", fe="ally_attack", se="boss_damage",
+             opt="dps", g={"min_total_will_chaos": 8}, rarity="epic",
+             ignore_side=True),
     ]
     for cfg in cases:
         gt, fe, se, opt, g, rarity = cfg["gt"], cfg["fe"], cfg["se"], cfg["opt"], cfg["g"], cfg["rarity"]
+        ignore_side = cfg.get("ignore_side", False)
         goal = LastTurnGoal(**g)
         turns = RARITY_TURNS[rarity]
         mr = dp_max_rerolls(rarity, None, 0.0, False)
@@ -390,8 +415,16 @@ def export_actions():
             early_finish=False, max_rerolls=mr)
         anc = GoalProbabilityTable(LastTurnGoal(min_total=19), turns, pool,
             early_finish=False, max_rerolls=mr)
-        svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
-            min_side_coeff=0, max_rerolls=mr)
+        # eValue rows mirror the web _displayValueTable: reroll-aware "side"
+        # value table normally; a flat will_chaos policy evaluation under
+        # ignore_side (the realistic expected coefficient).
+        if ignore_side:
+            svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
+                min_side_coeff=0, value_mode="side",
+                policy_value_mode="will_chaos")
+        else:
+            svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
+                min_side_coeff=0, max_rerolls=mr)
         fresh = GemState(first_effect=fe, second_effect=se)
 
         for w, c, f, s in [(2, 2, 2, 1), (4, 4, 3, 2), (5, 5, 3, 2)]:
@@ -437,6 +470,7 @@ def export_actions():
 
                     recs.append({"inputs": {
                         "gt": gt, "fe": fe, "se": se, "opt": opt, "goal": g, "rarity": rarity,
+                        "ignore_side": ignore_side,
                         "turns_total": turns, "base_rerolls": base_rerolls,
                         "state": [w, c, f, s], "turn": turn, "turns_left": tl,
                         "rerolls": r, "offers": offer_keys},

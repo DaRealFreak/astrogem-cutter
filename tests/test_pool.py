@@ -91,8 +91,13 @@ class TestEligibility(unittest.TestCase):
 
     # --- view modifiers ---
 
-    def test_view_excluded_on_turn_1(self) -> None:
-        self.assertFalse(self.pool.eligible(self._opt("view+1"), self.state, 1, 9))
+    def test_view_eligible_on_turn_1(self) -> None:
+        # The official disclosure only excludes view options on the LAST turn;
+        # verified in-game: view+N can appear among the turn-1 picks. (The
+        # reroll BUTTON is still locked on turn 1 — banked rerolls are usable
+        # from turn 2.)
+        self.assertTrue(self.pool.eligible(self._opt("view+1"), self.state, 1, 9))
+        self.assertTrue(self.pool.eligible(self._opt("view+2"), self.state, 1, 9))
 
     def test_view_excluded_on_last_turn(self) -> None:
         self.assertFalse(self.pool.eligible(self._opt("view+1"), self.state, 9, 1))

@@ -721,12 +721,14 @@ class TestScenarioSupportGemDpsOptimizeNoReset(unittest.TestCase):
             ns = min(5, max(1, state.second + o.delta)) if o.kind == "second" else state.second
             vd = o.delta if o.kind == "view" else 0
             nr = min(3, 2 + vd)
+            ncs = 1 if o.kind == "cost" else 0  # state starts unsaturated
             if o.key == "change_first_effect":
                 # Average over the two destinations (attack_power, boss_damage)
                 fi = ea._effect_tuple.index(self.FIRST)
                 si = ea._effect_tuple.index(self.SECOND)
                 dests = ea._change_dests[(fi, si)]
-                vals = [ea._dp_lookup_ea(nw, nc, nf, ns, d, si, nr, turns_left - 1)
+                vals = [ea._dp_lookup_ea(nw, nc, nf, ns, ncs, d, si, nr,
+                                         turns_left - 1)
                         for d in dests]
                 avg = sum(vals) / len(vals)
                 print(f"  {o.key:>24s} -> avg={avg:.4f} "
@@ -734,7 +736,8 @@ class TestScenarioSupportGemDpsOptimizeNoReset(unittest.TestCase):
             else:
                 fi = ea._effect_tuple.index(self.FIRST)
                 si = ea._effect_tuple.index(self.SECOND)
-                v = ea._dp_lookup_ea(nw, nc, nf, ns, fi, si, nr, turns_left - 1)
+                v = ea._dp_lookup_ea(nw, nc, nf, ns, ncs, fi, si, nr,
+                                     turns_left - 1)
                 print(f"  {o.key:>24s} -> dp={v:.4f}")
 
 

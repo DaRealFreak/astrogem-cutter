@@ -247,10 +247,13 @@ class TestEffectAwareDP(unittest.TestCase):
             self.goal, 3, self.pool, min_side_coeff=0,
             effect_aware=True, gem_type="order_fortitude", optimize="dps",
         )
-        # Sample transitions at a middle turn
-        trans = ea._effect_aware_transitions(3, 3, 3, 3, turn=2, turns_left=2)
-        total = sum(p for (p, _key, _kind, _nw, _nc, _nf, _ns, _vd) in trans)
-        self.assertAlmostEqual(total, 1.0, places=6)
+        # Sample transitions at a middle turn, in both cost states
+        for cs in (0, 1):
+            trans = ea._effect_aware_transitions(3, 3, 3, 3, cs,
+                                                 turn=2, turns_left=2)
+            total = sum(p for (p, _key, _kind,
+                               _nw, _nc, _nf, _ns, _ncs, _vd) in trans)
+            self.assertAlmostEqual(total, 1.0, places=6)
 
     def test_no_coeff_constraint_matches_standard(self) -> None:
         """When min_side_coeff=0, EA's numerical output should match
@@ -403,7 +406,7 @@ class TestSideValueTable(unittest.TestCase):
         self.assertGreater(ev, 0.0)
         fi, si = t._effect_indices(st)
         dests = t._change_dests[(fi, si)]
-        cfe = sum(t._dp[(4, 4, 3, 3, d, si, 4)] for d in dests) / len(dests)
+        cfe = sum(t._dp[(4, 4, 3, 3, 0, d, si, 4)] for d in dests) / len(dests)
         rest = sum(t.lookup(_apply(st, o), 4) for o in offers[1:])
         self.assertAlmostEqual(ev, (cfe + rest) / 4, places=3)
 
@@ -607,8 +610,10 @@ class TestSideValueTableReroll(unittest.TestCase):
 
     def test_flat_default_unchanged(self):
         # max_rerolls=0 reproduces the documented flat value exactly.
+        # (Re-pinned after the turn-1 view inclusion + cost-saturation DP
+        # dimension changed every table value.)
         t = self._table(0)
-        self.assertAlmostEqual(t.lookup(self._s0(), 9), 905.05, places=1)
+        self.assertAlmostEqual(t.lookup(self._s0(), 9), 898.93, places=1)
 
     def test_reroll_value_strictly_increases(self):
         t = self._table(4)
@@ -618,9 +623,12 @@ class TestSideValueTableReroll(unittest.TestCase):
 
     def test_reroll_value_tracks_mc(self):
         # Validated MC self-consistency band (tools/reroll_value_fix_validate.py).
+        # Re-pinned after the turn-1 view inclusion + cost-saturation DP
+        # dimension; the validation script re-run confirms the DP stays within
+        # the documented Gaussian-approximation bias of its own-policy MC.
         t = self._table(4)
         got = [t.lookup(self._s0(), 9, rerolls=r) for r in range(5)]
-        expect = [1018.07, 1319.00, 1574.14, 1798.41, 1995.55]
+        expect = [1022.07, 1320.15, 1573.15, 1794.31, 1984.52]
         for g, e in zip(got, expect):
             self.assertAlmostEqual(g, e, delta=2.0)
 
@@ -632,7 +640,7 @@ class TestSideValueTableReroll(unittest.TestCase):
                   Option("first+4", 0.45, "first", 4),
                   Option("chaos+3", 1.75, "chaos", 3)]
         self.assertAlmostEqual(
-            t0.expected_value_after_click(self._s0(), offers, 8), 1383.34, places=1)
+            t0.expected_value_after_click(self._s0(), offers, 8), 1390.36, places=1)
 
 
 class TestSideValueTablePolicyEval(unittest.TestCase):
@@ -670,7 +678,7 @@ class TestSideValueTablePolicyEval(unittest.TestCase):
         # will+chaos sum (~4) the decision table would report.
         _, pe = self._tables()
         self.assertGreater(pe.lookup(self._s0(), 9), 100.0)
-        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 930.99, places=1)
+        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 924.69, places=1)
 
     def test_policy_eval_is_flat(self):
         # Policy-eval forces flat (no reroll dimension); a rerolls argument is
@@ -684,7 +692,73 @@ class TestSideValueTablePolicyEval(unittest.TestCase):
         # stays a meaningful coefficient.
         vi, pe = self._tables(min_side_coeff=2000)
         self.assertLess(pe.lookup(self._s0(), 9), vi.lookup(self._s0(), 9))
-        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 817.50, places=1)
+        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 811.65, places=1)
+
+
+class TestCostSaturationDimension(unittest.TestCase):
+    """The DP models cost-ratio saturation exactly: at cost_ratio ±100 one
+    cost option leaves the pool (~1.8% weight), so every other option's
+    probability rises and P(goal) from a saturated state is strictly higher
+    than from the unsaturated one. Regression: transitions used to assume
+    cost_ratio=0 forever, so the two states read identically.
+    """
+
+    def _state(self, cost_ratio):
+        return GemState(will=1, chaos=1, first=1, second=1,
+                        cost_ratio=cost_ratio,
+                        first_effect="attack_power",
+                        second_effect="boss_damage")
+
+    def test_saturated_state_has_higher_goal_prob_standard(self):
+        t = GoalProbabilityTable(LastTurnGoal(min_will=5, min_chaos=5),
+                                 9, OptionPool())
+        p_sat = t.lookup(self._state(100), 5)
+        p_unsat = t.lookup(self._state(0), 5)
+        self.assertGreater(p_sat, p_unsat)
+
+    def test_plus_and_minus_saturation_are_symmetric(self):
+        t = GoalProbabilityTable(LastTurnGoal(min_will=5, min_chaos=5),
+                                 9, OptionPool())
+        self.assertEqual(t.lookup(self._state(100), 5),
+                         t.lookup(self._state(-100), 5))
+
+    def test_saturated_state_has_higher_goal_prob_effect_aware_reroll(self):
+        t = GoalProbabilityTable(
+            LastTurnGoal(min_will=5, min_chaos=5), 9, OptionPool(),
+            max_rerolls=2, early_finish=True,
+            effect_aware=True, gem_type="order_fortitude", optimize="dps",
+        )
+        p_sat = t.lookup(self._state(100), 5, rerolls=1)
+        p_unsat = t.lookup(self._state(0), 5, rerolls=1)
+        self.assertGreater(p_sat, p_unsat)
+
+    def test_cost_offer_toggles_saturation_in_prob_after_option(self):
+        # Clicking a cost option from unsaturated lands in the (better)
+        # saturated state, so its post-click P exceeds a maintain click's.
+        t = GoalProbabilityTable(LastTurnGoal(min_will=5, min_chaos=5),
+                                 9, OptionPool())
+        pool = OptionPool()
+        by_key = {o.key: o for o in pool.pool}
+        st = self._state(0)
+        p_cost = t.prob_after_option(st, by_key["cost+100"], 4)
+        p_maintain = t.prob_after_option(st, by_key["maintain"], 4)
+        self.assertGreater(p_cost, p_maintain)
+
+    def test_side_value_table_prices_saturation(self):
+        t = SideValueTable(
+            LastTurnGoal(min_total_will_chaos=8), 9, OptionPool(),
+            gem_type="order_stability", optimize="dps",
+            min_side_coeff=2000, relic_coeff=None, ancient_coeff=None,
+            max_rerolls=2,
+        )
+        st_sat = GemState(will=1, chaos=1, first=1, second=1, cost_ratio=100,
+                          first_effect="additional_damage",
+                          second_effect="attack_power")
+        st_unsat = GemState(will=1, chaos=1, first=1, second=1,
+                            first_effect="additional_damage",
+                            second_effect="attack_power")
+        self.assertGreater(t.lookup(st_sat, 5, rerolls=1),
+                           t.lookup(st_unsat, 5, rerolls=1))
 
 
 if __name__ == "__main__":

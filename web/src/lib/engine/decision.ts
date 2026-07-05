@@ -205,32 +205,6 @@ export interface TurnMetrics {
   feasibleCount: number; // # offers where prob_table DP > 0 after pick
 }
 
-function applyOptionForMetrics(state: GemState, opt: Option): GemState {
-  const s = state.clone();
-  if (opt.kind === 'will') {
-    s.will = Math.min(5, Math.max(1, s.will + opt.delta));
-  } else if (opt.kind === 'chaos') {
-    s.chaos = Math.min(5, Math.max(1, s.chaos + opt.delta));
-  } else if (opt.kind === 'first') {
-    s.first = Math.min(5, Math.max(1, s.first + opt.delta));
-  } else if (opt.kind === 'second') {
-    s.second = Math.min(5, Math.max(1, s.second + opt.delta));
-  } else if (opt.kind === 'view') {
-    s.rerolls = Math.max(0, s.rerolls + opt.delta);
-  } else if (opt.kind === 'cost') {
-    if (opt.key === 'cost+100') {
-      s.costRatio = Math.min(100, s.costRatio + 100);
-    } else if (opt.key === 'cost-100') {
-      s.costRatio = Math.max(-100, s.costRatio - 100);
-    }
-  } else if (opt.key === 'change_first_effect' && opt.resolvedEffect) {
-    s.firstEffect = opt.resolvedEffect;
-  } else if (opt.key === 'change_second_effect' && opt.resolvedEffect) {
-    s.secondEffect = opt.resolvedEffect;
-  }
-  return s;
-}
-
 function goalFullySatisfied(ctx: DecisionContext, state: GemState): boolean {
   if (!ctx.goal.satisfied(state.will, state.chaos, state.first, state.second)) {
     return false;
@@ -324,16 +298,12 @@ export function computePostRollMetrics(ctx: DecisionContext, ti: TurnInput): Tur
       : 0.0;
   }
 
-  // Per-offer post-click feasibility under the goal DP.
-  const maxR = ctx.probTable.maxRerolls;
-
+  // Per-offer post-click feasibility under the goal DP. Destination-blind:
+  // change offers count via their destination-average P (the card doesn't
+  // reveal the destination in-game), consistent with pKeepGoal above.
   let feasibleCount = 0;
-
   for (const o of ti.offers) {
-    const ns = applyOptionForMetrics(ti.state, o);
-    const viewDelta = o.kind === 'view' ? o.delta : 0;
-    const nr = maxR > 0 ? Math.min(maxR, ti.rerolls + viewDelta) : ti.rerolls;
-    if (ctx.probTable.lookup(ns, tla, nr) > 0) {
+    if (ctx.probTable.probAfterOption(ti.state, o, tla, ti.rerolls) > 0) {
       feasibleCount += 1;
     }
   }
