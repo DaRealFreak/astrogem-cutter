@@ -920,7 +920,10 @@ def run_auto(
                 # Goal-independent grade-value table (trivial goal, no
                 # side-coeff floor) for dead-goal turns — built per gem type
                 # like the side-value table; coeffs resolve to the fusion
-                # default when unset.
+                # default when unset. Always `grade_only`: a gem that missed
+                # its goal won't be equipped, so only its fusion grade matters
+                # and the dead-goal decision finishes once no higher grade is
+                # reachable rather than chasing a worthless side coefficient.
                 if grade_value_table is None:
                     grade_value_table = SideValueTable(
                         LastTurnGoal(), det.total_steps, pool,
@@ -928,8 +931,7 @@ def run_auto(
                         min_side_coeff=0,
                         relic_coeff=relic_coeff,
                         ancient_coeff=ancient_coeff,
-                        value_mode=("grade_only" if ignore_side_node_values
-                                    else "side"),
+                        value_mode="grade_only",
                         max_rerolls=dp_max_rerolls,
                     )
                 # Side-mode oracle for the will/chaos cap under

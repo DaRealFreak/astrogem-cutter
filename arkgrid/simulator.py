@@ -242,10 +242,13 @@ class GemSimulator:
         is permanently broken and the goal-conditioned side-value table would
         otherwise zero every state.
 
-        Value mode: `side` (`side_coeff + tier_bonus`) normally, but
-        `grade_only` (`tier_bonus` alone) under `--ignore-side-node-values` —
-        the player opted out of side-node value, so a dead goal chases only
-        relic/ancient grade and finishes when no higher grade is reachable.
+        Value mode: always `grade_only` (`tier_bonus` alone), regardless of
+        `--ignore-side-node-values`. A gem that missed its goal won't be
+        equipped, so its side-node coefficients are worthless — only its
+        fusion grade (relic/ancient) carries value. The dead-goal decision
+        therefore chases only relic/ancient grade and finishes the instant no
+        higher grade is reachable, instead of clicking on to pump a side
+        coefficient the dead gem can never cash in.
         """
         cached = self._grade_value_table_cache.get(gem_type)
         if cached is not None:
@@ -256,8 +259,7 @@ class GemSimulator:
             min_side_coeff=0,
             relic_coeff=self.relic_coeff,
             ancient_coeff=self.ancient_coeff,
-            value_mode=("grade_only" if self.ignore_side_node_values
-                        else "side"),
+            value_mode="grade_only",
             max_rerolls=(self._dp_max_rerolls
                          if self.reroll_aware_value else 0),
         )

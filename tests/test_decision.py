@@ -65,7 +65,7 @@ def build_ctx(
     relic_coeff: Optional[int] = 0,
     ancient_coeff: Optional[int] = 0,
     side_value_mode: str = "side",
-    grade_value_mode: str = "side",
+    grade_value_mode: str = "grade_only",
 ) -> DecisionContext:
     g = goal or LastTurnGoal(min_will=4, min_chaos=3)
     prob_table = GoalProbabilityTable(
@@ -859,6 +859,50 @@ class TestDeadGoalGradeValue(unittest.TestCase):
         self.assertEqual(d.action, ActionKind.PROCESS,
                          f"rich ancient value should process for the +3: {d}")
 
+    def test_dead_goal_no_grade_reachable_finishes_in_default_mode(self):
+        # Reproduces the user's reported `sim` run (turns 8/9), DEFAULT value
+        # model (NO --ignore-side-node-values): optimize dps, goal dead, and
+        # no grade upgrade reachable (total=7, 1 turn left -> max 11 < 16). A
+        # side-node level-up offer (first+1 / second+1) IS in hand.
+        #
+        # A gem that missed its goal won't be equipped, so its side coefficient
+        # is worthless — only its fusion grade matters. With no grade upgrade
+        # reachable there is nothing left to chase, so the decision must FINISH
+        # rather than click on to pump the side coefficient.
+        #
+        # DISCRIMINATING: the only difference between the two contexts is the
+        # grade-value table's mode. The default (grade_only) FINISHES; the old
+        # 'side' wiring PROCESSES for the side-node level-up — the bug.
+        g = LastTurnGoal(min_will=4, min_chaos=4)
+        st = GemState(will=2, chaos=1, first=2, second=2, rerolls=0,
+                      first_effect="boss_damage",
+                      second_effect="attack_power")
+        offers = make_offers("first+1", "second+1", "will+1", "maintain")
+        ti = build_ti(state=st, offers=offers, turn=9, turns_left=1,
+                      rerolls=0, reset_available=False)
+
+        ctx_default = build_ctx(
+            goal=g, gem_type="order_fortitude", optimize="dps",
+            relic_coeff=3000, ancient_coeff=8000, endgame_risk=None,
+        )
+        ctx_side = build_ctx(
+            goal=g, gem_type="order_fortitude", optimize="dps",
+            grade_value_mode="side",
+            relic_coeff=3000, ancient_coeff=8000, endgame_risk=None,
+        )
+
+        d_default = infeasibility_decision(
+            ctx_default, ti, compute_post_roll_metrics(ctx_default, ti))
+        d_side = infeasibility_decision(
+            ctx_side, ti, compute_post_roll_metrics(ctx_side, ti))
+
+        self.assertEqual(
+            d_default.action, ActionKind.FINISH,
+            f"dead goal with no grade reachable must FINISH, got {d_default}")
+        self.assertEqual(
+            d_side.action, ActionKind.PROCESS,
+            f"old side-mode wiring chases the side level-up, got {d_side}")
+
     def test_binary_fallback_when_no_grade_table(self):
         # No grade table (here: default coeffs -> table not built) -> the
         # binary relic+ chase path runs (PROCESS to keep relic+ on the last
@@ -1141,8 +1185,10 @@ class TestIgnoreSideNodeValuesBehaviour(unittest.TestCase):
 
     def test_dead_goal_still_chases_grade(self):
         # Goal needs 5-5 (total 10) but state can't reach it in 1 turn ->
-        # infeasible. No reset/reroll -> grade chase via grade_value_table
-        # (side mode), NOT a FAIL.
+        # infeasible. No reset/reroll -> the dead-goal path goes through the
+        # grade_value_table (grade_only), producing a grade decision (here a
+        # FINISH, since no higher grade is reachable from these capped offers),
+        # NOT a FAIL.
         g = LastTurnGoal(min_total_will_chaos=10)
         ctx = build_ctx(goal=g, side_value_mode="will_chaos",
                         relic_coeff=3000, ancient_coeff=8000)

@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "b97fb16"
+  "arkgrid_sha": "0d39aa4"
  },
  "records": [
   {
@@ -396,7 +396,7 @@
     ]
    },
    "expected": {
-    "action": "reroll",
+    "action": "finish",
     "branch": "infeasible"
    }
   },
@@ -2567,7 +2567,7 @@
     ]
    },
    "expected": {
-    "action": "reroll",
+    "action": "finish",
     "branch": "infeasible"
    }
   },

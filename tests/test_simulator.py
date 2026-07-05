@@ -537,10 +537,16 @@ class TestIgnoreSideNodeValuesTables(unittest.TestCase):
         gvt = sim._get_grade_value_table("order_fortitude")
         self.assertEqual(gvt.value_mode, "grade_only")
 
-    def test_grade_value_table_stays_side_mode_by_default(self):
+    def test_grade_value_table_uses_grade_only_mode_by_default(self):
+        # Dead-goal turns value GRADE ONLY even without
+        # --ignore-side-node-values: a gem that missed its goal won't be
+        # equipped, so its side-node coefficients are worthless and only its
+        # fusion grade (relic/ancient) matters. The table therefore finishes
+        # the instant no grade upgrade is reachable instead of clicking on to
+        # chase a side coefficient the dead gem can't cash in.
         sim = self._sim()  # no ignore_side_node_values
         gvt = sim._get_grade_value_table("order_fortitude")
-        self.assertEqual(gvt.value_mode, "side")
+        self.assertEqual(gvt.value_mode, "grade_only")
 
     def test_default_side_value_table_is_side_mode(self):
         sim = self._sim()

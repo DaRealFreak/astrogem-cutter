@@ -289,9 +289,11 @@ def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=Non
         min_side_coeff=min_side_coeff, relic_coeff=relic_coeff,
         ancient_coeff=ancient_coeff,
         value_mode=("will_chaos" if ignore_side else "side"), max_rerolls=mr)
+    # Dead-goal table is always grade_only: a goal-missing gem won't be
+    # equipped, so only its fusion grade matters (mirrors simulator/automation).
     gvt = SideValueTable(LastTurnGoal(), turns, pool, gem_type=gt, optimize=opt,
         min_side_coeff=0, relic_coeff=relic_coeff, ancient_coeff=ancient_coeff,
-        value_mode=("grade_only" if ignore_side else "side"), max_rerolls=mr)
+        value_mode="grade_only", max_rerolls=mr)
     mvt = (SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
         min_side_coeff=min_side_coeff, relic_coeff=relic_coeff,
         ancient_coeff=ancient_coeff, value_mode="side", max_rerolls=mr)

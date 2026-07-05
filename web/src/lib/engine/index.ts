@@ -233,12 +233,17 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   });
 
   // 6. Grade-value table (goal-independent; dead-goal decisions), reroll-aware.
+  // Always 'grade_only', regardless of ignoreSide: a gem that missed its goal
+  // won't be equipped, so its side-node coefficients are worthless and only
+  // its fusion grade (relic/ancient) matters. The dead-goal decision finishes
+  // the instant no higher grade is reachable instead of clicking on to pump a
+  // side coefficient the dead gem can never cash in.
   const gradeValueTable = new SideValueTable(new LastTurnGoal(), turnsTotal, pool, gemType, {
     optimize,
     minSideCoeff: 0,
     relicCoeff,
     ancientCoeff,
-    valueMode: ignoreSide ? 'grade_only' : 'side',
+    valueMode: 'grade_only',
     maxRerolls: dpMaxRerolls,
   });
 
