@@ -694,7 +694,9 @@ def _reset_or_chase_relic(
 ) -> Decision:
     """Common tail used by both infeasibility branches.
 
-    Tries reset → relic+ chase (process or reroll, whichever has higher
+    Tries goal-reroll before reset (free rerolls are lost on a reset, so
+    one that can still reach the goal is always spent first) → reset →
+    relic+ chase (process or reroll, whichever has higher
     offer-conditional P(r+)) → goal-reroll fallback → finish/fail. FAIL
     is returned only when no reset is available *and* relic+ tracking is
     disabled *and* a reroll can't reach the goal either — the simulator
@@ -711,18 +713,31 @@ def _reset_or_chase_relic(
         "p_reroll_relic": m.p_reroll_relic,
     }
 
+    can_reroll = ti.rerolls > 0 and ti.turn != 1
+    p_reroll_goal = (ctx.prob_table.lookup(
+        ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
+        if can_reroll else 0.0)
+
     if ti.reset_available:
+        # Free-reroll dominance: rerolling costs nothing, never advances the
+        # turn, and unspent rerolls are lost on a reset anyway (the fresh
+        # process re-grants its own budget). So a free reroll that can still
+        # reach the goal is spent BEFORE the reset ticket — if the redraw is
+        # also dead, the next decision pass still has the reset.
+        if p_reroll_goal > 0:
+            return Decision(
+                action=ActionKind.REROLL,
+                branch=branch,
+                reason=(f"{reason}, rerolling before reset "
+                        f"(P(goal|reroll)={p_reroll_goal:.1%})"),
+                metrics={**base_metrics, "p_reroll_goal": p_reroll_goal},
+            )
         return Decision(
             action=ActionKind.RESET,
             branch=branch,
             reason=reason,
             metrics=base_metrics,
         )
-
-    can_reroll = ti.rerolls > 0 and ti.turn != 1
-    p_reroll_goal = (ctx.prob_table.lookup(
-        ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
-        if can_reroll else 0.0)
 
     # Note: `--relic-reroll-threshold` does NOT force-finish a dead gem here.
     # Rerolls are free, so while a free reroll (or the current offers) can still
@@ -886,6 +901,24 @@ def prob_reset_decision(
         return None
     if m.p_keep_goal_reset >= ctx.prob_reset_threshold:
         return None
+    # Free-reroll dominance (see _reset_or_chase_relic): rerolls are lost on
+    # a reset, so spend one that can still reach the goal before the ticket.
+    # No confirmation on the reroll — the gate guards the reset ticket, and
+    # a free redraw spends nothing.
+    if ti.rerolls > 0 and ti.turn != 1:
+        p_reroll_goal = ctx.prob_table.lookup(
+            ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
+        if p_reroll_goal > 0:
+            return Decision(
+                action=ActionKind.REROLL,
+                branch="prob_reset",
+                reason=(f"post-click P(goal)={m.p_keep_goal_reset:.1%} < "
+                        f"threshold {ctx.prob_reset_threshold:.1%} — "
+                        f"rerolling before reset "
+                        f"(P(goal|reroll)={p_reroll_goal:.1%})"),
+                metrics={"p_keep_goal_reset": m.p_keep_goal_reset,
+                         "p_reroll_goal": p_reroll_goal},
+            )
     return _maybe_confirm(ctx, ti, Decision(
         action=ActionKind.RESET,
         branch="prob_reset",
@@ -920,6 +953,23 @@ def last_turn_reset_decision(
         return None
     if m.p_keep_goal_reset >= ctx.p_fresh:
         return None
+    # Free-reroll dominance (see _reset_or_chase_relic): a redraw is free and
+    # the reset is still available next pass if the new hand is also worse
+    # than a fresh start. No confirmation — the gate guards the reset ticket.
+    if ti.rerolls > 0 and ti.turn != 1:
+        p_reroll_goal = ctx.prob_table.lookup(
+            ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
+        if p_reroll_goal > 0:
+            return Decision(
+                action=ActionKind.REROLL,
+                branch="last_turn_fresh",
+                reason=(f"last turn post-click {m.p_keep_goal_reset:.1%} < "
+                        f"fresh start {ctx.p_fresh:.1%} — rerolling before "
+                        f"reset (P(goal|reroll)={p_reroll_goal:.1%})"),
+                metrics={"p_keep_goal_reset": m.p_keep_goal_reset,
+                         "p_fresh": ctx.p_fresh,
+                         "p_reroll_goal": p_reroll_goal},
+            )
     return _maybe_confirm(ctx, ti, Decision(
         action=ActionKind.RESET,
         branch="last_turn_fresh",

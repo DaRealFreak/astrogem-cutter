@@ -642,9 +642,11 @@ class TestGate2And3Confirm(unittest.TestCase):
         st = GemState(will=1, chaos=1, first=4, second=4,
                       first_effect="boss_damage",
                       second_effect="attack_power")
+        # rerolls=0: with rerolls in hand the branch now rerolls first (free-
+        # reroll dominance) — the confirm gate guards the reset itself.
         ti = build_ti(state=st, offers=make_offers("will+1", "chaos+1",
                                                    "first+1", "second+1"),
-                      turn=2, turns_left=8, reset_available=True)
+                      turn=2, turns_left=8, rerolls=0, reset_available=True)
         d = prob_reset_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.RESET)
@@ -1551,6 +1553,115 @@ class TestExplicitMarginUnderConfirm(unittest.TestCase):
                       turn=9, turns_left=1, rerolls=0, reset_available=False)
         d = decide_post_roll(ctx, ti)
         self.assertEqual(d.action, ActionKind.PROCESS)
+
+
+class TestRerollBeforeReset(unittest.TestCase):
+    """Free rerolls are spent before the once-per-gem reset ticket.
+
+    Rerolling is free, never advances the turn, and unspent rerolls are
+    lost on a reset anyway (the fresh process re-grants its own budget) —
+    so whenever a free reroll can still reach the goal, it strictly
+    dominates spending the reset. Regression tests for the live run where
+    turn 9 (all offers P=0, 2 rerolls in hand) burned the reset ticket:
+    P(goal|reroll)~74% was thrown away for a p_fresh~55% fresh start.
+    """
+
+    # Goal: min_will=4, min_chaos=3 (build_ctx default). State w=3 c=3:
+    # only a will+ offer reaches the goal on the last turn.
+    def _state(self, rerolls: int) -> GemState:
+        return GemState(will=3, chaos=3, first=1, second=1, rerolls=rerolls,
+                        first_effect="attack_power",
+                        second_effect="boss_damage")
+
+    # No will+ card: every offer has post-click P(goal)=0 -> Branch 3.
+    _DEAD_HAND = ("chaos+1", "first+1", "second+1", "chaos-1")
+
+    def test_no_feasible_offer_rerolls_before_reset(self):
+        ctx = build_ctx()
+        ti = build_ti(state=self._state(2), offers=make_offers(*self._DEAD_HAND),
+                      turn=9, turns_left=1, rerolls=2, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.REROLL)
+        self.assertEqual(d.branch, "no_feasible_offer")
+        self.assertGreater(d.metrics.get("p_reroll_goal", 0.0), 0.0)
+
+    def test_no_feasible_offer_resets_once_rerolls_exhausted(self):
+        ctx = build_ctx()
+        ti = build_ti(state=self._state(0), offers=make_offers(*self._DEAD_HAND),
+                      turn=9, turns_left=1, rerolls=0, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.RESET)
+        self.assertEqual(d.branch, "no_feasible_offer")
+
+    def test_no_feasible_offer_resets_on_turn_1_despite_rerolls(self):
+        # Rerolling is disallowed on turn 1 — the reroll-first guard must
+        # not offer an illegal action.
+        ctx = build_ctx(goal=LastTurnGoal(min_will=4, min_chaos=3),
+                        turns_total=1)
+        ti = build_ti(state=self._state(2), offers=make_offers(*self._DEAD_HAND),
+                      turn=1, turns_left=1, rerolls=2, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.RESET)
+
+    def test_structurally_dead_goal_still_resets_with_rerolls_in_hand(self):
+        # w=1 c=1 with 1 turn left can't reach will 4 / chaos 3 via ANY
+        # redraw (p_reroll_goal == 0) — rerolling is pointless, reset now.
+        state = GemState(will=1, chaos=1, first=1, second=1, rerolls=2,
+                         first_effect="attack_power",
+                         second_effect="boss_damage")
+        ctx = build_ctx()
+        ti = build_ti(state=state, offers=make_offers(*self._DEAD_HAND),
+                      turn=9, turns_left=1, rerolls=2, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.RESET)
+        self.assertEqual(d.branch, "infeasible")
+
+    def test_prob_reset_rerolls_before_reset(self):
+        # Post-click P below the user's reset bar, but a reroll is free and
+        # the goal is still reachable -> spend the reroll first.
+        ctx = build_ctx(prob_reset_threshold=0.9)
+        state = GemState(will=2, chaos=2, first=1, second=1, rerolls=1,
+                         first_effect="attack_power",
+                         second_effect="boss_damage")
+        offers = make_offers("will+1", "chaos+1", "first+1", "second+1")
+        ti = build_ti(state=state, offers=offers, turn=8, turns_left=2,
+                      rerolls=1, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.REROLL)
+        self.assertEqual(d.branch, "prob_reset")
+
+    def test_prob_reset_resets_once_rerolls_exhausted(self):
+        ctx = build_ctx(prob_reset_threshold=0.9)
+        state = GemState(will=2, chaos=2, first=1, second=1, rerolls=0,
+                         first_effect="attack_power",
+                         second_effect="boss_damage")
+        offers = make_offers("will+1", "chaos+1", "first+1", "second+1")
+        ti = build_ti(state=state, offers=offers, turn=8, turns_left=2,
+                      rerolls=0, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.RESET)
+        self.assertEqual(d.branch, "prob_reset")
+
+    def test_last_turn_fresh_rerolls_before_reset(self):
+        # Last turn, hand is feasible but worse than a fresh start
+        # (p_fresh forced to 0.99): with a reroll in hand, redraw first —
+        # the reset is still available next pass if the redraw is bad too.
+        ctx = build_ctx(p_fresh=0.99)
+        offers = make_offers("will+1", "chaos+1", "first+1", "second+1")
+        ti = build_ti(state=self._state(1), offers=offers,
+                      turn=9, turns_left=1, rerolls=1, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.REROLL)
+        self.assertEqual(d.branch, "last_turn_fresh")
+
+    def test_last_turn_fresh_resets_once_rerolls_exhausted(self):
+        ctx = build_ctx(p_fresh=0.99)
+        offers = make_offers("will+1", "chaos+1", "first+1", "second+1")
+        ti = build_ti(state=self._state(0), offers=offers,
+                      turn=9, turns_left=1, rerolls=0, reset_available=True)
+        d = decide_post_roll(ctx, ti)
+        self.assertEqual(d.action, ActionKind.RESET)
+        self.assertEqual(d.branch, "last_turn_fresh")
 
 
 class TestLegalActionsTurnOne(unittest.TestCase):

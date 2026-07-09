@@ -104,6 +104,35 @@ describe('decidePostRoll parity', () => {
     expect(d2.action).toBe('reroll');
   });
 
+  // Free-reroll dominance: rerolls are lost on a reset, so a free reroll
+  // that can still reach the goal is spent BEFORE the reset ticket.
+  // Regression for a live run where turn 9 (all offers P=0, 2 rerolls in
+  // hand) burned the reset ticket instead of redrawing.
+  it('spends free rerolls before the reset ticket on a dead hand', () => {
+    const pool = new OptionPool();
+    const byKey = new Map(pool.pool.map(o => [o.key, o]));
+    const engCtx = buildEngineContext(
+      { gemType: 'chaos_distortion', firstEffect: 'attack_power', secondEffect: 'boss_damage', optimize: 'dps' },
+      { rarity: 'epic', minWill: 4, minChaos: 3 }
+    );
+    // w=3 c=3: only a will+ card reaches the goal on the last turn — this
+    // hand has none, so every offer has post-click P(goal)=0 (Branch 3).
+    const offers = ['chaos+1', 'first+1', 'second+1', 'chaos-1'].map(k => byKey.get(k)!);
+    const st = new GemState({ will: 3, chaos: 3, first: 1, second: 1,
+      firstEffect: 'attack_power', secondEffect: 'boss_damage', rerolls: 2 });
+    const d = decidePostRoll(engCtx._decisionCtx, { state: st, offers,
+      turn: 9, turnsLeft: 1, rerolls: 2, resetAvailable: true });
+    expect(d.action).toBe('reroll');
+    expect(d.branch).toBe('no_feasible_offer');
+    // Rerolls exhausted: NOW the reset ticket is the right spend.
+    const st0 = new GemState({ will: 3, chaos: 3, first: 1, second: 1,
+      firstEffect: 'attack_power', secondEffect: 'boss_damage', rerolls: 0 });
+    const d0 = decidePostRoll(engCtx._decisionCtx, { state: st0, offers,
+      turn: 9, turnsLeft: 1, rerolls: 0, resetAvailable: true });
+    expect(d0.action).toBe('reset');
+    expect(d0.branch).toBe('no_feasible_offer');
+  });
+
   it('derives dpMaxRerolls=3 for rare with relicRerollThreshold=0.3', () => {
     const ctx = buildEngineContext(
       { gemType: 'chaos_distortion', firstEffect: 'attack_power', secondEffect: 'ally_damage', optimize: 'dps' },

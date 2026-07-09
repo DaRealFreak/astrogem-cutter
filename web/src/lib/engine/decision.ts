@@ -586,7 +586,25 @@ function resetOrChaseRelic(
     p_reroll_relic: m.pRerollRelic,
   };
 
+  const canReroll = ti.rerolls > 0 && ti.turn !== 1;
+  const pRerollGoal = canReroll
+    ? ctx.probTable.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1)
+    : 0.0;
+
   if (ti.resetAvailable) {
+    // Free-reroll dominance: rerolling costs nothing, never advances the
+    // turn, and unspent rerolls are lost on a reset anyway (the fresh
+    // process re-grants its own budget). So a free reroll that can still
+    // reach the goal is spent BEFORE the reset ticket — if the redraw is
+    // also dead, the next decision pass still has the reset.
+    if (pRerollGoal > 0) {
+      return makeDecision({
+        action: ActionKind.REROLL,
+        branch,
+        reason: `${reason}, rerolling before reset`,
+        metrics: { ...baseMetrics, p_reroll_goal: pRerollGoal },
+      });
+    }
     return makeDecision({
       action: ActionKind.RESET,
       branch,
@@ -594,11 +612,6 @@ function resetOrChaseRelic(
       metrics: baseMetrics,
     });
   }
-
-  const canReroll = ti.rerolls > 0 && ti.turn !== 1;
-  const pRerollGoal = canReroll
-    ? ctx.probTable.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1)
-    : 0.0;
 
   // Note: `relicRerollThreshold` does NOT force-finish a dead gem here. Rerolls
   // are free, so while a free reroll (or the current offers) can still reach
@@ -740,6 +753,20 @@ export function probResetDecision(
   if (m.pKeepGoalReset >= ctx.probResetThreshold) {
     return null;
   }
+  // Free-reroll dominance (see resetOrChaseRelic): rerolls are lost on a
+  // reset, so spend one that can still reach the goal before the ticket.
+  // No confirmation on the reroll — the gate guards the reset ticket.
+  if (ti.rerolls > 0 && ti.turn !== 1) {
+    const pRerollGoal = ctx.probTable.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
+    if (pRerollGoal > 0) {
+      return makeDecision({
+        action: ActionKind.REROLL,
+        branch: 'prob_reset',
+        reason: `post-click P(goal) < threshold — rerolling before reset`,
+        metrics: { p_keep_goal_reset: m.pKeepGoalReset, p_reroll_goal: pRerollGoal },
+      });
+    }
+  }
   return maybeConfirm(
     ctx,
     ti,
@@ -769,6 +796,20 @@ export function lastTurnResetDecision(
   }
   if (m.pKeepGoalReset >= ctx.pFresh) {
     return null;
+  }
+  // Free-reroll dominance (see resetOrChaseRelic): a redraw is free and the
+  // reset is still available next pass if the new hand is also worse than a
+  // fresh start. No confirmation — the gate guards the reset ticket.
+  if (ti.rerolls > 0 && ti.turn !== 1) {
+    const pRerollGoal = ctx.probTable.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
+    if (pRerollGoal > 0) {
+      return makeDecision({
+        action: ActionKind.REROLL,
+        branch: 'last_turn_fresh',
+        reason: `last turn post-click < fresh start — rerolling before reset`,
+        metrics: { p_keep_goal_reset: m.pKeepGoalReset, p_fresh: ctx.pFresh, p_reroll_goal: pRerollGoal },
+      });
+    }
   }
   return maybeConfirm(
     ctx,

@@ -34,7 +34,11 @@ T = TypeVar("T")
 # Any change to these files changes DP values or pickled layouts.
 _MODEL_SOURCES = ("probability.py", "pool.py", "constants.py", "models.py")
 
-_MAX_FILES_PER_FINGERPRINT = 32
+# One full `auto --all` sweep across the 6 gem types produces ~26 pickles
+# (goal + reset + side-value + grade-value per type, plus shared tables) at
+# up to ~9MB each; 32 caused silent eviction thrash the moment a second
+# goal/config entered the mix. 128 (~1GB worst case) fits several configs.
+_MAX_FILES_PER_FINGERPRINT = 128
 
 _fingerprint: Optional[str] = None
 _pruned_stale = False

@@ -382,6 +382,19 @@ def _build_prob_table(
 
 
 
+def _timed_table(label: str, build):
+    """Build (or disk-load) a DP table with visible progress.
+
+    Cold builds take seconds each and several run back-to-back per gem
+    type — without output the auto loop looks hung before turn 1.
+    """
+    print(f"  [dp] {label}...", end="", flush=True)
+    t0 = time.time()
+    obj = build()
+    print(f" ready in {time.time() - t0:.2f}s", flush=True)
+    return obj
+
+
 def _build_reset_table(
     goal: LastTurnGoal,
     turns_total: int,
@@ -932,28 +945,28 @@ def run_auto(
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
                 if relic_table is None:
-                    relic_table = cached_goal_table(
+                    relic_table = _timed_table("relic+ table", lambda: cached_goal_table(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
                         early_finish=False,
                         max_rerolls=dp_max_rerolls,
-                    )
+                    ))
                 if (reroll_goal is not None and reroll_goal_threshold > 0.0
                         and reroll_goal_table is None):
-                    reroll_goal_table = cached_goal_table(
+                    reroll_goal_table = _timed_table("reroll-goal table", lambda: cached_goal_table(
                         LastTurnGoal(min_total_will_chaos=reroll_goal),
                         det.total_steps, pool,
                         early_finish=False,
                         max_rerolls=dp_max_rerolls,
-                    )
+                    ))
                 # Use standard (non-reroll) DP for p_fresh — the reroll-aware
                 # DP overestimates fresh start probability. Effect-aware with
                 # the side-coeff floor (mirrors GemSimulator) so --min-side-coeff
                 # goals are priced the same here as in simulation.
-                reset_prob_table = _build_reset_table(
+                reset_prob_table = _timed_table("reset table", lambda: _build_reset_table(
                     goal, det.total_steps, pool,
                     gem_type_domain=gem_type_domain, optimize=optimize,
                     min_side_coeff=min_side_coeff, effect_aware=effect_aware_dp,
-                )
+                ))
                 # p_fresh state carries the detected effects so the effect-aware
                 # table resolves indices (a reset reverts to the gem's original
                 # effects, matching this fresh-start state).
@@ -965,7 +978,7 @@ def run_auto(
                 )
                 # Side-value DP table: built once per gem type detected.
                 if side_value_table is None:
-                    side_value_table = cached_side_value_table(
+                    side_value_table = _timed_table("side-value table", lambda: cached_side_value_table(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
@@ -974,7 +987,7 @@ def run_auto(
                         value_mode=("will_chaos" if ignore_side_node_values
                                     else "side"),
                         max_rerolls=dp_max_rerolls,
-                    )
+                    ))
                 # Goal-independent grade-value table (trivial goal, no
                 # side-coeff floor) for dead-goal turns — built per gem type
                 # like the side-value table; coeffs resolve to the fusion
@@ -983,7 +996,7 @@ def run_auto(
                 # and the dead-goal decision finishes once no higher grade is
                 # reachable rather than chasing a worthless side coefficient.
                 if grade_value_table is None:
-                    grade_value_table = cached_side_value_table(
+                    grade_value_table = _timed_table("grade-value table", lambda: cached_side_value_table(
                         LastTurnGoal(), det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=0,
@@ -991,13 +1004,13 @@ def run_auto(
                         ancient_coeff=ancient_coeff,
                         value_mode="grade_only",
                         max_rerolls=dp_max_rerolls,
-                    )
+                    ))
                 # Side-mode oracle for the will/chaos cap under
                 # --ignore-side-node-values (see decision._maxed_hold_decision).
                 # Built only under the flag; the maxed branch never fires
                 # otherwise, so it stays None for the default value model.
                 if maxed_value_table is None and ignore_side_node_values:
-                    maxed_value_table = cached_side_value_table(
+                    maxed_value_table = _timed_table("maxed-oracle table", lambda: cached_side_value_table(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
@@ -1005,18 +1018,18 @@ def run_auto(
                         ancient_coeff=ancient_coeff,
                         value_mode="side",
                         max_rerolls=dp_max_rerolls,
-                    )
+                    ))
                 # Goal-conditioned expected side-coefficient table (grade coeffs
                 # forced to 0 -> value == E[side_coeff]) for the per-turn
                 # --reroll-min-coeff ticket enabler. ~0 when the goal is dead.
                 if expected_coeff_table is None and reroll_min_coeff > 0:
-                    expected_coeff_table = cached_side_value_table(
+                    expected_coeff_table = _timed_table("expected-coeff table", lambda: cached_side_value_table(
                         goal, det.total_steps, pool,
                         gem_type=gem_type_domain, optimize=optimize,
                         min_side_coeff=min_side_coeff,
                         relic_coeff=0, ancient_coeff=0,
                         value_mode="side",
-                    )
+                    ))
                 # DecisionContext is rebuilt here too — prob_table /
                 # reset_prob_table / relic_table references may have just
                 # changed, and force_reroll_active is resolved below.
