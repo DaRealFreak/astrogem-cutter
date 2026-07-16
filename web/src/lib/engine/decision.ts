@@ -138,6 +138,14 @@ export interface TurnInput {
   turnsLeft: number;
   rerolls: number; // caller-managed count
   resetAvailable: boolean;
+  /**
+   * True when `rerolls` includes the per-frame lent reroll ticket (free
+   * rerolls are spent first, so the ticket is the LAST reroll in the budget:
+   * with `ticketLent` and `rerolls === 1` a REROLL spends the gold-costing
+   * ticket — the in-game "Charge" button — not a free one). Only affects
+   * reason wording, never the decision itself.
+   */
+  ticketLent?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -416,10 +424,15 @@ function sideValueFinishDecision(
     const rerollVal = svt.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
     const metrics = { finish_val: finishVal, process_ev: processEv, reroll_val: rerollVal };
     if (rerollVal >= processEv) {
+      // Free rerolls are spent before the lent ticket, so the reroll
+      // recommended here is the gold-costing ticket ("Charge") only when it
+      // is the sole reroll left in the budget.
+      const spendsTicket = ti.ticketLent === true && ti.rerolls === 1;
+      const label = spendsTicket ? 'the reroll ticket (Charge)' : 'a free reroll';
       return makeDecision({
         action: ActionKind.REROLL,
         branch: 'side_value_finish',
-        reason: `goal met, spending a free reroll`,
+        reason: `goal met, spending ${label}`,
         metrics,
       });
     }

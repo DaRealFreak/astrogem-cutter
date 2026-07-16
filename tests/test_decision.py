@@ -160,6 +160,7 @@ def build_ti(
     turns_left: int = 5,
     rerolls: int = 2,
     reset_available: bool = True,
+    ticket_lent: bool = False,
 ) -> TurnInput:
     s = state or GemState(
         will=1, chaos=1, first=1, second=1, rerolls=rerolls,
@@ -169,6 +170,7 @@ def build_ti(
     return TurnInput(
         state=s, offers=o, turn=turn, turns_left=turns_left,
         rerolls=rerolls, reset_available=reset_available,
+        ticket_lent=ticket_lent,
     )
 
 
@@ -767,6 +769,37 @@ class TestSideValueFinish(unittest.TestCase):
         d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.REROLL)
+
+    def test_reroll_reason_names_the_ticket_when_lent(self):
+        # Regression (web report 2026-07-16): with 0 free rerolls and the
+        # lent reroll ticket as the ONLY reroll in the budget, the REROLL
+        # reason must not claim a "free reroll" — that reroll is the
+        # gold-costing Charge button.
+        ctx = self._ctx()
+        st = GemState(will=4, chaos=4, first=3, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        offers = make_offers("will-1", "chaos-1", "first-1", "second-1")
+        ti = build_ti(state=st, offers=offers, turn=5, turns_left=5,
+                      rerolls=1, reset_available=False, ticket_lent=True)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.REROLL)
+        self.assertIn("reroll ticket", d.reason)
+        self.assertNotIn("free reroll", d.reason)
+
+    def test_reroll_reason_says_free_while_free_rerolls_remain(self):
+        # Same spot with a free reroll still in the budget (lent ticket on
+        # top): free rerolls are spent first, so the wording stays "free".
+        ctx = self._ctx()
+        st = GemState(will=4, chaos=4, first=3, second=3,
+                      first_effect="boss_damage", second_effect="attack_power")
+        offers = make_offers("will-1", "chaos-1", "first-1", "second-1")
+        ti = build_ti(state=st, offers=offers, turn=5, turns_left=5,
+                      rerolls=2, reset_available=False, ticket_lent=True)
+        d = early_finish_decision(ctx, ti, compute_post_roll_metrics(ctx, ti))
+        self.assertIsNotNone(d)
+        self.assertEqual(d.action, ActionKind.REROLL)
+        self.assertIn("free reroll", d.reason)
 
     def test_gate_on_above_floor_prompts_on_finish(self):
         # Confirm gate active, valuable gem, finish call -> F1-F4 prompt.

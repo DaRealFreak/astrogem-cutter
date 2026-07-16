@@ -128,6 +128,12 @@ class TurnInput:
     turns_left: int
     rerolls: int                                   # caller-managed count
     reset_available: bool
+    # True when `rerolls` includes the per-turn lent reroll ticket (free
+    # rerolls are spent first, so the ticket is the LAST reroll in the
+    # budget: with `ticket_lent` and `rerolls == 1` a REROLL spends the
+    # gold-costing ticket — the in-game "Charge" button — not a free one).
+    # Only affects reason wording, never the decision itself.
+    ticket_lent: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -521,9 +527,15 @@ def _side_value_finish_decision(
         metrics = {"finish_val": finish_val, "process_ev": process_ev,
                    "reroll_val": reroll_val}
         if reroll_val >= process_ev:
+            # Free rerolls are spent before the lent ticket, so the reroll
+            # recommended here is the gold-costing ticket ("Charge") only
+            # when it is the sole reroll left in the budget.
+            spends_ticket = ti.ticket_lent and ti.rerolls == 1
+            label = ("the reroll ticket (Charge)" if spends_ticket
+                     else "a free reroll")
             return Decision(
                 action=ActionKind.REROLL, branch="side_value_finish",
-                reason=(f"goal met, spending a free reroll: "
+                reason=(f"goal met, spending {label}: "
                         f"reroll_val={reroll_val:.0f} >= "
                         f"process_ev={process_ev:.0f}"),
                 metrics=metrics,

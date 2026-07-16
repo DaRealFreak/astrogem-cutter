@@ -1262,6 +1262,7 @@ def run_auto(
                 turns_left=analysis.turns_left,
                 rerolls=effective_rerolls,  # free + lent ticket (per-turn)
                 reset_available=(reset_available and not reset_used),
+                ticket_lent=ticket_lent,
             )
             decision = decide_post_roll(decision_ctx, ti)
 

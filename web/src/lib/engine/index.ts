@@ -77,6 +77,8 @@ export interface AdvisorInput {
   turnsLeft: number;
   rerolls: number;
   resetAvailable: boolean;
+  /** `rerolls` includes the lent reroll ticket (see TurnInput.ticketLent). */
+  ticketLent?: boolean;
 }
 
 export type ActionMetrics = { pGoal: number; pRelic: number; pAncient: number; eValue: number };
@@ -413,9 +415,9 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
 
 export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
   const dc = ctx._decisionCtx;
-  const { state, offers, turn, turnsLeft, rerolls, resetAvailable } = input;
+  const { state, offers, turn, turnsLeft, rerolls, resetAvailable, ticketLent } = input;
 
-  const decision = decidePostRoll(dc, { state, offers, turn, turnsLeft, rerolls, resetAvailable });
+  const decision = decidePostRoll(dc, { state, offers, turn, turnsLeft, rerolls, resetAvailable, ticketLent });
 
   // Position value of the current state — the fallback headline for FINISH/FAIL,
   // where there is no projected action row (stopping locks in the current gem).

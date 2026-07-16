@@ -15,6 +15,9 @@
       </div>
     {/if}
     <div class="action action-{output.action} badge">{output.action.toUpperCase()}</div>
+    {#if output.action === 'reroll' && output.ticket?.lent && output.ticket.free === 0}
+      <p class="ticket-note">No free rerolls left — this reroll spends the reroll ticket (yellow Charge button, costs gold).</p>
+    {/if}
     <p class="reason">{output.reason}</p>
     <dl class="metrics">
       <div><dt>P(goal)</dt><dd>{pct(output.pGoal)}</dd></div>

@@ -237,6 +237,7 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
    show a status line so the player knows the odds below are being recomputed. */
 .advisor.recomputing .action,
 .advisor.recomputing .reason,
+.advisor.recomputing .ticket-note,
 .advisor.recomputing .metrics { opacity: 0.45; transition: opacity 0.12s ease; }
 .advisor .recalculating {
   display: flex;
@@ -286,6 +287,15 @@ details.advanced[open] > summary { margin-bottom: var(--sp-2); }
 .action.badge { font-size: 0.8rem; }
 
 .advisor .reason { margin: 0 0 var(--sp-2); font-size: 0.9rem; }
+
+/* Shown when the recommended reroll spends the gold-costing reroll ticket
+   (yellow Charge button) rather than a free reroll. */
+.advisor .ticket-note {
+  margin: 0 0 var(--sp-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--action-reroll);
+}
 
 .metrics {
   display: grid;

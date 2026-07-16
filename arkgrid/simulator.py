@@ -739,6 +739,7 @@ class GemSimulator:
                         state=state, offers=offers, turn=turn,
                         turns_left=turns_left, rerolls=state.rerolls,
                         reset_available=(reset_available and not reset_used),
+                        ticket_lent=ticket_lent,
                     )
                     decision = decide_post_roll(ctx, ti)
                     if decision.action != ActionKind.REROLL:

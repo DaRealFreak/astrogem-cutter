@@ -49,6 +49,7 @@ export function computeAdvice(
   const adviseAt = (r: number) => advise(cache!.ctx, {
     state: inputs.state, offers: inputs.offers, turn: inputs.turn,
     turnsLeft: inputs.turnsLeft, rerolls: r, resetAvailable: inputs.resetAvailable,
+    ticketLent: r > free, // budgets above the free count include the ticket
   });
   const output = adviseAt(rerolls);
 
