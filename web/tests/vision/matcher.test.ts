@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { initOpenCv } from '../../src/lib/cv/cvRuntime';
 import { loadGrayMat } from '../helpers/loadImage';
 import { findBestMatch, findTemplate } from '../../src/lib/cv/matcher';
-import exampleUrl from '../../../examples/20260401130608_1.jpg?url';
+import exampleUrl from '../../../examples/20260716010621_1.jpg?url';
 import anchorUrl from '../../../arkgrid/vision/templates/anchor/processing.png?url';
 
 describe('matcher', () => {

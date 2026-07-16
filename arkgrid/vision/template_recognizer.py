@@ -295,7 +295,8 @@ def detect(frame_bgr: np.ndarray) -> DetectionResult:
 
         name_key, name_score = _match(crop, sn_name_templates,
                                        strip_variants=True)
-        delta_key, delta_score = _match(crop, sn_delta_templates)
+        delta_key, delta_score = _match(crop, sn_delta_templates,
+                                         strip_variants=True)
         lvl = _side_node_level(delta_key)
 
         setattr(result, f"{attr_prefix}_effect", name_key)
@@ -313,9 +314,14 @@ def detect(frame_bgr: np.ndarray) -> DetectionResult:
         card_crop = gray[card_y:card_y + C.OPTION_CARD_HEIGHT,
                          card_x:card_x + card_w]
 
+        # Deltas are variant-stripped too: new-UI re-crops live alongside the
+        # originals (e.g. "cost+100_02"), but the raw delta key flows into DP
+        # Option keys ("cost+100"/"cost-100") and parse_delta's exact matches
+        # ("maintained"), so the suffix must never leak out of detect().
         name_key, name_score = _match(card_crop, opt_name_templates,
                                        strip_variants=True)
-        delta_key, delta_score = _match(card_crop, opt_delta_templates)
+        delta_key, delta_score = _match(card_crop, opt_delta_templates,
+                                         strip_variants=True)
 
         result.options.append(OptionDetection(
             name_key=name_key,

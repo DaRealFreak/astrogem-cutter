@@ -10,7 +10,7 @@ except ImportError:
     _HAVE_CV2 = False
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_EXAMPLE = os.path.join(PROJECT_ROOT, "examples", "turn_1_02.jpg")
+_EXAMPLE = os.path.join(PROJECT_ROOT, "examples", "20260716010621_1.jpg")
 
 
 @unittest.skipUnless(_HAVE_CV2, "opencv-python not installed")

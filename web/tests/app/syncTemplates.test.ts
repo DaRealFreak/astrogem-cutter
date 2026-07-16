@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll } from 'vitest';
-import { mkdtempSync, rmSync, readdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { syncTemplates } from '../../scripts/sync-templates.mjs';
@@ -16,5 +16,18 @@ describe('syncTemplates', () => {
     // anchor + nested side_nodes subdir survive
     expect(readdirSync(join(dest, 'anchor')).some((f) => f.endsWith('.png'))).toBe(true);
     expect(readdirSync(join(dest, 'side_nodes', 'names')).length).toBeGreaterThan(0);
+  });
+
+  it('prunes dest PNGs whose source was removed', () => {
+    // Simulate a template deleted upstream: a stray dest PNG with no source
+    // counterpart (import.meta.glob would otherwise keep bundling it).
+    const straySub = join(dest, 'options', 'names');
+    mkdirSync(straySub, { recursive: true });
+    const stray = join(straySub, 'deleted_upstream_99.png');
+    writeFileSync(stray, 'not a real png');
+    syncTemplates(SRC, dest);
+    expect(existsSync(stray)).toBe(false);
+    // real templates survive the prune
+    expect(readdirSync(straySub).some((f) => f.endsWith('.png'))).toBe(true);
   });
 });

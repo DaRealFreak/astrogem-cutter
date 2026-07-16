@@ -271,7 +271,7 @@ export function detect(gray: any, store: TemplateStore): DetectionResult {
       continue;
     }
     const [nameKey, nameScore] = _match(crop, snNames, true);
-    const [deltaKey, deltaScore] = _match(crop, snDeltas);
+    const [deltaKey, deltaScore] = _match(crop, snDeltas, true);
     const lvl = sideNodeLevel(deltaKey);
     crop.delete();
 
@@ -309,8 +309,12 @@ export function detect(gray: any, store: TemplateStore): DetectionResult {
 
     if (w > 0 && h > 0) {
       const cardCrop = gray.roi(new cv.Rect(x, y, w, h));
+      // Deltas are variant-stripped too: new-UI re-crops live alongside the
+      // originals (e.g. "cost+100_02"), but the raw delta key flows into
+      // Option keys ("cost+100"/"cost-100") and parseDelta's exact matches
+      // ("maintained"), so the suffix must never leak out of detect().
       [nameKey, nameScore] = _match(cardCrop, optNames, true);
-      [deltaKey, deltaScore] = _match(cardCrop, optDeltas);
+      [deltaKey, deltaScore] = _match(cardCrop, optDeltas, true);
       cardCrop.delete();
     }
 

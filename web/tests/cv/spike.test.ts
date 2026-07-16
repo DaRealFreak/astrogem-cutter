@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { initOpenCv, getCv } from '../../src/lib/cv/cvRuntime';
 import { loadGrayMat } from '../helpers/loadImage';
 // vite asset URLs (served from repo root via server.fs.allow):
-import exampleUrl from '../../../examples/20260401130608_1.jpg?url';
+import exampleUrl from '../../../examples/20260716010621_1.jpg?url';
 import anchorUrl from '../../../arkgrid/vision/templates/anchor/processing.png?url';
 
 describe('opencv.js browser spike', () => {

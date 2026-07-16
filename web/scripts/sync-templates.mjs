@@ -1,8 +1,13 @@
-import { cpSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Recursively copy every *.png from srcDir to destDir, preserving structure. Returns count. */
+/**
+ * Recursively mirror every *.png from srcDir to destDir, preserving structure.
+ * Dest PNGs with no source counterpart are deleted (templates removed upstream
+ * must not linger in the web bundle — import.meta.glob would keep loading them).
+ * Returns the copied count.
+ */
 export function syncTemplates(srcDir, destDir) {
   let count = 0;
   const walk = (rel) => {
@@ -19,8 +24,21 @@ export function syncTemplates(srcDir, destDir) {
       }
     }
   };
+  const prune = (rel) => {
+    const abs = join(destDir, rel);
+    if (!existsSync(abs)) return;
+    for (const entry of readdirSync(abs)) {
+      const childRel = join(rel, entry);
+      const childAbs = join(destDir, childRel);
+      if (statSync(childAbs).isDirectory()) { prune(childRel); }
+      else if (entry.endsWith('.png') && !existsSync(join(srcDir, childRel))) {
+        rmSync(childAbs);
+      }
+    }
+  };
   mkdirSync(destDir, { recursive: true });
   walk('.');
+  prune('.');
   return count;
 }
 
