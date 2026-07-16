@@ -5,6 +5,7 @@
   import { Debouncer, RECOMPUTE_DEBOUNCE_MS } from '../lib/app/debounce';
   import { isCompleteDetection } from '../lib/app/optimize';
   import { DetectionStabilizer, detectionSignature } from '../lib/app/detectionStability';
+  import { TurnStateLatch } from '../lib/app/turnStateLatch';
   import { config } from '../lib/state/config.state.svelte';
   import { advisor } from '../lib/state/advisor.state.svelte';
   import { turnLog } from '../lib/state/turnLog.state.svelte';
@@ -25,6 +26,10 @@
   // reading (the game animates ~0.2-0.4s after a turn flips, misreading offers
   // and side-node levels in between). Uploads bypass it (one-shot).
   const stabilizer = new DetectionStabilizer();
+  // Rejects settled-but-wrong readings caused by the captured in-game cursor
+  // (hover previews on the gem, cursor sprite corrupting a card) — within a
+  // turn the real state can only change via a reroll. See TurnStateLatch.
+  const latch = new TurnStateLatch();
 
   // Routes advisory results from the pure orchestrator into the reactive stores.
   const sink: AdviceSink = {
@@ -77,6 +82,7 @@
       // Uploaded stills are one-shot — commit immediately, no debounce.
       if (source === 'image') {
         stabilizer.reset();
+        latch.reset(); // an uploaded still is authoritative; re-pin from live later
         if (det) commit(det);
         else advisor.waiting = true;
         return;
@@ -89,7 +95,7 @@
         if (!advisor.output) advisor.waiting = true;
         return;
       }
-      if (stabilizer.push(detectionSignature(det))) commit(det);
+      if (stabilizer.push(detectionSignature(det)) && latch.accept(det)) commit(det);
     };
     c.onDebug = (img) => { debugImage = img; };
     controller = c;
