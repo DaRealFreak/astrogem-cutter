@@ -18,6 +18,11 @@ export function initTicketLatch(): TicketLatch {
  * Charge button is greyed with no free rerolls left (spent this run, or never
  * owned). This is what the stateless `ticketAvailableFromDetection` heuristic
  * cannot remember once free rerolls replenish.
+ *
+ * The latch also self-heals: a *yellow* Charge button at 0 free rerolls proves
+ * the ticket is unspent (a spent ticket cannot return within the same cutting
+ * process), so it clears a `spent` that was latched off a bad frame (capture
+ * blip, dialog overlay darkening the button).
  */
 export function observeTicketLatch(
   s: TicketLatch, det: DetectionResult, freeRerolls: number,
@@ -29,5 +34,6 @@ export function observeTicketLatch(
   const transition = classifyRunTransition(s.prev, { turn, id });
   let spent = transition === 'new-gem' || transition === 'reset' ? false : s.spent;
   if (freeRerolls <= 0 && det.chargeEnabled === false) spent = true;
+  else if (freeRerolls <= 0 && det.chargeEnabled === true) spent = false;
   return { spent, prev: { turn, id } };
 }

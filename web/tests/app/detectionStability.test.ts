@@ -30,6 +30,10 @@ describe('detectionSignature', () => {
     expect(detectionSignature({ ...base, willpower: 4 })).not.toBe(detectionSignature(base));
     expect(detectionSignature({ ...base, resetEnabled: false })).not.toBe(detectionSignature(base));
     expect(detectionSignature({ ...base, currentStep: 4 })).not.toBe(detectionSignature(base));
+    // chargeEnabled drives the ticket-spent latch — a one-frame brightness blip
+    // must not commit (it falsely latched "ticket already used this gem").
+    expect(detectionSignature({ ...base, chargeEnabled: false }))
+      .not.toBe(detectionSignature({ ...base, chargeEnabled: true }));
   });
 
   it('changes when an offer changes', () => {

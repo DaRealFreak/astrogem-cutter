@@ -20,6 +20,7 @@ export function detectionSignature(det: DetectionResult): string {
     det.gemType, det.firstEffect, det.secondEffect,
     det.willpower, det.chaos, det.firstLevel, det.secondLevel,
     det.currentStep, det.totalSteps, det.rerolls, det.resetEnabled ?? null,
+    det.chargeEnabled ?? null,
     det.options.map((o) => [o.nameKey, o.deltaKey]),
   ]);
 }

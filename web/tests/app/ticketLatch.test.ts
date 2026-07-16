@@ -38,6 +38,24 @@ describe('ticketLatch', () => {
     expect(s.spent).toBe(true);
   });
 
+  // REGRESSION: a false spent latched off a bad frame (capture blip / dialog
+  // darkening the button) stuck forever, showing "already used this gem" while
+  // the Charge button was visibly yellow. A yellow Charge at 0 free rerolls
+  // proves the ticket is unspent (it cannot return within the same process),
+  // so the latch must self-heal.
+  it('clears a wrongly-latched spent when a yellow Charge is observed', () => {
+    let s = observeTicketLatch(initTicketLatch(), det({ chargeEnabled: false }), 0);
+    expect(s.spent).toBe(true);
+    s = observeTicketLatch(s, det({ chargeEnabled: true }), 0);
+    expect(s.spent).toBe(false);
+  });
+
+  it('does not self-heal while free rerolls remain (charge ROI reads the bright counter)', () => {
+    let s = observeTicketLatch(initTicketLatch(), det({ chargeEnabled: false, currentStep: 5 }), 0);
+    s = observeTicketLatch(s, det({ chargeEnabled: true, currentStep: 4 }), 2);
+    expect(s.spent).toBe(true);
+  });
+
   it('clears spent on a new gem', () => {
     let s = observeTicketLatch(initTicketLatch(), det({ chargeEnabled: false, currentStep: 5 }), 0);
     s = observeTicketLatch(s, det({ gemType: 'chaos_distortion', currentStep: 7 }), 0);
