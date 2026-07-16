@@ -14,8 +14,8 @@ except ImportError:
     _HAVE_CV2 = False
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_ENABLED = os.path.join(PROJECT_ROOT, "examples", "20260403224002_1.jpg")
-_DISABLED = os.path.join(PROJECT_ROOT, "examples", "20260402072807_1.jpg")
+_ENABLED = os.path.join(PROJECT_ROOT, "examples", "20260716010904_1.jpg")
+_DISABLED = os.path.join(PROJECT_ROOT, "examples", "20260716015210_1.jpg")
 _TURN1 = os.path.join(PROJECT_ROOT, "examples", "20260716010621_1.jpg")
 
 

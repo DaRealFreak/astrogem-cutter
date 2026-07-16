@@ -17,8 +17,8 @@ except ImportError:
     _HAVE_CV2 = False
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_ENABLED = os.path.join(PROJECT_ROOT, "examples", "20260403224002_1.jpg")   # yellow Charge
-_DISABLED = os.path.join(PROJECT_ROOT, "examples", "20260402072807_1.jpg")   # greyed Charge
+_ENABLED = os.path.join(PROJECT_ROOT, "examples", "20260716023628_1.jpg")   # yellow Charge
+_DISABLED = os.path.join(PROJECT_ROOT, "examples", "20260716015332_1.jpg")   # greyed Charge
 
 
 @unittest.skipUnless(_HAVE_CV2, "opencv-python not installed")

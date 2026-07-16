@@ -122,6 +122,12 @@ _UI_UPDATE_CARDS = {
         ("order", "1_line_+2"),
         ("ally_attack", "1_line_lvl+1"),        # Ally Attack Enh. Lv. 1
     ],
+    "20260716034755_1.jpg": [
+        ("attack_power", "1_line_lvl+1"),
+        ("will", "2_line_-1"),                  # Willpower Efficiency -1
+        ("order", "1_line_-1"),                 # Order Points -1 (red on gold)
+        ("attack_power", "1_line_lvl-1"),       # Atk. Power Lv. 1 (down)
+    ],
 }
 
 _VARIANT_SUFFIX = re.compile(r"_\d+$")
