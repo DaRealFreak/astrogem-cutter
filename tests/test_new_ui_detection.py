@@ -128,6 +128,20 @@ _UI_UPDATE_CARDS = {
         ("order", "1_line_-1"),                 # Order Points -1 (red on gold)
         ("attack_power", "1_line_lvl-1"),       # Atk. Power Lv. 1 (down)
     ],
+    # New-UI replacements for the last two pre-update shots (2026-07-16);
+    # kept in the covering set for reroll counts 3 and 4.
+    "reroll_3.jpg": [
+        ("order", "1_line_+1"),                 # Order Points +1
+        ("ally_damage", "2_line_lvl+1"),        # Ally Damage Enh. Lv. 1
+        ("attack_power", "1_line_lvl+1"),       # Atk. Power Lv. 1
+        ("cost", "cost+100"),                   # Processing Cost +100%
+    ],
+    "reroll_4.jpg": [
+        ("boss_damage", "1_line_lvl+1"),        # Boss Damage Lv. 1
+        ("additional_damage", "2_line_lvl+1"),  # Additional Damage Lv. 1
+        ("boss_damage", "1_line_effect_changed"),  # Boss Damage Effect Changed
+        ("chaos", "1_line_+2"),                 # Chaos Points +2
+    ],
 }
 
 _VARIANT_SUFFIX = re.compile(r"_\d+$")
@@ -198,6 +212,19 @@ class TestNewUiOptionDetection(unittest.TestCase):
                                         C.THRESHOLD_OPTION_NAME, label)
                 self.assertGreaterEqual(opt.delta_score,
                                         C.THRESHOLD_OPTION_DELTA, label)
+
+    def test_reroll_counts_3_and_4_on_new_ui(self):
+        # reroll_3.jpg / reroll_4.jpg are new-UI shots (2026-07-16) pinning
+        # the higher reroll-counter values; the counter renders as
+        # "N / base" in-game and the template key is the available count.
+        d3 = self.ui_update_results["reroll_3.jpg"]
+        self.assertEqual(d3.rerolls, "3")
+        self.assertEqual(d3.current_step, 5)
+        self.assertEqual(d3.total_steps, 7)   # rare (base 1 free reroll)
+        d4 = self.ui_update_results["reroll_4.jpg"]
+        self.assertEqual(d4.rerolls, "4")
+        self.assertEqual(d4.current_step, 8)
+        self.assertEqual(d4.total_steps, 9)   # epic (base 2 free rerolls)
 
     def test_no_variant_suffix_leaks(self):
         # New-UI variants ("cost+100_02", ...) must be stripped by detect():
