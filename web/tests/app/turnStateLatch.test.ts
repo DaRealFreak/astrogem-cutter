@@ -56,6 +56,58 @@ describe('TurnStateLatch', () => {
     expect(latch.accept({ ...rerolled, secondLevel: 5 })).toBe(false);
   });
 
+  it('accepts a rerolled hand even when the counter flip settled first (animation race)', () => {
+    const latch = new TurnStateLatch();
+    latch.accept(base);
+    // in-game the reroll counter decrements immediately; the cards flip ~0.2-0.4s
+    // later, so the intermediate state (old offers, new count) settles on its own
+    expect(latch.accept({ ...base, rerolls: '1' })).toBe(true);
+    const rerolled = {
+      ...base,
+      rerolls: '1',
+      options: [{ ...base.options[0], deltaKey: '2_line_+1' }, ...base.options.slice(1)],
+    };
+    expect(latch.accept(rerolled)).toBe(true);
+    // and the rerolled hand is now the pinned state
+    expect(latch.accept({ ...rerolled, secondLevel: 5 })).toBe(false);
+  });
+
+  it('accepts a Charge (ticket) reroll: offers change at 0 free rerolls, button yellow -> grey', () => {
+    const latch = new TurnStateLatch();
+    const noFree = { ...base, rerolls: '0', chargeEnabled: true };
+    latch.accept(noFree);
+    const ticketRerolled = {
+      ...noFree,
+      chargeEnabled: false,
+      options: [{ ...base.options[0], deltaKey: '2_line_+1' }, ...base.options.slice(1)],
+    };
+    expect(latch.accept(ticketRerolled)).toBe(true);
+  });
+
+  it('accepts a Charge reroll even when the button greyed out before the cards flipped', () => {
+    const latch = new TurnStateLatch();
+    const noFree = { ...base, rerolls: '0', chargeEnabled: true };
+    latch.accept(noFree);
+    expect(latch.accept({ ...noFree, chargeEnabled: false })).toBe(true);
+    const ticketRerolled = {
+      ...noFree,
+      chargeEnabled: false,
+      options: [{ ...base.options[0], deltaKey: '2_line_+1' }, ...base.options.slice(1)],
+    };
+    expect(latch.accept(ticketRerolled)).toBe(true);
+  });
+
+  it('still rejects a cursor-corrupted card at 0 free rerolls while Charge stays yellow', () => {
+    const latch = new TurnStateLatch();
+    const noFree = { ...base, rerolls: '0', chargeEnabled: true };
+    latch.accept(noFree);
+    const corrupted = {
+      ...noFree,
+      options: [{ ...base.options[0], deltaKey: '2_line_+1' }, ...base.options.slice(1)],
+    };
+    expect(latch.accept(corrupted)).toBe(false);
+  });
+
   it('re-pins on a step change (processing applied)', () => {
     const latch = new TurnStateLatch();
     latch.accept(base);
