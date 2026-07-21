@@ -62,6 +62,8 @@ describe('SEED_PRESETS', () => {
     expect(p.resetTicketRarity).toBe('epic');      // --reset-ticket epic
     expect(p.resetMinCoeff).toBe(1000);            // --reset-min-coeff 1000
     expect(p.rerollMinCoeff).toBe(700);            // --reroll-min-coeff 700
+    expect(p.rerollGoal).toBe(9);                  // --reroll-goal 9
+    expect(p.rerollGoalThreshold).toBeCloseTo(0.15); // --reroll-goal-threshold 0.15
   });
   it('maps the new-char command (ignore side-node values, lower reset bar)', () => {
     const p = SEED_PRESETS['New char DPS'];
@@ -70,5 +72,26 @@ describe('SEED_PRESETS', () => {
     expect(p.ignoreSideNodeValues).toBe(true);     // --ignore-side-node-values
     expect(p.relicRerollThreshold).toBeCloseTo(0.1);
     expect(p.resetMinCoeff).toBe(700);             // --reset-min-coeff 700
+  });
+  it('support presets mirror the DPS ones with coeff bars scaled ×1.5', () => {
+    // Lowest side-node coeff at level 5: DPS attack_power 400×5=2000,
+    // support ally_damage 600×5=3000 → every coefficient bar scales ×1.5.
+    const eg = SEED_PRESETS['Endgame Support'];
+    expect(eg.optimizeOverride).toBe('support');
+    expect(eg.minWillChaosTotal).toBe(8);
+    expect(eg.minSideCoeff).toBe(3000);            // 2000 × 1.5
+    expect(eg.resetMinCoeff).toBe(1500);           // 1000 × 1.5
+    expect(eg.rerollMinCoeff).toBe(1050);          // 700 × 1.5
+    expect(eg.relicRerollThreshold).toBeCloseTo(0.1);
+    expect(eg.rerollGoal).toBe(9);
+    expect(eg.rerollGoalThreshold).toBeCloseTo(0.15);
+    expect(eg.resetTicketRarity).toBe('epic');
+
+    const nc = SEED_PRESETS['New char Support'];
+    expect(nc.optimizeOverride).toBe('support');
+    expect(nc.ignoreSideNodeValues).toBe(true);
+    expect(nc.resetMinCoeff).toBe(1050);           // 700 × 1.5
+    expect(nc.relicRerollThreshold).toBeCloseTo(0.1);
+    expect(nc.resetTicketRarity).toBe('epic');
   });
 });

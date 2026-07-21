@@ -7,20 +7,33 @@ export function preset(over: Partial<AdvisorStoredConfig>): AdvisorStoredConfig 
   return { ...structuredClone(DEFAULT_CONFIG), ...over };
 }
 
-// Seeded starting presets — the two cutting profiles from the user's Python `auto`
+// Seeded starting presets — the cutting profiles from the user's Python `auto`
 // commands. Flags a read-only web advisor can't model are dropped: --confirm-min-coeff
-// (no clicking → no prompt) and --all (the web reads the real gem). --reroll-goal is
-// exposed in the config now, but these presets keep arming the extra ticket via the
-// relic threshold as the original commands did.
+// (no clicking → no prompt) and --all (the web reads the real gem).
+//
+// The support presets mirror the DPS ones with every coefficient bar scaled by the
+// lowest side-node coefficient per role at level 5: DPS attack_power 400 × 5 = 2000,
+// support ally_damage 600 × 5 = 3000 → factor 1.5 on all coeff bars.
 export const SEED_PRESETS: PresetMap = {
   'Endgame DPS': preset({
     goalMode: 'combined', minWillChaosTotal: 8,
     optimizeOverride: 'dps',
     minSideCoeff: 2000,
     relicRerollThreshold: 0.1,
+    rerollGoal: 9, rerollGoalThreshold: 0.15,
     resetTicketRarity: 'epic',
     resetMinCoeff: 1000,
     rerollMinCoeff: 700,
+  }),
+  'Endgame Support': preset({
+    goalMode: 'combined', minWillChaosTotal: 8,
+    optimizeOverride: 'support',
+    minSideCoeff: 3000,
+    relicRerollThreshold: 0.1,
+    rerollGoal: 9, rerollGoalThreshold: 0.15,
+    resetTicketRarity: 'epic',
+    resetMinCoeff: 1500,
+    rerollMinCoeff: 1050,
   }),
   'New char DPS': preset({
     goalMode: 'combined', minWillChaosTotal: 8,
@@ -29,6 +42,14 @@ export const SEED_PRESETS: PresetMap = {
     relicRerollThreshold: 0.1,
     resetTicketRarity: 'epic',
     resetMinCoeff: 700,
+  }),
+  'New char Support': preset({
+    goalMode: 'combined', minWillChaosTotal: 8,
+    optimizeOverride: 'support',
+    ignoreSideNodeValues: true,
+    relicRerollThreshold: 0.1,
+    resetTicketRarity: 'epic',
+    resetMinCoeff: 1050,
   }),
 };
 
