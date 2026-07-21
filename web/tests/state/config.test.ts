@@ -19,6 +19,8 @@ describe('DEFAULT_CONFIG', () => {
     expect(DEFAULT_CONFIG.endgameRisk).toBeNull();        // null → engine auto-gate
     expect(DEFAULT_CONFIG.ignoreSideNodeValues).toBe(false);
     expect(DEFAULT_CONFIG.extraTicket).toBeNull();        // off-but-armed
+    expect(DEFAULT_CONFIG.rerollGoal).toBeNull();         // goal enabler off
+    expect(DEFAULT_CONFIG.rerollGoalThreshold).toBe(0);
     expect(DEFAULT_CONFIG.optimizeOverride).toBe('auto');
     expect(DEFAULT_CONFIG.rarityOverride).toBe('auto');
     expect(DEFAULT_CONFIG.resetOverride).toBe('auto');
@@ -56,6 +58,14 @@ describe('coefficient / rarity gates', () => {
   });
   it('reroll-min-coeff off leaves the tri-state extraTicket untouched', () => {
     expect(effectiveConfig({ ...DEFAULT_CONFIG, rerollMinCoeff: 0, extraTicket: null }, det()).advisorConfig.extraTicket).toBeNull();
+  });
+  it('reroll-goal pair is forwarded to the engine (null goal → undefined)', () => {
+    const off = effectiveConfig(DEFAULT_CONFIG, det()).advisorConfig;
+    expect(off.rerollGoal).toBeUndefined();
+    expect(off.rerollGoalThreshold).toBe(0);
+    const on = effectiveConfig({ ...DEFAULT_CONFIG, rerollGoal: 7, rerollGoalThreshold: 0.25 }, det()).advisorConfig;
+    expect(on.rerollGoal).toBe(7);
+    expect(on.rerollGoalThreshold).toBe(0.25);
   });
   it('reset-min-coeff allows reset only when coeff clears the bar', () => {
     expect(effectiveConfig({ ...DEFAULT_CONFIG, resetMinCoeff: 1000 }, det()).resetPolicyAllowed).toBe(true);

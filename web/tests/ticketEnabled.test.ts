@@ -37,6 +37,19 @@ describe('ticketEnabled', () => {
       live(), 5, 2)).toBe(false);
   });
 
+  it('reroll-goal enables when P(will+chaos ≥ goal) clears the bar, not otherwise', () => {
+    expect(ticketEnabled(
+      ctxFor({ rarity: 'epic', minTotalWillChaos: 7, rerollGoal: 7, rerollGoalThreshold: 1e-6 }),
+      live(), 5, 2)).toBe(true);
+    expect(ticketEnabled(
+      ctxFor({ rarity: 'epic', minTotalWillChaos: 7, rerollGoal: 7, rerollGoalThreshold: 0.999 }),
+      live(), 5, 2)).toBe(false);
+    // Threshold without a goal target stays off (both knobs required).
+    expect(ticketEnabled(
+      ctxFor({ rarity: 'epic', minTotalWillChaos: 7, rerollGoalThreshold: 1e-6 }),
+      live(), 5, 2)).toBe(false);
+  });
+
   it('coeff enabler requires a live goal', () => {
     const liveCtx = ctxFor({ rarity: 'epic', minWill: 4, minChaos: 3, rerollMinCoeff: 1 });
     const stLive = new GemState({

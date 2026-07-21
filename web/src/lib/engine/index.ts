@@ -159,7 +159,6 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   // Reroll budget formula (verbatim from task brief / simulator.py:86-100):
   //   base = RARITY_REROLLS[rarity] + (extraTicket !== false ? 1 : 0)
   //   dpMaxRerolls = base + ((relicRerollThreshold > 0 || goalRerollActive) ? 1 : 0)
-  // goalRerollActive is always false in Plan 1 (no --reroll-goal flag).
   const extraTicket = config.extraTicket;
   // baseRerolls / dpMaxRerolls keep the original budget sizing (covers free
   // rerolls + the lent ticket + the look-ahead margin, so reroll-aware lookups

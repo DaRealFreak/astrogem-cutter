@@ -12,6 +12,10 @@
   let relicThresholdLive = $state(c.current.relicRerollThreshold ?? 0);
   $effect(() => { relicThresholdLive = c.current.relicRerollThreshold ?? 0; });
 
+  // Same commit-on-release pattern for the reroll-goal threshold slider.
+  let rerollGoalThresholdLive = $state(c.current.rerollGoalThreshold ?? 0);
+  $effect(() => { rerollGoalThresholdLive = c.current.rerollGoalThreshold ?? 0; });
+
   // When switching to combined mode, seed minWillChaosTotal from separate values if blank
   function handleGoalModeChange(mode: 'separate' | 'combined') {
     c.current.goalMode = mode;
@@ -121,6 +125,20 @@
     <div class="field-row">
       <label for="reroll-min-coeff" title="Arm the extra reroll ticket only when the gem's starting target-effect coefficient is ≥ this. 0 = off (use the Extra ticket setting). Port of --reroll-min-coeff.">Reroll min coeff</label>
       <input id="reroll-min-coeff" type="number" min="0" step="any" bind:value={c.current.rerollMinCoeff} />
+    </div>
+    <div class="field-row">
+      <label for="reroll-goal" title="Will+chaos target for the goal-probability ticket enabler. Blank = off. Both this and the threshold below must be set. Port of --reroll-goal.">Reroll goal</label>
+      <input id="reroll-goal" type="number" min="0" max="10" placeholder="off"
+        value={c.current.rerollGoal ?? ''} oninput={(e) => c.current.rerollGoal = e.currentTarget.value === '' ? null : +e.currentTarget.value} />
+    </div>
+    <div class="field-row">
+      <label for="reroll-goal-threshold" title="Arm the extra reroll ticket on turns where P(will+chaos ≥ reroll goal), computed as if the ticket were in hand, is ≥ this. 0% = off. Port of --reroll-goal-threshold.">Reroll goal threshold</label>
+      <div class="slider-field">
+        <input id="reroll-goal-threshold" type="range" min="0" max="1" step="0.05"
+          bind:value={rerollGoalThresholdLive}
+          onchange={() => (c.current.rerollGoalThreshold = rerollGoalThresholdLive)} />
+        <span class="slider-value">{Math.round(rerollGoalThresholdLive * 100)}%</span>
+      </div>
     </div>
     <div class="field-row">
       <label for="reset-min-coeff" title="Allow a reset only when the gem's starting target-effect coefficient is ≥ this. 0 = off. Port of --reset-min-coeff.">Reset min coeff</label>

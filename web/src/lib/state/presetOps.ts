@@ -9,8 +9,9 @@ export function preset(over: Partial<AdvisorStoredConfig>): AdvisorStoredConfig 
 
 // Seeded starting presets — the two cutting profiles from the user's Python `auto`
 // commands. Flags a read-only web advisor can't model are dropped: --confirm-min-coeff
-// (no clicking → no prompt), --all (the web reads the real gem), and the exact
-// --reroll-goal activation timing (the extra ticket is armed via the relic threshold).
+// (no clicking → no prompt) and --all (the web reads the real gem). --reroll-goal is
+// exposed in the config now, but these presets keep arming the extra ticket via the
+// relic threshold as the original commands did.
 export const SEED_PRESETS: PresetMap = {
   'Endgame DPS': preset({
     goalMode: 'combined', minWillChaosTotal: 8,

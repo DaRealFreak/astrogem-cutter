@@ -26,6 +26,9 @@ export interface AdvisorStoredConfig {
   extraTicket: boolean | null;         // tri-state: true on / false off / null armed
   // coefficient/rarity gates (port of --reroll-min-coeff / --reset-min-coeff / --reset-ticket)
   rerollMinCoeff: number;              // arm extra reroll ticket only if gem coeff ≥ N (0 = off)
+  // goal-probability ticket enabler (port of --reroll-goal / --reroll-goal-threshold)
+  rerollGoal: number | null;           // will+chaos target for the enabler (null = off)
+  rerollGoalThreshold: number;         // enable ticket when P(will+chaos ≥ goal) ≥ F (0 = off)
   resetMinCoeff: number;               // allow reset only if gem coeff ≥ N (0 = off)
   resetTicketRarity: 'off' | 'common' | 'rare' | 'epic'; // allow reset only at this rarity or higher
   // overrides
@@ -42,6 +45,7 @@ export const DEFAULT_CONFIG: AdvisorStoredConfig = {
   relicRerollThreshold: 0, forceRerollNoProgress: 0, endgameRisk: null,
   ignoreSideNodeValues: false, extraTicket: null,
   rerollMinCoeff: 0, resetMinCoeff: 0, resetTicketRarity: 'off',
+  rerollGoal: null, rerollGoalThreshold: 0,
   optimizeOverride: 'auto', rarityOverride: 'auto', resetOverride: 'auto',
 };
 
@@ -91,6 +95,8 @@ export function effectiveConfig(
     ignoreSideNodeValues: stored.ignoreSideNodeValues,
     extraTicket,
     rerollMinCoeff: stored.rerollMinCoeff,
+    rerollGoal: stored.rerollGoal ?? undefined,
+    rerollGoalThreshold: stored.rerollGoalThreshold,
     optimize,
   };
   return { advisorConfig, optimize, resetOverride: stored.resetOverride, resetPolicyAllowed, coeffSum };
