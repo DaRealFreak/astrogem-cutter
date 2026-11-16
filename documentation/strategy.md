@@ -1,6 +1,6 @@
 # Decision-making process
 
-Each turn follows a fixed pipeline of checks and decisions. The simulator uses a precomputed DP probability table with two layers: a **reroll-aware DP** (for optimal reroll timing) and a **standard DP** (for reset decisions and probability display).
+Each turn follows a fixed pipeline of checks and decisions. The simulator uses a precomputed **reroll-aware DP** probability table for reroll timing, reset decisions and the probability display.
 
 ## Turn flow
 
@@ -39,30 +39,38 @@ The simulator uses a reroll-aware DP table that extends the standard DP state wi
 
 ### How it works
 
-The reroll-aware DP uses a **per-option keep-vs-reroll max** during backward induction:
+The reroll-aware DP prices the keep-vs-reroll choice on the **whole 4-offer hand** during backward induction — a reroll rejects all four offers, never a single one:
 
 ```
 V(state, rerolls, turns_left) =
-  for each eligible option i with probability p_i:
-    post_click_value = V(apply(state, option_i), rerolls + view_delta_i, turns_left - 1)
-    reroll_value = V(state, rerolls - 1, turns_left)
-    contribution = p_i * max(post_click_value, reroll_value)
-  V = sum of contributions
+  E over the 4-offer hand [
+    max( mean over the hand of V(apply(state, option_i), rerolls + view_delta_i, turns_left - 1),   # keep
+         V(state, rerolls - 1, turns_left) )                                                         # reroll
+  ]
 ```
 
-This captures the variance-based value of rerolls: for each possible draw, you keep it if its value exceeds the reroll value, otherwise reroll. This naturally produces optimal reroll timing — rerolls are saved for later turns where they have higher marginal value (protecting against negative nodes like will-1, chaos-1).
+Single-offer probabilities are the **exact applied probabilities** (`applied_probs`: hand-inclusion probability / 4), not `weight / total` — a heavy option can only fill one of the four slots.
+
+The distribution of the hand mean (`hand_e_max`) has to get two things right. Each one alone is off by 15-25% of a reroll's value in one regime:
+
+- **Lumpy values.** The offers are a bulk of similar values plus a few rare big ones. The single-offer distribution is replaced by the 3-point distribution matching its first five moments (a closed-form 3-node Gauss quadrature) and the hand is 4 draws from it. A 2-point fit loses the bulk's own spread and reads low on *hard* goals, where the rare offers carry the value.
+- **Distinct offers.** The hand holds 4 *different* options, so its mean varies less than 4 independent draws would — much less when the spread comes from the common +1 offers (*easy* goals, grade chase), barely when it comes from rare ones. The exact hand variance is computed from pairwise inclusion probabilities and every deviation is scaled to match it. Treating the draws as independent reads 15-25% high on easy goals.
+
+On the last turn of a goal table offers are hit-or-miss; the number of hits in the hand is then modelled directly with its exact mean and variance (exact when a single option is the only out).
+
+Validated two ways: against exact enumeration of every possible 4-offer hand at states reached in play (within ~2% of the reroll's value on hard and easy goals), and end to end — the table's prediction matches what its own policy achieves within Monte Carlo noise (~1-2%) for hard goals, easy goals and relic/grade chase alike. An earlier per-option max (accept/reject each offer on its own) overstated reroll value by 30-60% on epic gems and cost ~5-10% of achievable successes.
 
 At runtime, `should_reroll_dp()` compares the expected value of keeping the current 4 offers (uniform 25% pick) against the value of rerolling (same state, one fewer reroll). Reroll if rerolling is strictly better.
 
-### Why two DP tables
+### One table for rerolls and resets
 
-The simulator builds two DP tables:
+All goal decisions read the **reroll-aware DP** (`prob_table`, state includes reroll count):
 
-1. **Reroll-aware DP** (`prob_table`): State includes reroll count. Used for reroll decisions via `should_reroll_dp()`. Build time: ~50ms.
+- reroll timing via `should_reroll_dp()`;
+- the `--prob-reset-threshold` posterior (expected goal probability after clicking, counting the rerolls still in hand);
+- the fresh-start probability a last-turn reset is weighed against (`p_fresh`), looked up with the rerolls a fresh cutting process is granted — a reset hands those back.
 
-2. **Standard DP** (`_reset_prob_table`): State does not include rerolls. Used for reset decisions and `p_fresh` comparison.
-
-The reroll-aware DP slightly **overestimates** the value of rerolls because the per-option max treats each option draw as an independent accept/reject decision, while the actual game draws 4 options together with uniform random pick. This overestimation inflates the fresh-start probability (`p_fresh`), which would cause excessive resets if used for reset decisions. The standard DP gives accurate reset value estimates.
+A separate no-reroll table used to feed the two reset decisions. It read 30-40% low whenever rerolls were in hand, so it kept last-turn hands a fresh start would beat and fired the threshold on gems that were above it; it has been removed. (`stats` still prints a no-reroll DP figure for reference.)
 
 ### Reroll distribution
 
@@ -298,27 +306,19 @@ For example, a goal showing 5% DP probability might show 10% MC success rate —
 
 ## DP probability tables
 
-Two backward-induction probability tables are precomputed once at startup:
+One backward-induction goal table is precomputed once at startup (plus the relic/ancient and value tables described below):
 
-### Reroll-aware DP (primary)
+### Reroll-aware DP
 
 State: `(will, chaos, first, second, rerolls, turns_left)` — ~25,000 entries for epic with 3 rerolls. Build time: ~50ms. This table drives:
 - **Optimal reroll timing** via `should_reroll_dp()` — compares keep-vs-reroll value at each state
 - The `P(goal)` and `P(click)` values shown in `sim`, `live`, and `auto` output
-
-The per-option max model captures the value of selective rejection (keep good draws, reroll bad ones), naturally saving rerolls for late turns where they protect against negative nodes.
-
-### Standard DP (for reset decisions)
-
-State: `(will, chaos, first, second, turns_left)` — 6,250 entries for epic. Build time: ~20ms. This table drives:
 - Probability-based early resets (when `--prob-reset-threshold` > 0)
-- Fresh-start probability (`p_fresh`) for last-turn reset comparison
-- Early finish decisions (P=1.0 at goal-satisfied states when enabled)
-- The fallback comfort signal for the heuristic `RerollPolicy`
+- Early finish (P=1.0 at goal-satisfied states)
 
-The standard DP is used for reset decisions because the reroll-aware DP overestimates `p_fresh` (fresh start with full rerolls appears ~2x more valuable than it actually is, due to the per-option max approximation vs actual 4-draw-pick-1 mechanics).
+The hand-level model captures the value of rejecting a weak hand, naturally saving rerolls for late turns where they protect against negative nodes. It also supplies the fresh-start probability (`p_fresh`) for the last-turn reset comparison.
 
-Both tables use single-draw transition probabilities (option weight / total eligible weight). When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space.
+Transitions use the exact applied probabilities (hand-inclusion probability / 4). When side-node goals are set (`--min-first`, `--min-second`, `--min-side-coeff`), the terminal success condition includes those constraints without expanding the state space.
 
 ### Relic+ DP (optional)
 
@@ -375,7 +375,7 @@ The effect-aware DP trades more reset tickets for a higher main-goal success rat
 ### Caveats
 
 - Effect-aware mode takes precedence over `--bis-only` when both are set. Effect identity is already tracked, so BIS-style target-effect constraints can be expressed via `--min-side-coeff` + `--optimize` without needing the binary BIS state.
-- The single-draw approximation is slightly different from the standard DP because change-effect is no longer a no-op — on gems that start with target-side effects, the EA DP is marginally *lower* (~1-4pp) since it correctly models the downside of a change-effect routing to a non-target.
+- The effect-aware DP differs slightly from the standard DP because change-effect is no longer a no-op — on gems that start with target-side effects, the EA DP is marginally *lower* (~1-4pp) since it correctly models the downside of a change-effect routing to a non-target.
 - Each `auto --all` run of a new gem type pays the one-time build cost on first encounter; subsequent gems of the same type reuse the cached table.
 
 ## Automation (`auto` command)

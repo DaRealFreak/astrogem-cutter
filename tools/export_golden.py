@@ -62,6 +62,8 @@ GOALS = [
     {"min_total_will_chaos": 8},
     {"min_first": 4}, {"min_second": 5}, {"min_total": 16},
     {"min_will": 4, "min_chaos": 4, "min_side_coeff": 4000},
+    # High floor: only reachable by changing BOTH side effects.
+    {"min_will": 1, "min_side_coeff": 6000},
     {},  # trivial
 ]
 
@@ -87,13 +89,21 @@ def export_feasibility():
         for w, c in itertools.product((1, 3, 5), (1, 3, 5)):
             for tl in (1, 3, 5, 7, 9):
                 for f, s in ((1, 1), (3, 2), (5, 5)):
-                    kw = dict(min_side_coeff=g.get("min_side_coeff", 0),
-                              side_coeff_first=1000, side_coeff_second=700,
-                              change_dest_max_coeff=1500)
-                    recs.append({"inputs": {"goal": g, "will": w, "chaos": c,
-                                            "turns_left": tl, "first": f,
-                                            "second": s, **kw},
-                                 "expected": goal.feasible(w, c, tl, f, s, **kw)})
+                    # Side-coeff arrangements (only matter under a floor):
+                    # on-target pair, off-target pair needing two changes,
+                    # and an effect that can migrate into the levelled slot.
+                    arrangements = [(1000, 700, (1500, 0))]
+                    if g.get("min_side_coeff", 0) > 0:
+                        arrangements += [(0, 0, (1000, 700)),
+                                         (1000, 0, (700, 0))]
+                    for scf, scs, dests in arrangements:
+                        kw = dict(min_side_coeff=g.get("min_side_coeff", 0),
+                                  side_coeff_first=scf, side_coeff_second=scs,
+                                  change_dest_coeffs=dests)
+                        recs.append({"inputs": {"goal": g, "will": w, "chaos": c,
+                                                "turns_left": tl, "first": f,
+                                                "second": s, **kw},
+                                     "expected": goal.feasible(w, c, tl, f, s, **kw)})
     dump("feasibility", recs)
 
 
@@ -153,9 +163,9 @@ def export_dp_lookups():
             min_side_coeff=msc,
             effect_aware=True, gem_type=gt, optimize=opt)
         relic = GoalProbabilityTable(LastTurnGoal(min_total=16), turns, pool,
-            early_finish=False, max_rerolls=mr)
+            early_finish=True, max_rerolls=mr)
         anc = GoalProbabilityTable(LastTurnGoal(min_total=19), turns, pool,
-            early_finish=False, max_rerolls=mr)
+            early_finish=True, max_rerolls=mr)
         for w, c, f, s in [(1, 1, 1, 1), (4, 5, 3, 2), (5, 5, 5, 5), (4, 4, 1, 1)]:
             st = GemState(will=w, chaos=c, first=f, second=s,
                           first_effect=fe, second_effect=se)
@@ -287,11 +297,8 @@ def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=Non
     roll = GoalProbabilityTable(goal, turns, pool, side_coeff_first=scf,
         side_coeff_second=scs, min_side_coeff=min_side_coeff, early_finish=True,
         max_rerolls=mr, effect_aware=True, gem_type=gt, optimize=opt)
-    reset = GoalProbabilityTable(goal, turns, pool, side_coeff_first=scf,
-        side_coeff_second=scs, min_side_coeff=min_side_coeff, early_finish=True,
-        effect_aware=True, gem_type=gt, optimize=opt)
     relic = GoalProbabilityTable(LastTurnGoal(min_total=16), turns, pool,
-        early_finish=False, max_rerolls=mr)
+        early_finish=True, max_rerolls=mr)
     svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
         min_side_coeff=min_side_coeff, relic_coeff=relic_coeff,
         ancient_coeff=ancient_coeff,
@@ -313,9 +320,13 @@ def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=Non
     ctx = D.DecisionContext(goal=goal, pool=pool, optimize=opt, bis_only=False,
         min_side_coeff=min_side_coeff, prob_reset_threshold=0.0,
         relic_reroll_threshold=relic_thr, force_reroll_no_progress=force_reroll,
-        turns_total=turns, base_rerolls=base_rerolls, p_fresh=reset.lookup(
-            GemState(first_effect=fe, second_effect=se), turns),
-        prob_table=roll, reset_prob_table=reset, relic_prob_table=relic,
+        turns_total=turns, base_rerolls=base_rerolls,
+        # Fresh-start value: reroll-aware table, with the rerolls a fresh
+        # process is granted (mirrors GemSimulator.fresh_start_prob).
+        p_fresh=roll.lookup(
+            GemState(first_effect=fe, second_effect=se), turns,
+            rerolls=RARITY_REROLLS[rarity] + (1 if extra_ticket is True else 0)),
+        prob_table=roll, relic_prob_table=relic,
         gem_type=gt, force_reroll_active=False, confirm_active=False,
         confirm_min_coeff=0, endgame_risk=endgame_risk, side_value_table=svt,
         grade_value_table=gvt, maxed_value_table=mvt)
@@ -412,9 +423,9 @@ def export_actions():
         roll = GoalProbabilityTable(goal, turns, pool, early_finish=True,
             max_rerolls=mr, effect_aware=True, gem_type=gt, optimize=opt)
         relic = GoalProbabilityTable(LastTurnGoal(min_total=16), turns, pool,
-            early_finish=False, max_rerolls=mr)
+            early_finish=True, max_rerolls=mr)
         anc = GoalProbabilityTable(LastTurnGoal(min_total=19), turns, pool,
-            early_finish=False, max_rerolls=mr)
+            early_finish=True, max_rerolls=mr)
         # eValue rows mirror the web _displayValueTable: reroll-aware "side"
         # value table normally; a flat will_chaos policy evaluation under
         # ignore_side (the realistic expected coefficient).

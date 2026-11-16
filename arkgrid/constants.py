@@ -64,19 +64,18 @@ def fusion_avg_coeff(gem_type: str, optimize: str, grade: str) -> int:
     return round(pool_sum * FUSION_E_POINTS[grade] / 8)
 
 
-def change_dest_max_coeff(gem_type: str, first_effect: str,
-                          second_effect: str, optimize: str) -> int:
-    """Max optimize-side coefficient over the 2 effects either slot can
-    change_*_effect to (the gem-type pool members not currently equipped).
-    Returns 0 when the gem type is unknown or no destination contributes
-    to the optimize side.
+def change_dest_coeffs(gem_type: str, first_effect: str,
+                       second_effect: str, optimize: str) -> Tuple[int, int]:
+    """Optimize-side coefficients of the 2 effects either slot can
+    change_*_effect to (the gem-type pool members not currently equipped),
+    in pool order. Off-target destinations contribute 0; returns (0, 0) when
+    the gem type is unknown.
     """
     pool = GEM_TYPES.get(gem_type)
     if not pool:
-        return 0
+        return (0, 0)
     coeff_map = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
-    return max(
-        (coeff_map.get(e, 0) for e in pool
-         if e != first_effect and e != second_effect),
-        default=0,
-    )
+    dests = [coeff_map.get(e, 0) for e in pool
+             if e != first_effect and e != second_effect]
+    dests += [0] * (2 - len(dests))
+    return (dests[0], dests[1])

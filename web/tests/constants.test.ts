@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GEM_TYPES, DPS_COEFF, fusionAvgCoeff, changeDestMaxCoeff, pyRound } from '../src/lib/engine/constants';
+import { GEM_TYPES, DPS_COEFF, fusionAvgCoeff, changeDestCoeffs, pyRound } from '../src/lib/engine/constants';
 
 describe('constants', () => {
   it('matches gem-type pools and coeffs', () => {
@@ -18,9 +18,10 @@ describe('constants', () => {
     expect(fusionAvgCoeff('chaos_distortion', 'dps', 'relic')).toBe(2844);
     expect(fusionAvgCoeff('unknown', 'dps', 'relic')).toBe(0);
   });
-  it('changeDestMaxCoeff excludes equipped effects', () => {
+  it('changeDestCoeffs lists the two non-equipped effects', () => {
     // pool: attack_power(400), boss_damage(1000), ally_damage(0 for dps), ally_attack(0)
-    // equipped first=attack_power, second=ally_damage → dests boss_damage(1000), ally_attack(0) → 1000
-    expect(changeDestMaxCoeff('chaos_distortion', 'attack_power', 'ally_damage', 'dps')).toBe(1000);
+    // equipped first=attack_power, second=ally_damage → dests boss_damage(1000), ally_attack(0)
+    expect(changeDestCoeffs('chaos_distortion', 'attack_power', 'ally_damage', 'dps')).toEqual([1000, 0]);
+    expect(changeDestCoeffs('unknown', 'attack_power', 'ally_damage', 'dps')).toEqual([0, 0]);
   });
 });

@@ -39,24 +39,328 @@ const s625 = (w: number, c: number, f: number, s: number): number =>
 
 const clampLevel = (x: number): number => Math.min(5, Math.max(1, x));
 
-const SQRT2 = Math.sqrt(2.0);
-const INV_SQRT_2PI = 1.0 / Math.sqrt(2.0 * Math.PI);
-
-// A&S 7.1.26 erf — identical to arkgrid/probability.py::_erf for cross-language parity.
-function erf(x: number): number {
-  const sign = x >= 0 ? 1.0 : -1.0;
-  const ax = Math.abs(x);
-  const t = 1.0 / (1.0 + 0.3275911 * ax);
-  const y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
-    - 0.284496736) * t + 0.254829592) * t * Math.exp(-ax * ax);
-  return sign * y;
+// Exact hand statistics per weight class, keyed by the sorted eligible weights
+// (a few hundred distinct multisets exist across all states).
+interface HandStats {
+  index: Map<number, number>; // weight -> class index
+  applied: number[];          // per class: P(one given option is the applied one)
+  pair: number[][];           // per class pair: P(two given distinct options are both in the hand)
 }
-function normCdf(x: number): number { return 0.5 * (1.0 + erf(x / SQRT2)); }
-function normPdf(x: number): number { return INV_SQRT_2PI * Math.exp(-0.5 * x * x); }
-function eMax(mu: number, sd: number, t: number): number {
-  if (sd <= 0.0) return mu > t ? mu : t;
-  const d = (mu - t) / sd;
-  return t + (mu - t) * normCdf(d) + sd * normPdf(d);
+const HAND_STATS = new Map<string, HandStats>();
+
+/** Exact statistics of the 4-offer hand for one eligible-weight multiset.
+ *
+ * The game draws 4 distinct offers by successive weighted sampling without
+ * replacement. Options sharing a weight are exchangeable, so the enumeration
+ * runs over ordered draws of weight *classes* (<= 8 classes, <= 8**4 paths).
+ * Mirrors arkgrid/probability.py::_hand_stats.
+ */
+function handStats(sorted: number[]): HandStats {
+  const key = sorted.join(',');
+  let stats = HAND_STATS.get(key);
+  if (stats === undefined) {
+    const classes: number[] = [];
+    const counts: number[] = [];
+    for (const w of sorted) {
+      if (classes.length > 0 && classes[classes.length - 1] === w) {
+        counts[counts.length - 1]!++;
+      } else {
+        classes.push(w);
+        counts.push(1);
+      }
+    }
+    const n = classes.length;
+    // expected[i] = E[number of class-i options in the hand]
+    const expected: number[] = new Array(n).fill(0.0);
+    // joint[a][b] = E[number of slot pairs (earlier, later) holding classes (a, b)]
+    const joint: number[][] = [];
+    for (let a = 0; a < n; a++) joint.push(new Array(n).fill(0.0));
+    const used: number[] = new Array(n).fill(0);
+    const path: number[] = [];
+    const draw = (depth: number, p: number, remaining: number): void => {
+      for (let i = 0; i < n; i++) {
+        const k = counts[i]! - used[i]!;
+        if (k <= 0) continue;
+        const c = classes[i]!;
+        const q = (p * k * c) / remaining;
+        expected[i]! += q;
+        for (const j of path) joint[j]![i]! += q;
+        if (depth < 3) {
+          used[i]!++;
+          path.push(i);
+          draw(depth + 1, q, remaining - c);
+          path.pop();
+          used[i]!--;
+        }
+      }
+    };
+    let total = 0.0;
+    for (const w of sorted) total += w;
+    draw(0, 1.0, total);
+    const applied = expected.map((e, i) => e / counts[i]! / 4.0);
+    const pair: number[][] = [];
+    for (let a = 0; a < n; a++) {
+      const row: number[] = new Array(n).fill(0.0);
+      for (let b = 0; b < n; b++) {
+        if (a !== b) {
+          row[b] = (joint[a]![b]! + joint[b]![a]!) / (counts[a]! * counts[b]!);
+        } else if (counts[a]! >= 2) {
+          row[a] = (2.0 * joint[a]![a]!) / (counts[a]! * (counts[a]! - 1));
+        }
+      }
+      pair.push(row);
+    }
+    const index = new Map<number, number>();
+    classes.forEach((c, i) => index.set(c, i));
+    stats = { index, applied, pair };
+    HAND_STATS.set(key, stats);
+  }
+  return stats;
+}
+
+/** Exact probability that each option is the one APPLIED by a click.
+ *
+ * The game draws 4 distinct offers by successive weighted sampling without
+ * replacement and applies one of them uniformly, so an option's applied
+ * probability is its hand-inclusion probability / 4 — not `weight / total`.
+ * With <= 4 eligible options every one is offered (uniform pick).
+ * Mirrors arkgrid/probability.py::applied_probs.
+ */
+export function appliedProbs(weights: number[]): number[] {
+  const n = weights.length;
+  if (n <= 4) return weights.map(() => 1.0 / n);
+  const stats = handStats([...weights].sort((a, b) => a - b));
+  return weights.map((w) => stats.applied[stats.index.get(w)!]!);
+}
+
+/** Everything `handTurnValue` needs to know about a state's eligible options
+ *  (in pool order). `cls` is null when <= 4 options are eligible (the hand is
+ *  then the whole set). Mirrors arkgrid/probability.py::hand_context. */
+export interface HandContext {
+  probs: number[];                  // applied probabilities
+  cls: number[] | null;             // weight-class index per option
+  diag: [number, number][];         // (class, pair coefficient) for same-class pairs
+  off: [number, number, number][];  // (class a, class b, 2 * pair coefficient), a < b
+  nc: number;                       // number of weight classes
+}
+const HAND_CONTEXTS = new Map<string, HandContext>();
+
+export function handContext(weights: number[]): HandContext {
+  const key = weights.join(',');
+  let ctx = HAND_CONTEXTS.get(key);
+  if (ctx === undefined) {
+    const n = weights.length;
+    if (n <= 4) {
+      ctx = { probs: weights.map(() => 1.0 / n), cls: null, diag: [], off: [], nc: 0 };
+    } else {
+      const stats = handStats([...weights].sort((a, b) => a - b));
+      const cls = weights.map((w) => stats.index.get(w)!);
+      const nc = stats.applied.length;
+      const diag: [number, number][] = [];
+      const off: [number, number, number][] = [];
+      for (let a = 0; a < nc; a++) {
+        if (stats.pair[a]![a]! !== 0.0) diag.push([a, stats.pair[a]![a]!]);
+      }
+      for (let a = 0; a < nc; a++) {
+        for (let b = a + 1; b < nc; b++) off.push([a, b, 2.0 * stats.pair[a]![b]!]);
+      }
+      ctx = { probs: cls.map((a) => stats.applied[a]!), cls, diag, off, nc };
+    }
+    HAND_CONTEXTS.set(key, ctx);
+  }
+  return ctx;
+}
+
+// Multinomial(4; 3 atoms): [n1, n2, n3, coefficient].
+const FACT = [1, 1, 2, 6, 24];
+const HAND_TRINOM: [number, number, number, number][] = [];
+for (let n1 = 0; n1 <= 4; n1++) {
+  for (let n2 = 0; n2 <= 4 - n1; n2++) {
+    const n3 = 4 - n1 - n2;
+    HAND_TRINOM.push([n1, n2, n3, 24.0 / (FACT[n1]! * FACT[n2]! * FACT[n3]!)]);
+  }
+}
+const BINOM = [[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1]];
+const TWO_THIRDS_PI = (2.0 * Math.PI) / 3.0;
+
+/** `handEMax` when the offers take only two distinct values (hit or miss —
+ *  the last turn of a goal table). The hand mean is `lo + (hi - lo) * K / 4`,
+ *  K = number of "hit" offers in the hand; K's mean (4q) and exact variance
+ *  (`4 q (1-q) rho`) are matched by Binomial(n, 4q/n), mixing the two
+ *  neighbouring integers for a fractional n. Mirrors `_hand_e_max2`. */
+function handEMax2(mu: number, m2: number, m3: number, rho: number, t: number): number {
+  const sd = Math.sqrt(m2);
+  const g = m3 / (m2 * sd); // skewness
+  const r = Math.sqrt(4.0 + g * g);
+  // P(hit) = (1 - g/r) / 2, written to avoid cancellation.
+  const q = g >= 0.0 ? 2.0 / (r * (r + g)) : 1.0 - 2.0 / (r * (r - g));
+  const lo = mu - sd * Math.sqrt(q / (1.0 - q));
+  const step = (mu + sd * Math.sqrt((1.0 - q) / q) - lo) / 4.0;
+  const meanK = 4.0 * q;
+  const denom = 1.0 - (1.0 - q) * rho;
+  let n = denom > meanK / 4.0 ? meanK / denom : 4.0;
+  const floorN = meanK < 1.0 ? 1.0 : meanK; // Binomial(n, 4q/n) needs n >= 4q
+  if (n < floorN) n = floorN;
+  const nLo = Math.floor(n);
+  let parts: [number, number][];
+  if (nLo >= 4) {
+    parts = [[4, 1.0]];
+  } else if (nLo < meanK) {
+    parts = [[nLo + 1, 1.0]]; // only the upper neighbour is valid
+  } else {
+    const lam = (1.0 / n - 1.0 / (nLo + 1)) / (1.0 / nLo - 1.0 / (nLo + 1));
+    parts = [[nLo, lam], [nLo + 1, 1.0 - lam]];
+  }
+  let total = 0.0;
+  for (const [nj, share] of parts) {
+    if (share <= 0.0) continue;
+    const qj = meanK / nj;
+    for (let k = 0; k <= nj; k++) {
+      const h = lo + step * k;
+      total += share * BINOM[nj]![k]! * qj ** k * (1.0 - qj) ** (nj - k) * (h > t ? h : t);
+    }
+  }
+  return total;
+}
+
+/** E[max(H, t)], where H is the mean value of a 4-offer hand.
+ *
+ * A reroll rejects the whole hand, never a single offer. Inputs are the
+ * single-offer value distribution's mean and central moments `m2..m5`, and
+ * `rho` = (exact variance of the hand mean) / (m2 / 4).
+ *
+ * - Lumpy values: the distribution is replaced by its 3-node Gauss quadrature
+ *   (matching `mu, m2..m5`) and the hand is 4 draws from it (15 values,
+ *   multinomial weights). A 2-point fit loses the bulk's own spread and read
+ *   low on hard goals.
+ * - Distinct offers: the hand holds 4 DIFFERENT options, so every deviation
+ *   is scaled by `sqrt(rho)` to make the hand variance exact; without it
+ *   easy goals read 15-25% high.
+ *
+ * Mirrors arkgrid/probability.py::hand_e_max.
+ */
+export function handEMax(
+  mu: number, m2: number, m3: number, m4: number, m5: number, rho: number, t: number
+): number {
+  const scale = mu * mu > t * t ? mu * mu : t * t;
+  if (m2 <= 1e-12 * (scale > 1.0 ? scale : 1.0)) return mu > t ? mu : t;
+  const sd = Math.sqrt(m2);
+  const g = m3 / (m2 * sd);       // skewness
+  const k = m4 / (m2 * m2);       // kurtosis
+  const h5 = m5 / (m2 * m2 * sd);
+  const det = k - g * g - 1.0;    // 0 for a two-valued distribution
+  if (det <= 1e-9 * (k > 1.0 ? k : 1.0)) return handEMax2(mu, m2, m3, rho, t);
+  // Monic degree-3 orthogonal polynomial z^3 + c2 z^2 + c1 z + c0 of the
+  // standardized distribution; its roots are the quadrature nodes.
+  const c2 = (g + g * k - h5) / det;
+  const c1 = -k - g * c2;
+  const c0 = -g - c2;
+  const p = c1 - (c2 * c2) / 3.0;
+  if (p >= 0.0) return handEMax2(mu, m2, m3, rho, t);
+  const q = (2.0 * c2 * c2 * c2) / 27.0 - (c2 * c1) / 3.0 + c0;
+  const amp = 2.0 * Math.sqrt(-p / 3.0);
+  let arg = (3.0 * q) / (p * amp);
+  arg = arg > 1.0 ? 1.0 : arg < -1.0 ? -1.0 : arg;
+  const phi = Math.acos(arg) / 3.0;
+  const shift = c2 / 3.0;
+  const z1 = amp * Math.cos(phi) - shift;
+  const z2 = amp * Math.cos(phi - TWO_THIRDS_PI) - shift;
+  const z3 = amp * Math.cos(phi - 2.0 * TWO_THIRDS_PI) - shift;
+  const w1 = (1.0 + z2 * z3) / ((z1 - z2) * (z1 - z3));
+  const w2 = (1.0 + z1 * z3) / ((z2 - z1) * (z2 - z3));
+  const w3 = 1.0 - w1 - w2;
+  if (!(w1 > 0.0 && w2 > 0.0 && w3 > 0.0)) return handEMax2(mu, m2, m3, rho, t);
+  const s = sd * Math.sqrt(rho) * 0.25;
+  const a1 = s * z1;
+  const a2 = s * z2;
+  const a3 = s * z3;
+  const p1 = [1.0, w1, w1 * w1, w1 * w1 * w1, w1 * w1 * w1 * w1];
+  const p2 = [1.0, w2, w2 * w2, w2 * w2 * w2, w2 * w2 * w2 * w2];
+  const p3 = [1.0, w3, w3 * w3, w3 * w3 * w3, w3 * w3 * w3 * w3];
+  let total = 0.0;
+  for (const [n1, n2, n3, coef] of HAND_TRINOM) {
+    const h = mu + n1 * a1 + n2 * a2 + n3 * a3;
+    total += coef * p1[n1]! * p2[n2]! * p3[n3]! * (h > t ? h : t);
+  }
+  return total;
+}
+
+/** `[mu, m2, m3, m4, m5, rho]` of a hand over `ctx`'s options with post-click
+ *  values `posts`: the single-offer mean and central moments, and `rho`, the
+ *  exact variance of the 4-distinct-offer hand mean relative to 4 independent
+ *  draws (`m2 / 4`). Mirrors `_hand_moments`. */
+export function handMoments(
+  ctx: HandContext, posts: number[]
+): [number, number, number, number, number, number] {
+  const probs = ctx.probs;
+  const n = probs.length;
+  let mu = 0.0;
+  for (let i = 0; i < n; i++) mu += probs[i]! * posts[i]!;
+  const cls = ctx.cls;
+  if (cls === null) return [mu, 0.0, 0.0, 0.0, 0.0, 0.0];
+  let m2 = 0.0, m3 = 0.0, m4 = 0.0, m5 = 0.0;
+  const sums: number[] = new Array(ctx.nc).fill(0.0);    // per class: sum of deviations
+  const squares: number[] = new Array(ctx.nc).fill(0.0); // per class: sum of squared deviations
+  for (let i = 0; i < n; i++) {
+    const d = posts[i]! - mu;
+    const d2 = d * d;
+    const a = cls[i]!;
+    sums[a]! += d;
+    squares[a]! += d2;
+    const pd = probs[i]! * d2;
+    m2 += pd;
+    m3 += pd * d;
+    m4 += pd * d2;
+    m5 += pd * d2 * d;
+  }
+  if (m2 <= 0.0) return [mu, 0.0, 0.0, 0.0, 0.0, 0.0];
+  // 16 Var(hand mean) = sum_i pi_i d_i^2 + sum_{i != j} pi_ij d_i d_j,
+  // with pi_i = 4 p_i; the cross term by class sums.
+  let cross = 0.0;
+  for (const [a, coef] of ctx.diag) cross += coef * (sums[a]! * sums[a]! - squares[a]!);
+  for (const [a, b, coef] of ctx.off) cross += coef * sums[a]! * sums[b]!;
+  const rho = 1.0 + cross / (4.0 * m2);
+  return [mu, m2, m3, m4, m5, rho > 0.0 ? rho : 0.0];
+}
+
+/** Value of a turn whose 4-offer hand (options described by `ctx`; post-click
+ *  values `posts`) is kept when its mean beats `alt` — the value of the
+ *  alternative (redraw, or finishing) — and given up for that alternative
+ *  otherwise. Mirrors `_hand_turn_value`. */
+export function handTurnValue(ctx: HandContext, posts: number[], alt: number): number {
+  const [mu, m2, m3, m4, m5, rho] = handMoments(ctx, posts);
+  // Certain hand: <= 4 eligible options, or all offers worth the same.
+  if (m2 <= 0.0) return mu > alt ? mu : alt;
+  return handEMax(mu, m2, m3, m4, m5, rho, alt);
+}
+
+/** `handContext` per `${label},${cs}` and state625 — the same three-turn-type
+ *  layout as the builds' transition caches. Mirrors `_hand_contexts`. */
+function handContexts(pool: OptionPool, maxTurns: number): Record<string, HandContext[]> {
+  const out: Record<string, HandContext[]> = {};
+  const turnSpecs: [string, number, number][] = [
+    ['first', 1, maxTurns],
+    ['last', maxTurns, 1],
+    ['middle', 2, maxTurns > 2 ? maxTurns - 1 : 2],
+  ];
+  for (const [label, turn, tl] of turnSpecs) {
+    for (let cs = 0; cs <= 1; cs++) {
+      const ctxs: HandContext[] = new Array(625);
+      for (let w = 1; w <= 5; w++) {
+        for (let c = 1; c <= 5; c++) {
+          for (let f = 1; f <= 5; f++) {
+            for (let s = 1; s <= 5; s++) {
+              const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
+              ctxs[s625(w, c, f, s)] = handContext(
+                pool.pool.filter((o) => pool.eligible(o, state, turn, tl)).map((o) => o.weight));
+            }
+          }
+        }
+      }
+      out[`${label},${cs}`] = ctxs;
+    }
+  }
+  return out;
 }
 
 // Effect-aware option-level transition entry:
@@ -175,13 +479,12 @@ export class GoalProbabilityTable {
   // Transition helpers (option probability assignment)
   // ------------------------------------------------------------------
 
-  // Per-option applied probability (single-draw approximation), paired with
-  // its option. Returning pairs avoids index-based array access (which is
+  // Exact per-option applied probability (`appliedProbs`), paired with its
+  // option. Returning pairs avoids index-based array access (which is
   // `T | undefined` under noUncheckedIndexedAccess).
   private _optionProbs(eligible: Option[]): [Option, number][] {
-    let totalW = 0;
-    for (const o of eligible) totalW += o.weight;
-    return eligible.map((o) => [o, o.weight / totalW]);
+    const probs = appliedProbs(eligible.map((o) => o.weight));
+    return eligible.map((o, i) => [o, probs[i]!]);
   }
 
   private _eligible(w: number, c: number, f: number, s: number, cs: number, turn: number, turnsLeft: number): Option[] {
@@ -391,6 +694,7 @@ export class GoalProbabilityTable {
         transCache[`${label},${cs}`] = cache;
       }
     }
+    const handCache = handContexts(this.pool, mt);
 
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
@@ -407,21 +711,23 @@ export class GoalProbabilityTable {
               const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
                 const trans = transCache[`${label},${cs}`]![st]!;
+                const hand = handCache[`${label},${cs}`]![st]!;
                 for (let r = 0; r <= maxR; r++) {
                   if (this.earlyFinish && this.goal.satisfied(w, c, f, s) && this._coeffSatisfied(f, s)) {
                     dp[this._idx(st, cs, 0, r, tl)] = 1.0;
                     continue;
                   }
 
+                  // Reroll decision is made on the whole 4-offer hand: keep
+                  // it when its mean beats a redraw, otherwise reroll.
                   if (r > 0 && turnNumber !== 1) {
                     const rerollVal = dp[this._idx(st, cs, 0, r - 1, tl)]!;
-                    let val = 0.0;
-                    for (const [p, nw, nc, nf, ns, ncs, vd] of trans) {
+                    const posts: number[] = [];
+                    for (const [, nw, nc, nf, ns, ncs, vd] of trans) {
                       const nr = Math.min(maxR, r + vd);
-                      const post = dp[this._idx(s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]!;
-                      val += p * Math.max(post, rerollVal);
+                      posts.push(dp[this._idx(s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]!);
                     }
-                    dp[this._idx(st, cs, 0, r, tl)] = val;
+                    dp[this._idx(st, cs, 0, r, tl)] = handTurnValue(hand, posts, rerollVal);
                   } else {
                     let val = 0.0;
                     for (const [p, nw, nc, nf, ns, ncs, vd] of trans) {
@@ -615,6 +921,7 @@ export class GoalProbabilityTable {
     }
 
     const transCache = this._buildEaTransCache();
+    const handCache = handContexts(this.pool, mt);
 
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
@@ -628,6 +935,7 @@ export class GoalProbabilityTable {
               const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
                 const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache)[st]!;
+                const hand = handCache[`${turnNumber === 1 ? 'first' : tl === 1 ? 'last' : 'middle'},${cs}`]![st]!;
                 for (const [fi, si] of validPairs) {
                   const dests = this._changeDests[fi * 4 + si]!;
                   const nDests = dests.length;
@@ -665,13 +973,12 @@ export class GoalProbabilityTable {
 
                     if (r > 0 && turnNumber !== 1) {
                       const rerollVal = dp[this._idx(st, cs, fi * 4 + si, r - 1, tl)]!;
-                      let val = 0.0;
-                      for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
+                      const posts: number[] = [];
+                      for (const [, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
                         const nr = Math.min(maxR, r + vd);
-                        const post = postVal(optKey, s625(nw, nc, nf, ns), ncs, nr);
-                        val += p * Math.max(post, rerollVal);
+                        posts.push(postVal(optKey, s625(nw, nc, nf, ns), ncs, nr));
                       }
-                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = val;
+                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = handTurnValue(hand, posts, rerollVal);
                     } else {
                       let val = 0.0;
                       for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
@@ -807,8 +1114,8 @@ export class GoalProbabilityTable {
 // with goal-broken states valued 0. Backward induction takes
 // max(finishNow=gemValue, processEV). When maxRerolls > 0 the state
 // carries the reroll count and _buildReroll prices a keep-vs-reroll
-// choice via a variance-aware Gaussian E[max(handEV, threshold)]
-// (Phase A/B); maxRerolls === 0 builds the flat table.
+// choice as E[max(hand mean, threshold)] with the same hand model as the
+// goal table (handEMax); maxRerolls === 0 builds the flat table.
 
 export interface SideValueOpts {
   optimize?: string;
@@ -980,11 +1287,11 @@ export class SideValueTable {
     if (eligible.length === 0) {
       return [[1.0, '', '', w, c, f, s, cs]];
     }
-    let totalW = 0;
-    for (const o of eligible) totalW += o.weight;
+    const probs = appliedProbs(eligible.map((o) => o.weight));
     const result: SvTransEntry[] = [];
-    for (const o of eligible) {
-      const p = o.weight / totalW;
+    for (let i = 0; i < eligible.length; i++) {
+      const o = eligible[i]!;
+      const p = probs[i]!;
       let nw = w, nc = c, nf = f, ns = s, ncs = cs;
       if (o.kind === 'will') nw = clampLevel(w + o.delta);
       else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
@@ -1262,14 +1569,14 @@ export class SideValueTable {
 
     type RTrans = [number, string, string, number, number, number, number, number, number];
     const transitions = (w: number, c: number, f: number, s: number, cs: number,
-                         turn: number, tl: number): [RTrans[], number] => {
+                         turn: number, tl: number): RTrans[] => {
       const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
       const elig = this._pool.pool.filter((o) => this._pool.eligible(o, state, turn, tl));
-      if (elig.length === 0) return [[[1.0, '', '', w, c, f, s, cs, 0]], 0];
-      let tot = 0;
-      for (const o of elig) tot += o.weight;
+      if (elig.length === 0) return [[1.0, '', '', w, c, f, s, cs, 0]];
+      const probs = appliedProbs(elig.map((o) => o.weight));
       const out: RTrans[] = [];
-      for (const o of elig) {
+      for (let i = 0; i < elig.length; i++) {
+        const o = elig[i]!;
         let nw = w, nc = c, nf = f, ns = s, ncs = cs, vd = 0;
         if (o.kind === 'will') nw = clampLevel(w + o.delta);
         else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
@@ -1277,17 +1584,17 @@ export class SideValueTable {
         else if (o.kind === 'second') ns = clampLevel(s + o.delta);
         else if (o.kind === 'view') vd = o.delta;
         else if (o.kind === 'cost') ncs = 1 - cs;
-        out.push([o.weight / tot, o.key, o.kind, nw, nc, nf, ns, ncs, vd]);
+        out.push([probs[i]!, o.key, o.kind, nw, nc, nf, ns, ncs, vd]);
       }
-      return [out, elig.length];
+      return out;
     };
 
     const labels: [string, number, number][] = [
       ['first', 1, mt], ['last', mt, 1], ['middle', 2, mt > 2 ? mt - 1 : 2]];
-    const transCache: Record<string, [RTrans[], number][]> = {};
+    const transCache: Record<string, RTrans[][]> = {};
     for (const [label, turn, tl] of labels) {
       for (let cs = 0; cs <= 1; cs++) {
-        const cache: [RTrans[], number][] = new Array(625);
+        const cache: RTrans[][] = new Array(625);
         for (let w = 1; w <= 5; w++)
           for (let c = 1; c <= 5; c++)
             for (let f = 1; f <= 5; f++)
@@ -1297,6 +1604,7 @@ export class SideValueTable {
       }
     }
 
+    const handCache = handContexts(this._pool, mt);
     const cd = this._changeDests;
     const postVal = (optKey: string, nst: number,
                      ncs: number, fi: number, si: number, nr: number, tl: number): number => {
@@ -1324,22 +1632,18 @@ export class SideValueTable {
             for (let s = 1; s <= 5; s++) {
               const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const [trans, nElig] = transCache[`${label},${cs}`]![st]!;
-                const fpc = nElig > 4 ? (nElig - 4) / (nElig - 1) : 0.0;
+                const trans = transCache[`${label},${cs}`]![st]!;
+                const hand = handCache[`${label},${cs}`]![st]!;
                 for (const [fi, si] of validPairs) {
                   const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
                   for (let r = 0; r <= maxR; r++) {
-                    const xs: [number, number][] = [];
-                    let mu = 0;
-                    for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
+                    const posts: number[] = [];
+                    for (const [, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
                       const nr = Math.min(maxR, r + vd);
-                      const x = postVal(optKey, s625(nw, nc, nf, ns), ncs, fi, si, nr, tl - 1);
-                      xs.push([p, x]);
-                      mu += p * x;
+                      posts.push(postVal(optKey, s625(nw, nc, nf, ns), ncs, fi, si, nr, tl - 1));
                     }
-                    let varv = 0;
-                    for (const [p, x] of xs) varv += p * (x - mu) * (x - mu);
-                    const sd = Math.sqrt(Math.max(0.0, (varv / 4.0) * fpc));
+                    // The hand is weighed against the best alternative:
+                    // finishing now, or (with a reroll in hand) redrawing.
                     let t: number;
                     if (r > 0 && turnNumber !== 1) {
                       const rc = dp[this._idx(st, cs, fi * 4 + si, r - 1, tl)]!;
@@ -1347,7 +1651,7 @@ export class SideValueTable {
                     } else {
                       t = finishVal;
                     }
-                    dp[this._idx(st, cs, fi * 4 + si, r, tl)] = eMax(mu, sd, t);
+                    dp[this._idx(st, cs, fi * 4 + si, r, tl)] = handTurnValue(hand, posts, t);
                   }
                 }
               }
@@ -1381,8 +1685,8 @@ export class SideValueTable {
 
   /** Mean V across the 4 actual visible offers (uniform 25% pick).
    *  Mirrors GoalProbabilityTable.expectedProbAfterClick — the process-EV
-   *  term of the finish decision uses the real offers, not the pool-model
-   *  single draw the table is built with.
+   *  term of the finish decision uses the real offers, not the pool-wide
+   *  expectation the table is built with.
    */
   expectedValueAfterClick(state: GemState, offers: Option[], turnsLeftAfter: number,
                           rerolls?: number): number {

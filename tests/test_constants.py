@@ -11,7 +11,9 @@ from arkgrid import (
     SUPPORT_EFFECTS,
     SUPPORT_PRIORITY,
 )
-from arkgrid.constants import FUSION_E_POINTS, fusion_avg_coeff
+from arkgrid.constants import (
+    FUSION_E_POINTS, change_dest_coeffs, fusion_avg_coeff,
+)
 
 
 class TestGemTypes(unittest.TestCase):
@@ -55,6 +57,26 @@ class TestGemTypes(unittest.TestCase):
             set(GEM_TYPES["order_immutability"]),
             set(GEM_TYPES["chaos_collapse"]),
         )
+
+
+class TestChangeDestCoeffs(unittest.TestCase):
+    def test_lists_the_two_non_equipped_effects(self) -> None:
+        # chaos_distortion pool: attack_power(400), boss_damage(1000),
+        # ally_damage, ally_attack (support -> 0 for dps). Equipped
+        # attack_power + ally_damage leaves boss_damage and ally_attack.
+        self.assertEqual(
+            change_dest_coeffs("chaos_distortion", "attack_power",
+                               "ally_damage", "dps"),
+            (1000, 0))
+        self.assertEqual(
+            change_dest_coeffs("chaos_distortion", "attack_power",
+                               "ally_damage", "support"),
+            (0, 1500))
+
+    def test_unknown_gem_type_has_no_destinations(self) -> None:
+        self.assertEqual(
+            change_dest_coeffs("", "attack_power", "ally_damage", "dps"),
+            (0, 0))
 
 
 class TestFusionAvgCoeff(unittest.TestCase):

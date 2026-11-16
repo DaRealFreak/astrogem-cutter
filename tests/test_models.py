@@ -83,7 +83,7 @@ class TestLastTurnGoal(unittest.TestCase):
             3, 5, 1, first=1, second=4,
             min_side_coeff=2000,
             side_coeff_first=0, side_coeff_second=0,
-            change_dest_max_coeff=1000,  # boss_damage available via change
+            change_dest_coeffs=(1000, 0),  # boss_damage available via change
         ))
 
     def test_feasible_side_coeff_via_change(self) -> None:
@@ -94,7 +94,7 @@ class TestLastTurnGoal(unittest.TestCase):
             3, 5, 2, first=1, second=4,
             min_side_coeff=2000,
             side_coeff_first=0, side_coeff_second=0,
-            change_dest_max_coeff=1000,
+            change_dest_coeffs=(1000, 0),
         ))
 
     def test_feasible_side_coeff_no_change_destination(self) -> None:
@@ -105,7 +105,7 @@ class TestLastTurnGoal(unittest.TestCase):
             3, 5, 5, first=1, second=4,
             min_side_coeff=1000,
             side_coeff_first=0, side_coeff_second=0,
-            change_dest_max_coeff=0,
+            change_dest_coeffs=(0, 0),
         ))
 
     def test_feasible_side_coeff_already_met(self) -> None:
@@ -115,7 +115,43 @@ class TestLastTurnGoal(unittest.TestCase):
             3, 5, 1, first=1, second=4,
             min_side_coeff=2000,
             side_coeff_first=0, side_coeff_second=1500,
-            change_dest_max_coeff=0,
+            change_dest_coeffs=(0, 0),
+        ))
+
+    def test_feasible_side_coeff_via_two_changes(self) -> None:
+        # Both equipped effects are off-target, but each slot can still be
+        # changed to a target effect (two change turns) and then levelled:
+        # 1000*5 + 700*5 = 8500. A single-change bound (5000) wrongly called
+        # this infeasible on turn 1.
+        g = LastTurnGoal(min_will=1)
+        self.assertTrue(g.feasible(
+            1, 1, 9, first=1, second=1,
+            min_side_coeff=6000,
+            side_coeff_first=0, side_coeff_second=0,
+            change_dest_coeffs=(1000, 700),
+        ))
+
+    def test_feasible_side_coeff_effect_migrates_to_levelled_slot(self) -> None:
+        # first = boss (1000) at level 1, second off-target at level 5, two
+        # turns left and no levelling: change first -> additional (700), then
+        # change second -> boss (now unequipped): 700*1 + 1000*5 = 5700.
+        g = LastTurnGoal(min_will=1)
+        self.assertTrue(g.feasible(
+            1, 1, 2, first=1, second=5,
+            min_side_coeff=5500,
+            side_coeff_first=1000, side_coeff_second=0,
+            change_dest_coeffs=(700, 0),
+        ))
+
+    def test_feasible_side_coeff_two_changes_stay_bounded(self) -> None:
+        # Only one target effect exists among the four (dests 1000 and 0,
+        # both equipped off-target): one slot at level 5 tops out at 5000.
+        g = LastTurnGoal(min_will=1)
+        self.assertFalse(g.feasible(
+            1, 1, 9, first=1, second=1,
+            min_side_coeff=6000,
+            side_coeff_first=0, side_coeff_second=0,
+            change_dest_coeffs=(1000, 0),
         ))
 
     def test_feasible_total_will_chaos_above_cap(self) -> None:

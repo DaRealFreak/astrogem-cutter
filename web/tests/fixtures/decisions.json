@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "3a75227"
+  "arkgrid_sha": "06c7188"
  },
  "records": [
   {
@@ -3159,8 +3159,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "finish",
+    "branch": "side_value_finish"
    }
   },
   {
@@ -3196,8 +3196,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "finish",
+    "branch": "side_value_finish"
    }
   },
   {
@@ -5102,8 +5102,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -5140,8 +5140,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -7382,8 +7382,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -7420,8 +7420,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -8294,8 +8294,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -8332,8 +8332,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -8750,8 +8750,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {
@@ -8788,8 +8788,8 @@
     ]
    },
    "expected": {
-    "action": "process",
-    "branch": "default_process"
+    "action": "reroll",
+    "branch": "dp_reroll"
    }
   },
   {

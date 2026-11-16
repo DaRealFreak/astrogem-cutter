@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "e95a635"
+  "arkgrid_sha": "06c7188"
  },
  "records": [
   {
@@ -7124,6 +7124,1059 @@
      "min_will": 4,
      "min_chaos": 4,
      "min_side_coeff": 4000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 1,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 3,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 1,
+    "chaos": 5,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 1,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 3,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 3,
+    "chaos": 5,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 1,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 3,
+    "first": 5,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 1,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 1,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 1,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 3,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 3,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 3,
+    "second": 5
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 5,
+    "second": 1
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
+    },
+    "will": 5,
+    "chaos": 5,
+    "first": 5,
+    "second": 3
+   },
+   "expected": true
+  },
+  {
+   "inputs": {
+    "goal": {
+     "min_will": 1,
+     "min_side_coeff": 6000
     },
     "will": 5,
     "chaos": 5,

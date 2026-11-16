@@ -96,7 +96,7 @@ class GemAnalyzer:
 def pprint_result(title: str, result: Dict[str, float]) -> None:
     print(title)
     if "dp_prob" in result:
-        line = f"  DP probability (reroll-aware, optimistic): {result['dp_prob'] * 100:.2f}%"
+        line = f"  DP probability (reroll-aware):             {result['dp_prob'] * 100:.2f}%"
         print(line)
     if "dp_prob_no_reroll" in result:
         print(f"  DP probability (no-reroll, conservative):  {result['dp_prob_no_reroll'] * 100:.2f}%")

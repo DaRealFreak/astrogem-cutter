@@ -226,27 +226,18 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
       optimize,
     }));
 
-  // 2. Standard goal table (no reroll dimension; for reset decisions / pFresh)
-  const resetProbTable = cachedTable(
-    `reset:${goalKey}:${turnsTotal}:${scf}:${scs}:${dpMinSideCoeff}:${gemType}:${optimize}`,
-    () => new GoalProbabilityTable(goal, turnsTotal, pool, {
-      sideCoeffFirst: scf,
-      sideCoeffSecond: scs,
-      minSideCoeff: dpMinSideCoeff,
-      earlyFinish: true,
-      effectAware: true,
-      gemType,
-      optimize,
-    }));
+  // (No separate no-reroll table: reset decisions — the probResetThreshold
+  // posterior and pFresh — read the reroll-aware table above.)
 
   // 3. Relic+ table: P(total_points >= 16), reroll-aware. Goal-independent.
+  //    earlyFinish: a gem already holding the grade can stop and keep it.
   const relicProbTable = cachedTable(
     `relic:${turnsTotal}:${dpMaxRerolls}`,
     () => new GoalProbabilityTable(
       new LastTurnGoal({ minTotal: 16 }),
       turnsTotal,
       pool,
-      { earlyFinish: false, maxRerolls: dpMaxRerolls }
+      { earlyFinish: true, maxRerolls: dpMaxRerolls }
     ));
 
   // 4. Ancient table: P(total_points >= 19), reroll-aware. Goal-independent.
@@ -258,7 +249,7 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
       new LastTurnGoal({ minTotal: 19 }),
       turnsTotal,
       pool,
-      { earlyFinish: false, maxRerolls: dpMaxRerolls }
+      { earlyFinish: true, maxRerolls: dpMaxRerolls }
     ));
 
   // 5. Reroll-aware value table (goal-conditioned). Phase B: used for BOTH the
@@ -351,14 +342,19 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
         `rgoal:${rerollGoal}:${turnsTotal}:${dpMaxRerolls}`,
         () => new GoalProbabilityTable(
           new LastTurnGoal({ minTotalWillChaos: rerollGoal }), turnsTotal, pool,
-          { earlyFinish: false, maxRerolls: dpMaxRerolls }))
+          { earlyFinish: true, maxRerolls: dpMaxRerolls }))
     : null;
 
   // Fresh state (used for reset projection in advise() and pFresh below)
   const freshState = new GemState({ firstEffect: gem.firstEffect, secondEffect: gem.secondEffect });
 
-  // Fresh-start probability (mirrors build_ctx / simulator._decision_context)
-  const pFresh = resetProbTable.lookup(freshState, turnsTotal);
+  // Fresh-start probability — what a reset is worth. Read from the
+  // reroll-aware table with the rerolls a fresh cutting process is granted
+  // (rarity free rerolls, plus the ticket when force-on): the no-reroll
+  // table undervalues a reset by 30-40% on rare/epic gems. Mirrors
+  // GemSimulator.fresh_start_prob.
+  const pFresh = probTable.lookup(
+    freshState, turnsTotal, RARITY_REROLLS[rarity]! + (extraTicket === true ? 1 : 0));
 
   const decisionCtx: DecisionContext = {
     goal,
@@ -373,7 +369,6 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     baseRerolls,
     pFresh,
     probTable,
-    resetProbTable,
     relicProbTable,
     gemType,
     forceRerollActive: false,

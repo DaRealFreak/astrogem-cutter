@@ -15,15 +15,18 @@ const s0 = () => new GemState({ will: 1, chaos: 1, first: 1, second: 1,
 
 describe('SideValueTable reroll dimension (parity with Python)', () => {
   it('flat default unchanged', () => {
-    expect(table(0).lookup(s0(), 9)).toBeCloseTo(898.9272291503102, 6);
+    expect(table(0).lookup(s0(), 9)).toBeCloseTo(893.0940716803864, 6);
   });
 
   it('lookup matches Python at each reroll budget (1e-6)', () => {
     const t = table(4);
-    // Canonical values from arkgrid/probability.py (shared A&S erf), max_rerolls=4.
-    // Re-pinned after the turn-1 view inclusion + cost-saturation DP dimension.
-    const py = [1022.0662614430807, 1320.145377641679, 1573.1479898668667,
-                1794.3119790014505, 1984.5181976479826];
+    // Canonical values from arkgrid/probability.py, max_rerolls=4.
+    // Re-pinned after the turn-1 view inclusion + cost-saturation DP dimension,
+    // for the exact applied probabilities (hand-inclusion / 4), and for the
+    // hand model (handEMax: 3-node fit + exact hand variance) replacing the
+    // Gaussian one.
+    const py = [994.9330970258565, 1277.2962931997774, 1524.496986024913,
+                1741.748358295598, 1929.158432309843];
     py.forEach((v, r) => expect(t.lookup(s0(), 9, r)).toBeCloseTo(v, 6));
   });
 
@@ -41,7 +44,7 @@ describe('SideValueTable reroll dimension (parity with Python)', () => {
       makeOption('first+4', 0.45, 'first', 4),
       makeOption('chaos+3', 1.75, 'chaos', 3),
     ];
-    expect(t.expectedValueAfterClick(s0(), offers, 8, 2)).toBeCloseTo(2235.966448157673, 6);
-    expect(t.expectedValueAfterClick(s0(), offers, 8, 3)).toBeCloseTo(2507.3264914772008, 6);
+    expect(t.expectedValueAfterClick(s0(), offers, 8, 2)).toBeCloseTo(2123.931105664177, 6);
+    expect(t.expectedValueAfterClick(s0(), offers, 8, 3)).toBeCloseTo(2391.469837700815, 6);
   });
 });

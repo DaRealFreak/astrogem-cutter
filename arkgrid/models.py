@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 
 @dataclass(frozen=True)
@@ -60,7 +60,7 @@ class LastTurnGoal:
                  min_side_coeff: int = 0,
                  side_coeff_first: int = 0,
                  side_coeff_second: int = 0,
-                 change_dest_max_coeff: int = 0) -> bool:
+                 change_dest_coeffs: Tuple[int, int] = (0, 0)) -> bool:
         """
         Necessary feasibility check for min_will/min_chaos/min_first/min_second goals:
           - all stats capped at 5
@@ -69,9 +69,12 @@ class LastTurnGoal:
 
         When `min_side_coeff > 0`, also computes a conservative upper bound
         on achievable `side_coeff_first*first + side_coeff_second*second`
-        in the remaining turns (accounting for an optional one-turn
-        change_*_effect rescue at `change_dest_max_coeff`) and rejects when
-        the bound falls short of `min_side_coeff`.
+        in the remaining turns and rejects when the bound falls short of
+        `min_side_coeff`. The bound covers change_*_effect rescues:
+        `change_dest_coeffs` are the coefficients of the two non-equipped
+        pool effects, and every effect arrangement reachable with k change
+        turns is considered (a changed slot keeps its level, and an effect
+        dropped from one slot can re-enter through the other).
         """
         target_w = self.exact_will if self.exact_will is not None else self.min_will
         target_c = self.exact_chaos if self.exact_chaos is not None else self.min_chaos
@@ -142,22 +145,29 @@ class LastTurnGoal:
             if available < 0:
                 return False
 
-            # Strategy A: no change_effect; level both sides up to cap.
-            upper = (side_coeff_first * min(5, first + 4 * available)
-                     + side_coeff_second * min(5, second + 4 * available))
-
-            # Strategies B/C: change_first or change_second (1 turn) then
-            # level the remaining turns.  Only viable if at least 1 turn
-            # is free and a change destination has positive coeff.
-            if available >= 1 and change_dest_max_coeff > 0:
-                rest = available - 1
-                upper = max(
-                    upper,
-                    change_dest_max_coeff * min(5, first + 4 * rest)
-                    + side_coeff_second * min(5, second + 4 * rest),
-                    side_coeff_first * min(5, first + 4 * rest)
-                    + change_dest_max_coeff * min(5, second + 4 * rest),
-                )
+            # Effect arrangements (first-slot coeff, second-slot coeff)
+            # reachable after exactly k change_*_effect turns, with A/B the
+            # equipped effects and C/D the two non-equipped pool members.
+            # A change draws from the effects not currently equipped, so a
+            # second change can pull the just-dropped effect into the other
+            # slot, and a third completes the set with the full swap (B, A).
+            # Each row lists only the arrangements NEW at that k: fewer
+            # changes leave more levelling turns, so earlier rows dominate.
+            ca, cb = side_coeff_first, side_coeff_second
+            cc, cd = change_dest_coeffs
+            reach = (
+                ((ca, cb),),
+                ((cc, cb), (cd, cb), (ca, cc), (ca, cd)),
+                ((cc, ca), (cd, ca), (cc, cd), (cd, cc), (cb, cc), (cb, cd)),
+                ((cb, ca),),
+            )
+            upper = 0
+            for k in range(min(available, 3) + 1):
+                rest = available - k
+                lvl_first = min(5, first + 4 * rest)
+                lvl_second = min(5, second + 4 * rest)
+                for c1, c2 in reach[k]:
+                    upper = max(upper, c1 * lvl_first + c2 * lvl_second)
 
             if upper < min_side_coeff:
                 return False

@@ -31,9 +31,9 @@ describe('GoalProbabilityTable parity', () => {
             earlyFinish: true, effectAware: true, minSideCoeff: msc,
             gemType: i.gem_type, optimize: i.optimize }),
           relic: new GoalProbabilityTable(new LastTurnGoal({ minTotal: 16 }), turns, pool, {
-            maxRerolls: mr }),
+            earlyFinish: true, maxRerolls: mr }),
           anc: new GoalProbabilityTable(new LastTurnGoal({ minTotal: 19 }), turns, pool, {
-            maxRerolls: mr }),
+            earlyFinish: true, maxRerolls: mr }),
         });
       }
       const t = cache.get(ckey);

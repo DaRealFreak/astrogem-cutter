@@ -12,7 +12,7 @@ import {
   DPS_EFFECTS,
   SUPPORT_COEFF,
   SUPPORT_EFFECTS,
-  changeDestMaxCoeff,
+  changeDestCoeffs,
 } from './constants';
 import type { GemState, LastTurnGoal, Option } from './models';
 import { OptionPool } from './pool';
@@ -74,7 +74,6 @@ export interface DecisionContext {
   baseRerolls: number;
   pFresh: number;
   probTable: GoalProbabilityTable; // reroll-aware goal table
-  resetProbTable: GoalProbabilityTable; // standard goal table for reset
   relicProbTable: GoalProbabilityTable | null;
   gemType: string;
   forceRerollActive: boolean; // gated by starting coeff
@@ -207,7 +206,6 @@ export function hasProgressOffer(
 
 export interface TurnMetrics {
   pKeepGoal: number; // prob_table.expected_prob_after_click
-  pKeepGoalReset: number; // reset_prob_table.expected_prob_after_click
   pKeepRelic: number; // relic_table.expected_prob_after_click (0 if None)
   pRerollRelic: number; // relic_table.lookup(state, tl, rerolls-1) (0 if None/no reroll)
   feasibleCount: number; // # offers where prob_table DP > 0 after pick
@@ -289,13 +287,12 @@ function maybeConfirm(
 
 export function computePostRollMetrics(ctx: DecisionContext, ti: TurnInput): TurnMetrics {
   if (ti.offers.length === 0) {
-    return { pKeepGoal: 0.0, pKeepGoalReset: 0.0, pKeepRelic: 0.0, pRerollRelic: 0.0, feasibleCount: 0 };
+    return { pKeepGoal: 0.0, pKeepRelic: 0.0, pRerollRelic: 0.0, feasibleCount: 0 };
   }
 
   const tla = ti.turnsLeft - 1; // turns_left after this click
 
   const pKeepGoal = ctx.probTable.expectedProbAfterClick(ti.state, ti.offers, tla, ti.rerolls);
-  const pKeepGoalReset = ctx.resetProbTable.expectedProbAfterClick(ti.state, ti.offers, tla);
 
   let pKeepRelic = 0.0;
   let pRerollRelic = 0.0;
@@ -317,7 +314,7 @@ export function computePostRollMetrics(ctx: DecisionContext, ti: TurnInput): Tur
     }
   }
 
-  return { pKeepGoal, pKeepGoalReset, pKeepRelic, pRerollRelic, feasibleCount };
+  return { pKeepGoal, pKeepRelic, pRerollRelic, feasibleCount };
 }
 
 // ---------------------------------------------------------------------------
@@ -502,7 +499,7 @@ interface FeasibilityArgs {
   minSideCoeff?: number;
   sideCoeffFirst?: number;
   sideCoeffSecond?: number;
-  changeDestMaxCoeff?: number;
+  changeDestCoeffs?: readonly [number, number];
 }
 
 function feasibilityArgs(ctx: DecisionContext, state: GemState): FeasibilityArgs {
@@ -514,7 +511,7 @@ function feasibilityArgs(ctx: DecisionContext, state: GemState): FeasibilityArgs
     minSideCoeff: ctx.minSideCoeff,
     sideCoeffFirst: coeffMap[state.firstEffect] ?? 0,
     sideCoeffSecond: coeffMap[state.secondEffect] ?? 0,
-    changeDestMaxCoeff: changeDestMaxCoeff(
+    changeDestCoeffs: changeDestCoeffs(
       ctx.gemType,
       state.firstEffect,
       state.secondEffect,
@@ -751,6 +748,8 @@ export function noFeasibleOfferDecision(
 // ---------------------------------------------------------------------------
 // Branch 2: prob_reset_threshold (post-click posterior)
 // ---------------------------------------------------------------------------
+// The posterior is the reroll-aware one (pKeepGoal): rerolls still in hand
+// are worth real odds, so a no-reroll posterior would read 30-40% low.
 
 export function probResetDecision(
   ctx: DecisionContext,
@@ -763,7 +762,7 @@ export function probResetDecision(
   if (goalFullySatisfied(ctx, ti.state)) {
     return null;
   }
-  if (m.pKeepGoalReset >= ctx.probResetThreshold) {
+  if (m.pKeepGoal >= ctx.probResetThreshold) {
     return null;
   }
   // Free-reroll dominance (see resetOrChaseRelic): rerolls are lost on a
@@ -776,7 +775,7 @@ export function probResetDecision(
         action: ActionKind.REROLL,
         branch: 'prob_reset',
         reason: `post-click P(goal) < threshold — rerolling before reset`,
-        metrics: { p_keep_goal_reset: m.pKeepGoalReset, p_reroll_goal: pRerollGoal },
+        metrics: { p_keep_goal: m.pKeepGoal, p_reroll_goal: pRerollGoal },
       });
     }
   }
@@ -787,7 +786,7 @@ export function probResetDecision(
       action: ActionKind.RESET,
       branch: 'prob_reset',
       reason: `post-click P(goal) < threshold`,
-      metrics: { p_keep_goal_reset: m.pKeepGoalReset },
+      metrics: { p_keep_goal: m.pKeepGoal },
     })
   );
 }
@@ -807,7 +806,7 @@ export function lastTurnResetDecision(
   if (goalFullySatisfied(ctx, ti.state)) {
     return null;
   }
-  if (m.pKeepGoalReset >= ctx.pFresh) {
+  if (m.pKeepGoal >= ctx.pFresh) {
     return null;
   }
   // Free-reroll dominance (see resetOrChaseRelic): a redraw is free and the
@@ -820,7 +819,7 @@ export function lastTurnResetDecision(
         action: ActionKind.REROLL,
         branch: 'last_turn_fresh',
         reason: `last turn post-click < fresh start — rerolling before reset`,
-        metrics: { p_keep_goal_reset: m.pKeepGoalReset, p_fresh: ctx.pFresh, p_reroll_goal: pRerollGoal },
+        metrics: { p_keep_goal: m.pKeepGoal, p_fresh: ctx.pFresh, p_reroll_goal: pRerollGoal },
       });
     }
   }
@@ -831,7 +830,7 @@ export function lastTurnResetDecision(
       action: ActionKind.RESET,
       branch: 'last_turn_fresh',
       reason: `last turn post-click < fresh start`,
-      metrics: { p_keep_goal_reset: m.pKeepGoalReset, p_fresh: ctx.pFresh },
+      metrics: { p_keep_goal: m.pKeepGoal, p_fresh: ctx.pFresh },
     })
   );
 }

@@ -396,37 +396,6 @@ def _timed_table(label: str, build):
     return obj
 
 
-def _build_reset_table(
-    goal: LastTurnGoal,
-    turns_total: int,
-    pool: OptionPool,
-    *,
-    gem_type_domain: str,
-    optimize: str,
-    min_side_coeff: int,
-    effect_aware: bool = True,
-) -> GoalProbabilityTable:
-    """Build the standard (non-reroll) reset / p_fresh DP table.
-
-    Mirrors ``GemSimulator._get_ea_tables``' reset table: effect-aware with the
-    ``min_side_coeff`` floor when the gem type is known, so ``p_fresh`` and the
-    offer-conditional ``p_keep_goal_reset`` price a ``--min-side-coeff`` goal
-    exactly as the simulator does. A plain (non-effect-aware) table would drop
-    the side-coeff requirement entirely and report over-optimistic fresh-start
-    odds, diverging from the simulator's reset decisions. Falls back to the
-    plain table only when the gem type is unknown (no effect/coeff info), which
-    matches the goal prob_table's own fallback in ``_build_prob_table``.
-    """
-    if effect_aware and gem_type_domain in GEM_TYPES:
-        return cached_goal_table(
-            goal, turns_total, pool,
-            min_side_coeff=min_side_coeff,
-            early_finish=True,
-            effect_aware=True, gem_type=gem_type_domain, optimize=optimize,
-        )
-    return cached_goal_table(goal, turns_total, pool, early_finish=True)
-
-
 def _parse_view_delta(delta_key: Optional[str]) -> int:
     """Extract the signed integer from a view/reroll delta key (e.g. 'reroll+1' -> 1)."""
     if not delta_key:
@@ -724,7 +693,7 @@ def run_auto(
     print("=== Astrogem Auto Mode ===")
     print(f"Press Escape to stop.{' (DRY RUN)' if dry_run else ''}"
           f"{' [ALL GEMS]' if all_gems else ''}")
-    print("(P(goal)~ is an optimistic estimate — reroll-aware DP)")
+    print("(P(goal)~ is the reroll-aware DP estimate)")
     if not dry_run:
         for i in range(3, 0, -1):
             if _is_stop_pressed():
@@ -760,7 +729,6 @@ def run_auto(
         cached_effects: Optional[Tuple[str, str]] = None
         p_fresh: Optional[float] = None
         decision_ctx: Optional[DecisionContext] = None
-        reset_prob_table: Optional[GoalProbabilityTable] = None
 
         # Relic+ (>=16 total points) probability table — built on first detection
         relic_table: Optional[GoalProbabilityTable] = None
@@ -985,10 +953,12 @@ def run_auto(
                 # the side-value gem_value, so P(relic+)/P(ancient) always show.
                 # Reroll-aware so should_reroll_dp() and reroll-aware lookups
                 # in the goal-unreachable pivot give honest probabilities.
+                # early_finish: a gem already holding the grade can stop and
+                # keep it, so it reads 100% (mirrors GemSimulator).
                 if relic_table is None:
                     relic_table = _timed_table("relic+ table", lambda: cached_goal_table(
                         LastTurnGoal(min_total=16), det.total_steps, pool,
-                        early_finish=False,
+                        early_finish=True,
                         max_rerolls=dp_max_rerolls,
                     ))
                 if (reroll_goal is not None and reroll_goal_threshold > 0.0
@@ -996,26 +966,23 @@ def run_auto(
                     reroll_goal_table = _timed_table("reroll-goal table", lambda: cached_goal_table(
                         LastTurnGoal(min_total_will_chaos=reroll_goal),
                         det.total_steps, pool,
-                        early_finish=False,
+                        early_finish=True,
                         max_rerolls=dp_max_rerolls,
                     ))
-                # Use standard (non-reroll) DP for p_fresh — the reroll-aware
-                # DP overestimates fresh start probability. Effect-aware with
-                # the side-coeff floor (mirrors GemSimulator) so --min-side-coeff
-                # goals are priced the same here as in simulation.
-                reset_prob_table = _timed_table("reset table", lambda: _build_reset_table(
-                    goal, det.total_steps, pool,
-                    gem_type_domain=gem_type_domain, optimize=optimize,
-                    min_side_coeff=min_side_coeff, effect_aware=effect_aware_dp,
-                ))
-                # p_fresh state carries the detected effects so the effect-aware
-                # table resolves indices (a reset reverts to the gem's original
-                # effects, matching this fresh-start state).
-                p_fresh = reset_prob_table.lookup(
+                # p_fresh = what a reset is worth: P(goal) of a fresh cutting
+                # process, read from the reroll-aware goal table with the
+                # rerolls a fresh process is granted (mirrors
+                # GemSimulator.fresh_start_prob). That table is effect-aware
+                # with the side-coeff floor, so --min-side-coeff goals are
+                # priced the same here as in simulation. The state carries the
+                # detected effects so the effect-aware table resolves indices
+                # (a reset reverts to the gem's original effects).
+                p_fresh = prob_table.lookup(
                     GemState(will=1, chaos=1, first=1, second=1,
                              first_effect=det.first_effect,
                              second_effect=det.second_effect),
                     det.total_steps,
+                    rerolls=base_rerolls + (1 if extra_ticket_force_on else 0),
                 )
                 # Side-value DP table: built once per gem type detected.
                 if side_value_table is None:
@@ -1072,8 +1039,8 @@ def run_auto(
                         value_mode="side",
                     ))
                 # DecisionContext is rebuilt here too — prob_table /
-                # reset_prob_table / relic_table references may have just
-                # changed, and force_reroll_active is resolved below.
+                # relic_table references may have just changed, and
+                # force_reroll_active is resolved below.
                 decision_ctx = None  # rebuilt after force_reroll_active is set
 
             # Re-detect gem and re-evaluate tickets when effects change
@@ -1166,7 +1133,6 @@ def run_auto(
                     base_rerolls=_base,
                     p_fresh=p_fresh or 0.0,
                     prob_table=prob_table,
-                    reset_prob_table=reset_prob_table,
                     relic_prob_table=relic_table,
                     gem_type=gem_type_domain,
                     force_reroll_active=force_reroll_active,

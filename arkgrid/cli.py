@@ -455,9 +455,9 @@ def _compute_dp_prob(
 ) -> float:
     """Compute analytical DP probability from initial state.
 
-    Effect-aware and reroll-aware by default. Uses single-draw transition
-    approximation (~20ms). When astro_gem is None and min_side_coeff > 0:
-    averages over all possible random gem effect assignments.
+    Effect-aware and reroll-aware by default. When astro_gem is None and
+    min_side_coeff > 0: averages over all possible random gem effect
+    assignments.
     """
     pool = _SHARED_POOL
     turns = GemSimulator.RARITY_TURNS[rarity]
@@ -608,7 +608,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
             relic_dp = _compute_dp_prob(
                 LastTurnGoal(min_total=16), rarity, astro_gem, args.optimize,
                 bis_only=False, min_side_coeff=0,
-                early_finish=False,
+                early_finish=True,
                 max_rerolls=base_rerolls,
             )
             summary["relic_dp_prob"] = relic_dp
@@ -616,7 +616,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
             ancient_dp = _compute_dp_prob(
                 LastTurnGoal(min_total=19), rarity, astro_gem, args.optimize,
                 bis_only=False, min_side_coeff=0,
-                early_finish=False,
+                early_finish=True,
                 max_rerolls=base_rerolls,
             )
             summary["ancient_dp_prob"] = ancient_dp
@@ -699,7 +699,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
     print(f"Rerolls left: {r.rerolls_left}")
     print()
 
-    print("(P(goal)~ is an optimistic estimate — reroll-aware DP)")
+    print("(P(goal)~ is the reroll-aware DP estimate)")
     print()
     for t in (r.turn_log or []):
         hdr = f"Turn {t['turn']} (left={t['turns_left']})"
@@ -1018,12 +1018,12 @@ def cmd_live(args: argparse.Namespace) -> None:
     if min_side_coeff > 0:
         goal_parts.append(f"min_side_coeff={min_side_coeff}")
     print(f"Goal:       {', '.join(goal_parts) if goal_parts else '(none)'}")
-    print(f"P(goal)~:   {p_current:.1%}  (reroll-aware DP, optimistic estimate)")
+    print(f"P(goal)~:   {p_current:.1%}  (reroll-aware DP)")
 
     # Relic+ (>=16 total points) probability from current state
     relic_table = cached_goal_table(
         LastTurnGoal(min_total=16), turns_total, pool,
-        early_finish=False,
+        early_finish=True,
         max_rerolls=reroll_count,
     )
     p_relic = relic_table.lookup(state, turns_left, rerolls=reroll_count)

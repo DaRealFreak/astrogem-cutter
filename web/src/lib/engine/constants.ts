@@ -114,27 +114,24 @@ export function fusionAvgCoeff(gemType: string, optimize: string, grade: string)
 }
 
 /**
- * Max optimize-side coefficient over the 2 effects either slot can
- * change_*_effect to (the gem-type pool members not currently equipped).
- * Returns 0 when the gem type is unknown or no destination contributes
- * to the optimize side.
+ * Optimize-side coefficients of the 2 effects either slot can
+ * change_*_effect to (the gem-type pool members not currently equipped),
+ * in pool order. Off-target destinations contribute 0; returns [0, 0] when
+ * the gem type is unknown.
  */
-export function changeDestMaxCoeff(
+export function changeDestCoeffs(
   gemType: string,
   firstEffect: string,
   secondEffect: string,
   optimize: string
-): number {
+): [number, number] {
   const pool = GEM_TYPES[gemType];
   if (!pool) {
-    return 0;
+    return [0, 0];
   }
   const coeffMap = optimize === "dps" ? DPS_COEFF : SUPPORT_COEFF;
-  const maxCoeff = Math.max(
-    ...pool
-      .filter((e) => e !== firstEffect && e !== secondEffect)
-      .map((e) => coeffMap[e] ?? 0),
-    0
-  );
-  return maxCoeff;
+  const dests = pool
+    .filter((e) => e !== firstEffect && e !== secondEffect)
+    .map((e) => coeffMap[e] ?? 0);
+  return [dests[0] ?? 0, dests[1] ?? 0];
 }

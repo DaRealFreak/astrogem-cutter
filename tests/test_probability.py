@@ -59,9 +59,12 @@ class TestGoalProbabilityTable(unittest.TestCase):
         s = GemState(will=5, chaos=5, first=3, second=3)
         # At turns_left=0 it's exactly 1.0; with more turns, downgrades
         # (will-1 / chaos-1) can compound, but probability stays high.
+        # (The light -1 options are applied ~10% more often than their
+        # weight share under the exact hand-inclusion model, so the floor
+        # sits just under the 0.70 the single-draw model gave.)
         self.assertAlmostEqual(self.table.lookup(s, 0), 1.0)
         for tl in range(1, 10):
-            self.assertGreater(self.table.lookup(s, tl), 0.7,
+            self.assertGreater(self.table.lookup(s, tl), 0.65,
                                msg=f"turns_left={tl}")
 
     def test_impossible_at_zero_turns(self) -> None:
@@ -132,14 +135,17 @@ class TestEarlyReset(unittest.TestCase):
             rarity="epic", use_extra_ticket=True, use_reset_ticket=True,
             goal=goal, prob_reset_threshold=0.0,
         )
+        # The threshold is compared against the reroll-aware posterior, which
+        # rarely sinks below a couple of percent before the last turn while
+        # rerolls remain — so use a bar high enough to bite (10%).
         sim_prob = GemSimulator(
             rarity="epic", use_extra_ticket=True, use_reset_ticket=True,
-            goal=goal, prob_reset_threshold=0.02,
+            goal=goal, prob_reset_threshold=0.10,
         )
         base_resets = sum(1 for s in range(500) if sim_base.simulate_one(seed=s).reset_used)
         prob_resets = sum(1 for s in range(500) if sim_prob.simulate_one(seed=s).reset_used)
-        # prob-based should reset at least as often (more proactive)
-        self.assertGreaterEqual(prob_resets, base_resets)
+        # prob-based resets more often (more proactive)
+        self.assertGreater(prob_resets, base_resets)
 
     def test_prob_table_always_built(self) -> None:
         sim = GemSimulator(
@@ -616,9 +622,10 @@ class TestSideValueTableReroll(unittest.TestCase):
     def test_flat_default_unchanged(self):
         # max_rerolls=0 reproduces the documented flat value exactly.
         # (Re-pinned after the turn-1 view inclusion + cost-saturation DP
-        # dimension changed every table value.)
+        # dimension, and again for the exact applied probabilities — each
+        # changed every table value.)
         t = self._table(0)
-        self.assertAlmostEqual(t.lookup(self._s0(), 9), 898.93, places=1)
+        self.assertAlmostEqual(t.lookup(self._s0(), 9), 893.09, places=1)
 
     def test_reroll_value_strictly_increases(self):
         t = self._table(4)
@@ -627,13 +634,15 @@ class TestSideValueTableReroll(unittest.TestCase):
             self.assertGreater(b, a)
 
     def test_reroll_value_tracks_mc(self):
-        # Validated MC self-consistency band (tools/reroll_value_fix_validate.py).
-        # Re-pinned after the turn-1 view inclusion + cost-saturation DP
-        # dimension; the validation script re-run confirms the DP stays within
-        # the documented Gaussian-approximation bias of its own-policy MC.
+        # Pins for the hand model (`hand_e_max`, shared with the goal
+        # table). Measured against 60k-trial MC of this table's own policy
+        # under real 4-offer mechanics, this scenario (easy goal +
+        # side-coefficient floor) reads -1.6% at 0 rerolls, -0.1% at 2 and
+        # 0.0% at 3 — inside the MC noise (~1.2% 1-sigma); see
+        # tests/test_reroll_model.py::TestSideValueTableIsCalibrated.
         t = self._table(4)
         got = [t.lookup(self._s0(), 9, rerolls=r) for r in range(5)]
-        expect = [1022.07, 1320.15, 1573.15, 1794.31, 1984.52]
+        expect = [994.93, 1277.30, 1524.50, 1741.75, 1929.16]
         for g, e in zip(got, expect):
             self.assertAlmostEqual(g, e, delta=2.0)
 
@@ -645,7 +654,7 @@ class TestSideValueTableReroll(unittest.TestCase):
                   Option("first+4", 0.45, "first", 4),
                   Option("chaos+3", 1.75, "chaos", 3)]
         self.assertAlmostEqual(
-            t0.expected_value_after_click(self._s0(), offers, 8), 1390.36, places=1)
+            t0.expected_value_after_click(self._s0(), offers, 8), 1331.37, places=1)
 
 
 class TestSideValueTablePolicyEval(unittest.TestCase):
@@ -683,7 +692,7 @@ class TestSideValueTablePolicyEval(unittest.TestCase):
         # will+chaos sum (~4) the decision table would report.
         _, pe = self._tables()
         self.assertGreater(pe.lookup(self._s0(), 9), 100.0)
-        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 924.69, places=1)
+        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 921.18, places=1)
 
     def test_policy_eval_is_flat(self):
         # Policy-eval forces flat (no reroll dimension); a rerolls argument is
@@ -697,7 +706,7 @@ class TestSideValueTablePolicyEval(unittest.TestCase):
         # stays a meaningful coefficient.
         vi, pe = self._tables(min_side_coeff=2000)
         self.assertLess(pe.lookup(self._s0(), 9), vi.lookup(self._s0(), 9))
-        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 811.65, places=1)
+        self.assertAlmostEqual(pe.lookup(self._s0(), 9), 797.07, places=1)
 
 
 class TestCostSaturationDimension(unittest.TestCase):

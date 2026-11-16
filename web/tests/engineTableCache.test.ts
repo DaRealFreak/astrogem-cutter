@@ -17,7 +17,6 @@ describe('engine table cache', () => {
     const a = buildEngineContext(gem, { rarity: 'epic', minWill: 4, minChaos: 5 });
     const b = buildEngineContext(gem, { rarity: 'epic', minWill: 4, minChaos: 5 });
     expect(b._decisionCtx.probTable).toBe(a._decisionCtx.probTable);
-    expect(b._decisionCtx.resetProbTable).toBe(a._decisionCtx.resetProbTable);
     expect(b._decisionCtx.sideValueTable).toBe(a._decisionCtx.sideValueTable);
     expect(b._relicProbTable).toBe(a._relicProbTable);
     expect(b._ancientProbTable).toBe(a._ancientProbTable);

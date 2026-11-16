@@ -7,41 +7,322 @@ from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, GEM_TYPES, SUPPORT_COEFF, 
 from arkgrid.models import Option, LastTurnGoal, GemState
 from arkgrid.pool import OptionPool
 
-_SQRT2 = math.sqrt(2.0)
-_INV_SQRT_2PI = 1.0 / math.sqrt(2.0 * math.pi)
+# Exact hand statistics per weight class, keyed by the sorted eligible weights
+# (a few hundred distinct multisets exist across all states):
+#   (class index by weight, applied prob per class, pair-inclusion matrix).
+_HAND_STATS: Dict[Tuple[float, ...],
+                  Tuple[Dict[float, int], List[float], List[List[float]]]] = {}
 
 
-def _erf(x: float) -> float:
-    """Abramowitz & Stegun 7.1.26 error-function approximation.
+def _hand_stats(key: Tuple[float, ...]):
+    """Exact statistics of the 4-offer hand for one eligible-weight multiset.
 
-    Deliberately NOT `math.erf`: the TypeScript port (web/) has no native
-    erf, so both engines share this identical approximation to keep the
-    reroll-aware SideValueTable byte-for-byte in parity across languages
-    (the ~1.5e-7 absolute error is negligible against the value DP's own
-    ~3% normal-approximation bias).
+    The game draws 4 distinct offers by successive weighted sampling without
+    replacement. Options sharing a weight are exchangeable, so the enumeration
+    runs over ordered draws of weight *classes* (<= 8 classes, <= 8**4 paths).
+    Returns, per class: the probability one of its options is the APPLIED one
+    (hand-inclusion probability / 4), and `pair[a][b]`, the probability that
+    two given distinct options of classes a and b are in the hand together.
     """
-    sign = 1.0 if x >= 0.0 else -1.0
-    x = abs(x)
-    t = 1.0 / (1.0 + 0.3275911 * x)
-    y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
-               - 0.284496736) * t + 0.254829592) * t * math.exp(-x * x)
-    return sign * y
+    stats = _HAND_STATS.get(key)
+    if stats is None:
+        classes = sorted(set(key))
+        counts = [key.count(c) for c in classes]
+        n = len(classes)
+        # expected[i] = E[number of class-i options in the hand]
+        expected = [0.0] * n
+        # joint[a][b] = E[number of slot pairs (earlier, later) holding
+        # classes (a, b)]
+        joint = [[0.0] * n for _ in range(n)]
+        used = [0] * n
+        path: List[int] = []
+
+        def draw(depth: int, p: float, remaining: float) -> None:
+            for i, c in enumerate(classes):
+                k = counts[i] - used[i]
+                if k <= 0:
+                    continue
+                q = p * k * c / remaining
+                expected[i] += q
+                for j in path:
+                    joint[j][i] += q
+                if depth < 3:
+                    used[i] += 1
+                    path.append(i)
+                    draw(depth + 1, q, remaining - c)
+                    path.pop()
+                    used[i] -= 1
+
+        draw(0, 1.0, sum(key))
+        applied = [expected[i] / counts[i] / 4.0 for i in range(n)]
+        pair = [[0.0] * n for _ in range(n)]
+        for a in range(n):
+            for b in range(n):
+                if a != b:
+                    pair[a][b] = ((joint[a][b] + joint[b][a])
+                                  / (counts[a] * counts[b]))
+                elif counts[a] >= 2:
+                    pair[a][a] = (2.0 * joint[a][a]
+                                  / (counts[a] * (counts[a] - 1)))
+        stats = ({c: i for i, c in enumerate(classes)}, applied, pair)
+        _HAND_STATS[key] = stats
+    return stats
 
 
-def _norm_cdf(x: float) -> float:
-    return 0.5 * (1.0 + _erf(x / _SQRT2))
+def applied_probs(weights: List[float]) -> List[float]:
+    """Exact probability that each option is the one APPLIED by a click.
+
+    The game draws 4 distinct offers by successive weighted sampling without
+    replacement and applies one of them uniformly, so an option's applied
+    probability is its hand-inclusion probability / 4 — not `weight / total`.
+    A heavy option can only fill one of the four slots: the +1 options are
+    applied ~10% less often than their weight share and the rare ones
+    10-20% more, which a single-draw model turns into a 3-13% underestimate
+    of P(goal) (30% for relic with 5 turns left).
+
+    With <= 4 eligible options every one is offered and the pick is uniform.
+    """
+    n = len(weights)
+    if n <= 4:
+        return [1.0 / n] * n if n else []
+    index, applied, _pair = _hand_stats(tuple(sorted(weights)))
+    return [applied[index[w]] for w in weights]
 
 
-def _norm_pdf(x: float) -> float:
-    return _INV_SQRT_2PI * math.exp(-0.5 * x * x)
+# hand_context() results, keyed by the (ordered) eligible weights.
+_HAND_CONTEXTS: Dict[Tuple[float, ...], tuple] = {}
 
 
-def _e_max(mu: float, sd: float, t: float) -> float:
-    """E[max(X, t)] for X ~ Normal(mu, sd**2)."""
-    if sd <= 0.0:
+def hand_context(weights: List[float]) -> tuple:
+    """Everything `_hand_turn_value` needs to know about a state's eligible
+    options (in pool order): `(probs, cls, diag, off, n_classes)`.
+
+    `probs` are the applied probabilities, `cls` each option's weight-class
+    index, and `diag` / `off` the pair-inclusion coefficients that turn
+    per-class sums into the exact variance of the hand mean. `cls` is None
+    when <= 4 options are eligible (the hand is then the whole set).
+    """
+    key = tuple(weights)
+    ctx = _HAND_CONTEXTS.get(key)
+    if ctx is None:
+        n = len(weights)
+        if n <= 4:
+            ctx = ([1.0 / n] * n if n else [], None, (), (), 0)
+        else:
+            index, applied, pair = _hand_stats(tuple(sorted(weights)))
+            cls = [index[w] for w in weights]
+            nc = len(applied)
+            diag = tuple((a, pair[a][a]) for a in range(nc)
+                         if pair[a][a] != 0.0)
+            off = tuple((a, b, 2.0 * pair[a][b])
+                        for a in range(nc) for b in range(a + 1, nc))
+            ctx = ([applied[a] for a in cls], cls, diag, off, nc)
+        _HAND_CONTEXTS[key] = ctx
+    return ctx
+
+
+# Multinomial(4; 3 atoms): (n1, n2, n3, coefficient).
+_HAND_TRINOM = tuple(
+    (n1, n2, 4 - n1 - n2,
+     24.0 / (math.factorial(n1) * math.factorial(n2)
+             * math.factorial(4 - n1 - n2)))
+    for n1 in range(5) for n2 in range(5 - n1))
+_TWO_THIRDS_PI = 2.0 * math.pi / 3.0
+
+
+def _hand_e_max2(mu: float, m2: float, m3: float, rho: float,
+                 t: float) -> float:
+    """`hand_e_max` when the offers take only two distinct values (hit or
+    miss — the last turn of a goal table).
+
+    The hand mean is then `lo + (hi - lo) * K / 4`, K = number of "hit"
+    offers in the hand, so only K's distribution is needed. Its mean (4q)
+    and variance (`4 q (1-q) rho`, exact) are matched by Binomial(n, 4q/n):
+    n = 4 is four independent draws, n = 1 a single hit option that is
+    either in the hand or not (exact). A fractional n mixes the two
+    neighbouring integers.
+    """
+    sd = math.sqrt(m2)
+    g = m3 / (m2 * sd)                     # skewness
+    r = math.sqrt(4.0 + g * g)
+    # P(hit) = (1 - g/r) / 2, written to avoid cancellation.
+    q = 2.0 / (r * (r + g)) if g >= 0.0 else 1.0 - 2.0 / (r * (r - g))
+    lo = mu - sd * math.sqrt(q / (1.0 - q))
+    step = (mu + sd * math.sqrt((1.0 - q) / q) - lo) / 4.0
+    mean_k = 4.0 * q
+    denom = 1.0 - (1.0 - q) * rho
+    n = mean_k / denom if denom > mean_k / 4.0 else 4.0
+    floor_n = 1.0 if mean_k < 1.0 else mean_k   # Binomial(n, 4q/n) needs n >= 4q
+    if n < floor_n:
+        n = floor_n
+    n_lo = int(n)
+    if n_lo >= 4:
+        parts = ((4, 1.0),)
+    elif n_lo < mean_k:                     # only the upper neighbour is valid
+        parts = ((n_lo + 1, 1.0),)
+    else:
+        lam = (1.0 / n - 1.0 / (n_lo + 1)) / (1.0 / n_lo - 1.0 / (n_lo + 1))
+        parts = ((n_lo, lam), (n_lo + 1, 1.0 - lam))
+    total = 0.0
+    for n_j, share in parts:
+        if share <= 0.0:
+            continue
+        q_j = mean_k / n_j
+        for k in range(n_j + 1):
+            h = lo + step * k
+            total += (share * math.comb(n_j, k) * q_j ** k
+                      * (1.0 - q_j) ** (n_j - k) * (h if h > t else t))
+    return total
+
+
+def hand_e_max(mu: float, m2: float, m3: float, m4: float, m5: float,
+               rho: float, t: float) -> float:
+    """E[max(H, t)], where H is the mean value of a 4-offer hand.
+
+    A reroll rejects the whole hand, never a single offer, so the value of
+    holding a reroll is `E[max(hand mean, reroll value)]`. Inputs are the
+    single-offer value distribution's mean and central moments `m2..m5`, and
+    `rho` = (exact variance of the hand mean) / (m2 / 4).
+
+    Two things have to be right, and each alone is off by 15-25% of the
+    reroll's value in one regime:
+
+    * **Lumpy values.** The offers are a bulk of similar values plus a few
+      rare big ones. The distribution is replaced by its 3-node Gauss
+      quadrature (the 3-point distribution matching `mu, m2..m5`) and the
+      hand is 4 draws from it (15 values, multinomial weights). A 2-point fit
+      loses the bulk's own spread — it read low on hard goals, where the
+      rare offers carry the value.
+    * **Distinct offers.** The hand holds 4 DIFFERENT options, so its mean
+      varies less than 4 independent draws would — much less when the spread
+      comes from the common +1 offers (easy goals, grade chase), barely when
+      it comes from rare ones. Every deviation is scaled by `sqrt(rho)` so
+      the hand variance is exact; without it easy goals read 15-25% high.
+
+    Against exact enumeration of all C(n, 4) hands at visited states the
+    error is within ~2% of the reroll's value in both regimes, and tables
+    built with it predict what their own policy achieves within ~2%
+    (measurement noise) for hard and easy goals alike. Offers that take
+    only two distinct values (hit or miss: the last turn of a goal table)
+    are handled by `_hand_e_max2`.
+    """
+    scale = mu * mu if mu * mu > t * t else t * t
+    if m2 <= 1e-12 * (scale if scale > 1.0 else 1.0):
         return mu if mu > t else t
-    d = (mu - t) / sd
-    return t + (mu - t) * _norm_cdf(d) + sd * _norm_pdf(d)
+    sd = math.sqrt(m2)
+    g = m3 / (m2 * sd)                     # skewness
+    k = m4 / (m2 * m2)                     # kurtosis
+    h5 = m5 / (m2 * m2 * sd)
+    det = k - g * g - 1.0                  # 0 for a two-valued distribution
+    if det <= 1e-9 * (k if k > 1.0 else 1.0):
+        return _hand_e_max2(mu, m2, m3, rho, t)
+    # Monic degree-3 orthogonal polynomial z^3 + c2 z^2 + c1 z + c0 of the
+    # standardized distribution; its roots are the quadrature nodes.
+    c2 = (g + g * k - h5) / det
+    c1 = -k - g * c2
+    c0 = -g - c2
+    p = c1 - c2 * c2 / 3.0
+    if p >= 0.0:
+        return _hand_e_max2(mu, m2, m3, rho, t)
+    q = 2.0 * c2 * c2 * c2 / 27.0 - c2 * c1 / 3.0 + c0
+    amp = 2.0 * math.sqrt(-p / 3.0)
+    arg = 3.0 * q / (p * amp)
+    arg = 1.0 if arg > 1.0 else (-1.0 if arg < -1.0 else arg)
+    phi = math.acos(arg) / 3.0
+    shift = c2 / 3.0
+    z1 = amp * math.cos(phi) - shift
+    z2 = amp * math.cos(phi - _TWO_THIRDS_PI) - shift
+    z3 = amp * math.cos(phi - 2.0 * _TWO_THIRDS_PI) - shift
+    w1 = (1.0 + z2 * z3) / ((z1 - z2) * (z1 - z3))
+    w2 = (1.0 + z1 * z3) / ((z2 - z1) * (z2 - z3))
+    w3 = 1.0 - w1 - w2
+    if not (w1 > 0.0 and w2 > 0.0 and w3 > 0.0):
+        return _hand_e_max2(mu, m2, m3, rho, t)
+    s = sd * math.sqrt(rho) * 0.25
+    a1 = s * z1
+    a2 = s * z2
+    a3 = s * z3
+    p1 = (1.0, w1, w1 * w1, w1 * w1 * w1, w1 * w1 * w1 * w1)
+    p2 = (1.0, w2, w2 * w2, w2 * w2 * w2, w2 * w2 * w2 * w2)
+    p3 = (1.0, w3, w3 * w3, w3 * w3 * w3, w3 * w3 * w3 * w3)
+    total = 0.0
+    for n1, n2, n3, coef in _HAND_TRINOM:
+        h = mu + n1 * a1 + n2 * a2 + n3 * a3
+        total += coef * p1[n1] * p2[n2] * p3[n3] * (h if h > t else t)
+    return total
+
+
+def _hand_moments(ctx: tuple, posts: List[float]):
+    """`(mu, m2, m3, m4, m5, rho)` of a hand over `ctx`'s options with
+    post-click values `posts`: the single-offer mean and central moments,
+    and `rho`, the exact variance of the 4-distinct-offer hand mean relative
+    to 4 independent draws (`m2 / 4`)."""
+    probs, cls, diag, off, nc = ctx
+    mu = 0.0
+    for p, x in zip(probs, posts):
+        mu += p * x
+    if cls is None:
+        return mu, 0.0, 0.0, 0.0, 0.0, 0.0
+    m2 = m3 = m4 = m5 = 0.0
+    sums = [0.0] * nc           # per class: sum of deviations
+    squares = [0.0] * nc        # per class: sum of squared deviations
+    for p, x, a in zip(probs, posts, cls):
+        d = x - mu
+        d2 = d * d
+        sums[a] += d
+        squares[a] += d2
+        pd = p * d2
+        m2 += pd
+        m3 += pd * d
+        m4 += pd * d2
+        m5 += pd * d2 * d
+    if m2 <= 0.0:
+        return mu, 0.0, 0.0, 0.0, 0.0, 0.0
+    # 16 Var(hand mean) = sum_i pi_i d_i^2 + sum_{i != j} pi_ij d_i d_j,
+    # with pi_i = 4 p_i; the cross term by class sums.
+    cross = 0.0
+    for a, coef in diag:
+        cross += coef * (sums[a] * sums[a] - squares[a])
+    for a, b, coef in off:
+        cross += coef * sums[a] * sums[b]
+    rho = 1.0 + cross / (4.0 * m2)
+    return mu, m2, m3, m4, m5, (rho if rho > 0.0 else 0.0)
+
+
+def _hand_turn_value(ctx: tuple, posts: List[float], alt: float) -> float:
+    """Value of a turn whose 4-offer hand (options described by `ctx`, see
+    `hand_context`; post-click values `posts`) is kept when its mean beats
+    `alt` — the value of the alternative (redraw, or finishing) — and given
+    up for that alternative otherwise."""
+    mu, m2, m3, m4, m5, rho = _hand_moments(ctx, posts)
+    if m2 <= 0.0:
+        # Certain hand: <= 4 eligible options, or all offers worth the same.
+        return mu if mu > alt else alt
+    return hand_e_max(mu, m2, m3, m4, m5, rho, alt)
+
+
+def _hand_contexts(pool: OptionPool, max_turns: int) -> dict:
+    """`hand_context` per (turn label, cost state) and state625 — the same
+    three-turn-type layout as the builds' transition caches."""
+    out = {}
+    for label, turn, tl in (("first", 1, max_turns),
+                            ("last", max_turns, 1),
+                            ("middle", 2,
+                             max_turns - 1 if max_turns > 2 else 2)):
+        for cs in (0, 1):
+            ctxs = [None] * 625
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            state = GemState(will=w, chaos=c, first=f,
+                                             second=s,
+                                             cost_ratio=100 if cs else 0)
+                            ctxs[_s625(w, c, f, s)] = hand_context(
+                                [o.weight for o in pool.pool
+                                 if pool.eligible(o, state, turn, tl)])
+            out[(label, cs)] = ctxs
+    return out
 
 
 def _s625(w: int, c: int, f: int, s: int) -> int:
@@ -57,10 +338,11 @@ def _s625(w: int, c: int, f: int, s: int) -> int:
 class GoalProbabilityTable:
     """Precomputed P(reach goal | will, chaos, first, second, turns_left).
 
-    Uses backward induction with a single-draw transition approximation
-    (option probability = weight / sum of eligible weights).
+    Uses backward induction over the exact per-option applied probabilities
+    (`applied_probs`: hand-inclusion probability / 4). Reroll-aware tables
+    price a reroll on the whole 4-offer hand (`hand_e_max`).
 
-    Build cost ~20ms. Lookup O(1).
+    Lookup O(1).
 
     When *bis_only* is True the state is extended with two booleans
     (first_is_target, second_is_target) and success requires both
@@ -161,9 +443,8 @@ class GoalProbabilityTable:
     # ------------------------------------------------------------------
 
     def _option_probs(self, eligible: List[Option]) -> List[float]:
-        """Return per-option applied probability (single-draw approximation)."""
-        total_w = sum(o.weight for o in eligible)
-        return [o.weight / total_w for o in eligible]
+        """Return the exact per-option applied probability (`applied_probs`)."""
+        return applied_probs([o.weight for o in eligible])
 
     # ------------------------------------------------------------------
     # Non-BIS transitions and build
@@ -328,13 +609,17 @@ class GoalProbabilityTable:
         State key: (w, c, f, s, r, turns_left) where r = rerolls available.
 
         Transition: on turns > 1, with r > 0 rerolls available, the player
-        can choose to keep the current offers or reroll.  Under the
-        single-draw approximation:
+        sees the 4-offer hand and either keeps it (a uniformly random offer
+        is applied) or rerolls the whole hand:
 
-            V(s, r, tl) = max(
-                sum_i p_i * V(apply_i(s), r + vd_i, tl-1),   # keep
-                V(s, r-1, tl)                                  # reroll
-            )
+            V(s, r, tl) = E_hand[ max(
+                mean_{i in hand} V(apply_i(s), r + vd_i, tl-1),   # keep
+                V(s, r-1, tl)                                       # reroll
+            ) ]
+
+        evaluated with the hand model (`hand_e_max`). A per-option
+        max (accept/reject each offer on its own) would overstate the value
+        of a reroll by 30-60% on epic gems.
 
         Turn 1 never allows rerolling (hardcoded game rule).
         """
@@ -371,6 +656,8 @@ class GoalProbabilityTable:
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
+        hand_cache = _hand_contexts(self.pool, mt)
+
         # Backward induction
         for tl in range(1, mt + 1):
             turn_number = mt - tl + 1
@@ -388,6 +675,7 @@ class GoalProbabilityTable:
                             st = _s625(w, c, f, s)
                             for cs in (0, 1):
                                 trans = trans_cache[(label, cs)][st]
+                                hand = hand_cache[(label, cs)][st]
                                 for r in range(0, max_r + 1):
                                     if (self.early_finish
                                             and self.goal.satisfied(w, c, f, s)
@@ -395,18 +683,18 @@ class GoalProbabilityTable:
                                         dp[self._idx(st, cs, 0, r, tl)] = 1.0
                                         continue
 
-                                    # Reroll decision uses per-option max:
-                                    # for each possible draw, keep if better
-                                    # than rerolling, otherwise reroll.
+                                    # Reroll decision is made on the whole
+                                    # 4-offer hand: keep it when its mean
+                                    # beats a redraw, otherwise reroll.
                                     if r > 0 and turn_number != 1:
                                         reroll_val = dp[self._idx(st, cs, 0, r - 1, tl)]
-                                        val = 0.0
-                                        for (p, nw, nc, nf, ns, ncs, vd) in trans:
-                                            nr = min(max_r, r + vd)
-                                            post = dp[self._idx(
-                                                _s625(nw, nc, nf, ns), ncs, 0, nr, tl - 1)]
-                                            val += p * max(post, reroll_val)
-                                        dp[self._idx(st, cs, 0, r, tl)] = val
+                                        posts = [
+                                            dp[self._idx(
+                                                _s625(nw, nc, nf, ns), ncs, 0,
+                                                min(max_r, r + vd), tl - 1)]
+                                            for (_p, nw, nc, nf, ns, ncs, vd) in trans]
+                                        dp[self._idx(st, cs, 0, r, tl)] = (
+                                            _hand_turn_value(hand, posts, reroll_val))
                                     else:
                                         val = 0.0
                                         for (p, nw, nc, nf, ns, ncs, vd) in trans:
@@ -745,6 +1033,8 @@ class GoalProbabilityTable:
                                         w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
+        hand_cache = _hand_contexts(self.pool, mt)
+
         # Backward induction
         for tl in range(1, mt + 1):
             turn_number = mt - tl + 1
@@ -763,6 +1053,7 @@ class GoalProbabilityTable:
                             st = _s625(w, c, f, s)
                             for cs in (0, 1):
                                 trans = trans_cache[(label, cs)][st]
+                                hand = hand_cache[(label, cs)][st]
                                 for fi, si in valid_pairs:
                                     dests = self._change_dests[(fi, si)]
                                     n_dests = len(dests)
@@ -798,15 +1089,15 @@ class GoalProbabilityTable:
                                         if r > 0 and turn_number != 1:
                                             reroll_val = dp[self._idx(
                                                 st, cs, ea, r - 1, tl)]
-                                            val = 0.0
-                                            for (p, key, _kind,
-                                                 nw, nc, nf, ns, ncs, vd) in trans:
-                                                nr = min(max_r, r + vd)
-                                                post = post_val(
+                                            posts = [
+                                                post_val(
                                                     key, _s625(nw, nc, nf, ns),
-                                                    ncs, nr)
-                                                val += p * max(post, reroll_val)
-                                            dp[self._idx(st, cs, ea, r, tl)] = val
+                                                    ncs, min(max_r, r + vd))
+                                                for (_p, key, _kind, nw, nc,
+                                                     nf, ns, ncs, vd) in trans]
+                                            dp[self._idx(st, cs, ea, r, tl)] = (
+                                                _hand_turn_value(
+                                                    hand, posts, reroll_val))
                                         else:
                                             val = 0.0
                                             for (p, key, _kind,
@@ -987,15 +1278,10 @@ class GoalProbabilityTable:
                          turns_left: int, rerolls: int) -> bool:
         """DP-optimal reroll decision for reroll-aware table.
 
-        Uses per-option comparison: for each of the 4 actual offers,
-        checks if keeping (uniform 25% pick) gives higher expected
-        value than rerolling.  Rerolls when the value with selective
-        rejection (keeping good offers, rerolling bad ones) exceeds
-        the keep-all average.
-
-        In practice this simplifies to: reroll if the average post-click
-        value of the offers is below the reroll value, since with
-        uniform pick the player can't select individual offers.
+        Rerolls when the average post-click value of the 4 actual offers
+        (uniform 25% pick — the player can't select individual offers) is
+        below the value of redrawing with one fewer reroll. This is the same
+        hand-level rule the table's backward induction prices.
         """
         if self._max_rerolls <= 0 or rerolls <= 0:
             return False
@@ -1025,12 +1311,13 @@ class SideValueTable:
     reroll count and `_build_reroll` prices a per-turn keep-vs-reroll choice.
     A naive *pool-average* reroll DP would be a no-op — a reroll redraws from
     the same pool, so its mean equals the process arm. The fix models the
-    redraw's *variance*: the 4-offer hand EV is `Normal(mu, (var/4)*fpc)`
-    (`fpc=(N-4)/(N-1)`, the finite-population correction over the `N`
-    eligible options), and the value of a turn is the variance-aware Gaussian
-    `E[max(hand_EV, keep_or_finish_threshold)]` (`_e_max`). Because a redraw
+    *spread* of the 4-offer hand: the value of a turn is
+    `E[max(hand mean, keep_or_finish_threshold)]`, evaluated with the same
+    hand model as the goal table (`hand_e_max`). Because a redraw
     is a fresh sample, the chance to draw above the mean has real value, so V
-    *does* rise with the reroll count. `max_rerolls == 0` builds the flat
+    *does* rise with the reroll count. (A Gaussian hand model was used here
+    first; it read up to 13% high on hard goals, where the gem's value hinges
+    on a few rare offers.) `max_rerolls == 0` builds the flat
     table (byte-identical to the pre-Phase-A table). The decision layer
     threads the live reroll budget into every lookup / `expected_value_after_click`.
 
@@ -1192,10 +1479,9 @@ class SideValueTable:
                     if self.pool.eligible(o, state, turn, turns_left)]
         if not eligible:
             return [(1.0, "", "", w, c, f, s, cs)]
-        total_w = sum(o.weight for o in eligible)
+        probs = applied_probs([o.weight for o in eligible])
         result = []
-        for o in eligible:
-            p = o.weight / total_w
+        for p, o in zip(probs, eligible):
             nw, nc, nf, ns, ncs = w, c, f, s, cs
             if o.kind == "will":
                 nw = min(5, max(1, w + o.delta))
@@ -1424,10 +1710,10 @@ class SideValueTable:
             elig = [o for o in self.pool.pool
                     if self.pool.eligible(o, state, turn, tl)]
             if not elig:
-                return [(1.0, "", "", w, c, f, s, cs, 0)], 0
-            tot = sum(o.weight for o in elig)
+                return [(1.0, "", "", w, c, f, s, cs, 0)]
+            probs = applied_probs([o.weight for o in elig])
             out = []
-            for o in elig:
+            for p, o in zip(probs, elig):
                 nw, nc, nf, ns, ncs, vd = w, c, f, s, cs, 0
                 if o.kind == "will":
                     nw = min(5, max(1, w + o.delta))
@@ -1441,8 +1727,8 @@ class SideValueTable:
                     vd = o.delta
                 elif o.kind == "cost":
                     ncs = 1 - cs
-                out.append((o.weight / tot, o.key, o.kind, nw, nc, nf, ns, ncs, vd))
-            return out, len(elig)
+                out.append((p, o.key, o.kind, nw, nc, nf, ns, ncs, vd))
+            return out
 
         trans_cache = {}
         for label, turn, tl in [("first", 1, mt), ("last", mt, 1),
@@ -1457,6 +1743,7 @@ class SideValueTable:
                                     w, c, f, s, cs, turn, tl)
                 trans_cache[(label, cs)] = cache
 
+        hand_cache = _hand_contexts(self.pool, mt)
         cd = self._change_dests
 
         def post_val(key, nst, ncs, fi, si, nr, tl):
@@ -1481,28 +1768,28 @@ class SideValueTable:
                         for s in range(1, 6):
                             st = _s625(w, c, f, s)
                             for cs in (0, 1):
-                                trans, n_elig = trans_cache[(label, cs)][st]
-                                fpc = ((n_elig - 4) / (n_elig - 1)
-                                       if n_elig > 4 else 0.0)
+                                trans = trans_cache[(label, cs)][st]
+                                hand = hand_cache[(label, cs)][st]
                                 for fi, si in valid_pairs:
                                     finish_val = self._gem_value_idx(w, c, f, s, fi, si)
                                     ea = fi * 4 + si
                                     for r in range(maxR + 1):
-                                        xs = []
-                                        for (p, key, _k, nw, nc, nf, ns, ncs, vd) in trans:
-                                            nr = min(maxR, r + vd)
-                                            xs.append((p, post_val(
+                                        posts = [
+                                            post_val(
                                                 key, _s625(nw, nc, nf, ns), ncs,
-                                                fi, si, nr, tl - 1)))
-                                        mu = sum(p * x for p, x in xs)
-                                        var = sum(p * (x - mu) ** 2 for p, x in xs)
-                                        sd = math.sqrt(max(0.0, var / 4.0 * fpc))
+                                                fi, si, min(maxR, r + vd), tl - 1)
+                                            for (_p, key, _k, nw, nc, nf, ns,
+                                                 ncs, vd) in trans]
+                                        # The hand is weighed against the best
+                                        # alternative: finishing now, or (with
+                                        # a reroll in hand) redrawing.
                                         if r > 0 and turn_number != 1:
                                             rc = dp[self._idx(st, cs, ea, r - 1, tl)]
                                             t = finish_val if finish_val > rc else rc
                                         else:
                                             t = finish_val
-                                        dp[self._idx(st, cs, ea, r, tl)] = _e_max(mu, sd, t)
+                                        dp[self._idx(st, cs, ea, r, tl)] = (
+                                            _hand_turn_value(hand, posts, t))
 
     # -- public API --------------------------------------------------
 
@@ -1540,7 +1827,7 @@ class SideValueTable:
 
         Mirrors `GoalProbabilityTable.expected_prob_after_click` — the
         process-EV term of the finish decision uses the real offers, not
-        the pool-model single draw the table is built with.
+        the pool-wide expectation the table is built with.
         """
         if not self.enabled or not offers:
             return 0.0

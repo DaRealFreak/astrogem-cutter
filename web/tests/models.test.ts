@@ -27,7 +27,7 @@ describe('feasible parity', () => {
       const i = r.inputs;
       expect(goal(i.goal).feasible(i.will, i.chaos, i.turns_left, i.first, i.second, {
         minSideCoeff: i.min_side_coeff, sideCoeffFirst: i.side_coeff_first,
-        sideCoeffSecond: i.side_coeff_second, changeDestMaxCoeff: i.change_dest_max_coeff,
+        sideCoeffSecond: i.side_coeff_second, changeDestCoeffs: i.change_dest_coeffs,
       })).toBe(r.expected);
     }
   });

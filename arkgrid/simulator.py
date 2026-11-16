@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 
 from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
-    SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
+    SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_coeffs,
 )
 from arkgrid.decision import (
     ActionKind, DecisionContext, TurnInput,
@@ -83,7 +83,6 @@ class GemSimulator:
         # the per-turn --reroll-min-coeff reroll-ticket enabler.
         self._expected_coeff_table_cache: Dict[str, SideValueTable] = {}
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
-        self._ea_reset_table_cache: Dict[str, GoalProbabilityTable] = {}
         # Active gem/policy are set per-run in simulate_one;
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
@@ -146,16 +145,9 @@ class GemSimulator:
             early_finish=True,
             max_rerolls=dp_max_rerolls,
         )
-        # Standard (non-reroll) DP for reset decisions — the reroll-aware
-        # DP overestimates p_fresh because the per-option max model
-        # overstates reroll value vs actual 4-draw-pick-1 mechanics.
-        self._reset_prob_table = cached_goal_table(
-            goal, self.turns_total, self.pool,
-            side_coeff_first=side_coeff_first,
-            side_coeff_second=side_coeff_second,
-            min_side_coeff=dp_min_side_coeff,
-            early_finish=True,
-        )
+        # Reset decisions read this same table: the --prob-reset-threshold
+        # posterior and the fresh-start value (`fresh_start_prob`) both count
+        # the rerolls in hand. No separate no-reroll table is needed.
 
         # Relic+ (>=16 total points) DP table for probability tracking.
         # Built unconditionally: grade is always part of the side-value
@@ -166,10 +158,11 @@ class GemSimulator:
         # Reroll-aware so lookups account for the value of available
         # rerolls when chasing relic+.  Without max_rerolls the table
         # is the no-reroll DP and systematically underestimates P(r+),
-        # making the override fire too rarely.
+        # making the override fire too rarely.  early_finish: a gem that
+        # already holds the grade can stop and keep it, so it reads 100%.
         self._relic_prob_table: Optional[GoalProbabilityTable] = cached_goal_table(
             LastTurnGoal(min_total=16), self.turns_total, self.pool,
-            early_finish=False,
+            early_finish=True,
             max_rerolls=dp_max_rerolls,
         )
 
@@ -180,17 +173,16 @@ class GemSimulator:
             self._reroll_goal_prob_table = cached_goal_table(
                 LastTurnGoal(min_total_will_chaos=reroll_goal),
                 self.turns_total, self.pool,
-                early_finish=False,
+                early_finish=True,
                 max_rerolls=dp_max_rerolls,
             )
 
-    def _get_ea_tables(self, gem_type: str) -> tuple:
-        """Build or fetch cached effect-aware (reroll, reset) DP tables
+    def _get_ea_table(self, gem_type: str) -> GoalProbabilityTable:
+        """Build or fetch the cached effect-aware, reroll-aware goal table
         for the given gem type. Used only when effect_aware is True.
         """
         if gem_type in self._ea_table_cache:
-            return (self._ea_table_cache[gem_type],
-                    self._ea_reset_table_cache[gem_type])
+            return self._ea_table_cache[gem_type]
         reroll_tbl = cached_goal_table(
             self.goal, self.turns_total, self.pool,
             min_side_coeff=self.min_side_coeff,
@@ -200,24 +192,15 @@ class GemSimulator:
             gem_type=gem_type,
             optimize=self.optimize,
         )
-        reset_tbl = cached_goal_table(
-            self.goal, self.turns_total, self.pool,
-            min_side_coeff=self.min_side_coeff,
-            early_finish=True,
-            effect_aware=True,
-            gem_type=gem_type,
-            optimize=self.optimize,
-        )
         self._ea_table_cache[gem_type] = reroll_tbl
-        self._ea_reset_table_cache[gem_type] = reset_tbl
-        return reroll_tbl, reset_tbl
+        return reroll_tbl
 
     def _get_side_value_table(self, gem_type: str) -> SideValueTable:
         """Build or fetch the cached side-value DP table for a gem type.
 
         One table per gem type covers all effect configs (the effect pair
         is in the DP state), so `--all` / random-gem runs amortize the
-        build the same way `_get_ea_tables` does.
+        build the same way `_get_ea_table` does.
         """
         cached = self._side_value_table_cache.get(gem_type)
         if cached is not None:
@@ -318,6 +301,24 @@ class GemSimulator:
         )
         self._expected_coeff_table_cache[gem_type] = table
         return table
+
+    def fresh_start_prob(self, run_gem: Optional[AstroGem]) -> float:
+        """P(goal) of a fresh cutting process — what a reset is worth.
+
+        Read from the reroll-aware table with the rerolls a fresh process is
+        granted (the rarity's free rerolls, plus the reroll ticket when it is
+        force-on): a reset hands those back, so the no-reroll table
+        undervalues it by 30-40% on rare/epic gems and kept last-turn hands
+        a fresh start beats. Call after the per-run table swap in
+        `simulate_one` so effect-aware runs read the effect-aware table.
+        """
+        fresh = GemState(
+            will=1, chaos=1, first=1, second=1,
+            first_effect=run_gem.first_effect if run_gem else "",
+            second_effect=run_gem.second_effect if run_gem else "")
+        rerolls = self.RARITY_REROLLS[self.rarity] + (
+            1 if self.use_extra_ticket is True else 0)
+        return self.prob_table.lookup(fresh, self.turns_total, rerolls=rerolls)
 
     @staticmethod
     def _random_astro_gem(rng: random.Random, optimize: str) -> AstroGem:
@@ -457,7 +458,6 @@ class GemSimulator:
             base_rerolls=self.base_rerolls,
             p_fresh=p_fresh,
             prob_table=self.prob_table,
-            reset_prob_table=self._reset_prob_table,
             relic_prob_table=self._relic_prob_table,
             gem_type=gem_type,
             force_reroll_active=self._force_reroll_active,
@@ -509,7 +509,7 @@ class GemSimulator:
             "min_side_coeff": self.min_side_coeff,
             "side_coeff_first": coeff_map.get(state.first_effect, 0),
             "side_coeff_second": coeff_map.get(state.second_effect, 0),
-            "change_dest_max_coeff": change_dest_max_coeff(
+            "change_dest_coeffs": change_dest_coeffs(
                 self.astro_gem.gem_type, state.first_effect,
                 state.second_effect, opt),
         }
@@ -607,9 +607,7 @@ class GemSimulator:
         # enforce min_side_coeff even when the starting effects don't
         # contribute to the target side.
         if self.effect_aware and run_gem.gem_type in GEM_TYPES:
-            ea_reroll, ea_reset = self._get_ea_tables(run_gem.gem_type)
-            self.prob_table = ea_reroll
-            self._reset_prob_table = ea_reset
+            self.prob_table = self._get_ea_table(run_gem.gem_type)
         self._side_value_table = (
             self._get_side_value_table(run_gem.gem_type)
             if run_gem.gem_type in GEM_TYPES else None)
@@ -653,18 +651,13 @@ class GemSimulator:
         # Free (base/earned) rerolls only — the reroll ticket is lent per turn.
         run_rerolls = self.RARITY_REROLLS[self.rarity]
 
-        # Fresh-start probability — reset is better when current odds drop below this
-        # Uses standard DP (not reroll-aware) for accurate reset value estimate.
-        # EA mode: include starting effects so the lookup resolves indices;
-        # reset reverts to the gem's original effects, matching this state.
-        p_fresh = self._reset_prob_table.lookup(
-            GemState(will=1, chaos=1, first=1, second=1,
-                     first_effect=run_gem.first_effect,
-                     second_effect=run_gem.second_effect),
-            self.turns_total)
+        # Fresh-start probability — reset is better when current odds drop
+        # below this. A reset reverts to the gem's original effects and
+        # re-grants the process's rerolls (see `fresh_start_prob`).
+        p_fresh = self.fresh_start_prob(run_gem)
 
         # Build the per-run decision context once. Includes the latest
-        # prob_table / reset_prob_table references — these may have
+        # prob_table reference — it may have
         # been swapped to per-gem-type EA tables above.
         ctx = self._decision_context(p_fresh=p_fresh)
 

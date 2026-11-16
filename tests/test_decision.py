@@ -73,17 +73,16 @@ def build_ctx(
         max_rerolls=base_rerolls,
         early_finish=True,
     )
-    reset_table = GoalProbabilityTable(
-        g, turns_total, _POOL,
-        early_finish=True,
-    )
     relic_table = (
         GoalProbabilityTable(LastTurnGoal(min_total=16), turns_total,
                              _POOL, max_rerolls=base_rerolls)
         if with_relic else None
     )
     if p_fresh is None:
-        p_fresh = reset_table.lookup(GemState(1, 1, 1, 1), turns_total)
+        # Fresh-start value: reroll-aware table with a fresh process's
+        # rerolls (mirrors GemSimulator.fresh_start_prob).
+        p_fresh = prob_table.lookup(GemState(1, 1, 1, 1), turns_total,
+                                    rerolls=base_rerolls)
     confirm_active = confirm_min_coeff is not None
     side_value_table = SideValueTable(
         g, turns_total, _POOL, gem_type=gem_type, optimize=optimize,
@@ -134,7 +133,7 @@ def build_ctx(
         force_reroll_no_progress=force_reroll_no_progress,
         turns_total=turns_total, base_rerolls=base_rerolls,
         p_fresh=p_fresh,
-        prob_table=prob_table, reset_prob_table=reset_table,
+        prob_table=prob_table,
         relic_prob_table=relic_table,
         gem_type=gem_type, force_reroll_active=force_reroll_active,
         confirm_active=confirm_active,
@@ -1148,7 +1147,7 @@ class TestEndgameGate(unittest.TestCase):
                       offers=make_offers("first+2", "second+2",
                                          "will+1", "chaos+1"),
                       turn=9, turns_left=1, rerolls=0, reset_available=False)
-        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.FINISH)
         self.assertEqual(d.branch, "side_value_finish")
@@ -1165,7 +1164,7 @@ class TestEndgameGate(unittest.TestCase):
                       offers=make_offers("first+2", "second+2",
                                          "will+1", "chaos+1"),
                       turn=9, turns_left=1, rerolls=0, reset_available=False)
-        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0))
         self.assertIsNone(d)
 
     def test_explicit_endgame_risk_disables_the_gate(self):
@@ -1179,7 +1178,7 @@ class TestEndgameGate(unittest.TestCase):
                       offers=make_offers("first+2", "second+2",
                                          "will+1", "chaos+1"),
                       turn=9, turns_left=1, rerolls=0, reset_available=False)
-        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0))
         self.assertIsNone(d)
 
     def test_legacy_float_margin_path_unchanged(self):
@@ -1192,7 +1191,7 @@ class TestEndgameGate(unittest.TestCase):
                       offers=make_offers("will-1", "chaos-1",
                                          "first-1", "second-1"),
                       turn=9, turns_left=1, rerolls=0, reset_available=False)
-        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0, 0))
+        d = _side_value_finish_decision(ctx, ti, TurnMetrics(0, 0, 0, 0))
         self.assertIsNotNone(d)
         self.assertEqual(d.action, ActionKind.FINISH)
 

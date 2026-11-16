@@ -31,11 +31,10 @@ describe('minSideCoeff with off-target starting effects', () => {
     // attack_power=400 at level 5), so it must bind: 0 < pWith < pNo.
     expect(pWith).toBeGreaterThan(0);
     expect(pWith).toBeLessThan(pNo);
-    // Same for the reset table (flat lookups take no reroll arg).
-    const rWith = withFloor._decisionCtx.resetProbTable.lookup(st, 9);
-    const rNo = noFloor._decisionCtx.resetProbTable.lookup(st, 9);
-    expect(rWith).toBeGreaterThan(0);
-    expect(rWith).toBeLessThan(rNo);
+    // Same for the fresh-start value the reset comparison uses (it is read
+    // from this table).
+    expect(withFloor._decisionCtx.pFresh).toBeGreaterThan(0);
+    expect(withFloor._decisionCtx.pFresh).toBeLessThan(noFloor._decisionCtx.pFresh);
     // Two full engine contexts (reroll-aware value tables) — allow headroom
     // when the suite runs under load, like the decision parity sweep.
   }, 180_000);

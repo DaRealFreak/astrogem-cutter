@@ -74,7 +74,7 @@ class TestGemAnalyzer(unittest.TestCase):
 
 class TestPprintResult(unittest.TestCase):
     def test_both_dp_bounds_displayed(self) -> None:
-        """pprint_result must display both the reroll-aware (optimistic) and the
+        """pprint_result must display both the reroll-aware and the
         no-reroll (conservative) DP lines when dp_prob_no_reroll is present in the summary."""
         summary = {
             "dp_prob": 0.45,
@@ -85,8 +85,8 @@ class TestPprintResult(unittest.TestCase):
             pprint_result("  Epic", summary)
         output = buf.getvalue()
 
-        # Reroll-aware optimistic label and value must appear
-        self.assertIn("optimistic", output)
+        # Reroll-aware label and value must appear
+        self.assertIn("reroll-aware", output)
         self.assertIn("45.00%", output)
 
         # No-reroll conservative label and value must appear
@@ -102,7 +102,7 @@ class TestPprintResult(unittest.TestCase):
             pprint_result("  Common", summary)
         output = buf.getvalue()
 
-        self.assertIn("optimistic", output)
+        self.assertIn("reroll-aware", output)
         self.assertIn("60.00%", output)
         self.assertNotIn("conservative", output)
 

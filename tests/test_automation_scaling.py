@@ -26,7 +26,7 @@ import unittest
 # can be collected on Linux/macOS CI runners without failing the import,
 # and skip the whole class on those platforms via ``_IMPORT_OK``.
 try:
-    from arkgrid.automation import scale_to_screen, _build_reset_table
+    from arkgrid.automation import scale_to_screen, _build_prob_table
     _IMPORT_OK = True
 except RuntimeError:
     # Raised on non-Windows: "The 'auto' command requires Windows."
@@ -166,14 +166,18 @@ class TestScaleToScreen(unittest.TestCase):
 
 
 @unittest.skipUnless(_IMPORT_OK, "arkgrid.automation requires Windows")
-class TestBuildResetTable(unittest.TestCase):
-    """Regression: run_auto's reset/p_fresh DP table must be effect-aware with
-    the side-coeff floor for --min-side-coeff goals, matching the simulator.
+class TestFreshStartTablePricesSideCoeffFloor(unittest.TestCase):
+    """Regression: the table run_auto reads p_fresh (and every reset
+    posterior) from must be effect-aware with the side-coeff floor for
+    --min-side-coeff goals, matching the simulator.
 
-    The old code built a plain (non-effect-aware) table that dropped the
-    side-coeff requirement entirely, so p_fresh was over-optimistic and auto's
-    reset decisions diverged from the simulator's.
+    An old version read p_fresh from a plain (non-effect-aware) table that
+    dropped the side-coeff requirement entirely, so p_fresh was
+    over-optimistic and auto's reset decisions diverged from the simulator's.
+    p_fresh now comes from the goal table `_build_prob_table` returns.
     """
+
+    _REROLLS = 1  # rare: one free reroll
 
     _GEM = "chaos_distortion"  # pool contains attack_power + boss_damage
     _GOAL = LastTurnGoal(min_total_will_chaos=6)
@@ -182,31 +186,33 @@ class TestBuildResetTable(unittest.TestCase):
     _START = dict(will=1, chaos=1, first=1, second=1,
                   first_effect="attack_power", second_effect="boss_damage")
 
-    def test_reset_table_matches_simulator_for_min_side_coeff_goal(self):
+    def test_fresh_start_table_matches_simulator_for_min_side_coeff_goal(self):
         pool = OptionPool()
         start = GemState(**self._START)
 
-        auto_tbl = _build_reset_table(
-            self._GOAL, self._TURNS, pool,
-            gem_type_domain=self._GEM, optimize="dps",
-            min_side_coeff=self._MIN_SIDE_COEFF, effect_aware=True)
-        # What GemSimulator._get_ea_tables builds for resets.
+        auto_tbl, _, _, _ = _build_prob_table(
+            self._GOAL, self._TURNS, pool, start, False, "dps",
+            self._MIN_SIDE_COEFF, self._GEM, early_finish=True,
+            max_rerolls=self._REROLLS, effect_aware=True)
+        # What GemSimulator._get_ea_table builds.
         sim_tbl = GoalProbabilityTable(
             self._GOAL, self._TURNS, pool,
             min_side_coeff=self._MIN_SIDE_COEFF, early_finish=True,
+            max_rerolls=self._REROLLS,
             effect_aware=True, gem_type=self._GEM, optimize="dps")
-        # The old, buggy automation table (plain, side-coeff ignored).
+        # The old, buggy source of p_fresh (plain, side-coeff ignored).
         plain_tbl = GoalProbabilityTable(
-            self._GOAL, self._TURNS, pool, early_finish=True)
+            self._GOAL, self._TURNS, pool, early_finish=True,
+            max_rerolls=self._REROLLS)
 
-        p_auto = auto_tbl.lookup(start, self._TURNS)
-        p_sim = sim_tbl.lookup(start, self._TURNS)
-        p_plain = plain_tbl.lookup(start, self._TURNS)
+        p_auto = auto_tbl.lookup(start, self._TURNS, rerolls=self._REROLLS)
+        p_sim = sim_tbl.lookup(start, self._TURNS, rerolls=self._REROLLS)
+        p_plain = plain_tbl.lookup(start, self._TURNS, rerolls=self._REROLLS)
 
         self.assertAlmostEqual(
             p_auto, p_sim, places=9,
-            msg="auto reset table must match the simulator's effect-aware "
-                "reset table for a --min-side-coeff goal")
+            msg="auto's goal table must match the simulator's effect-aware "
+                "table for a --min-side-coeff goal")
         self.assertGreater(
             p_plain, p_auto + 1e-6,
             "the plain (non-EA) table over-estimates p_fresh because it "
@@ -214,10 +220,10 @@ class TestBuildResetTable(unittest.TestCase):
 
     def test_unknown_gem_type_falls_back_to_plain_table(self):
         pool = OptionPool()
-        tbl = _build_reset_table(
-            self._GOAL, self._TURNS, pool,
-            gem_type_domain="not_a_real_gem", optimize="dps",
-            min_side_coeff=self._MIN_SIDE_COEFF, effect_aware=True)
+        tbl, _, _, _ = _build_prob_table(
+            self._GOAL, self._TURNS, pool, GemState(**self._START), False,
+            "dps", self._MIN_SIDE_COEFF, "not_a_real_gem", early_finish=True,
+            max_rerolls=self._REROLLS, effect_aware=True)
         self.assertFalse(tbl.effect_aware)
 
 

@@ -493,7 +493,7 @@ class TestRelicRerollTableSizing(unittest.TestCase):
         self.assertEqual(sim._relic_prob_table._max_rerolls, sim.base_rerolls + 1)
 
     def test_ea_tables_reroll_sized_to_base_plus_one(self):
-        # Effect-aware tables built by _get_ea_tables must also respect the
+        # The effect-aware table built by _get_ea_table must also respect the
         # dp_max_rerolls = base_rerolls + 1 sizing when relic_reroll_threshold > 0.
         # sim.base_rerolls = RARITY_REROLLS["epic"](2) + extra_ticket(0) = 2
         # relic_reroll_threshold > 0 adds +1 -> expected = sim.base_rerolls + 1 = 3
@@ -503,14 +503,11 @@ class TestRelicRerollTableSizing(unittest.TestCase):
             relic_reroll_threshold=0.2,
             effect_aware=True,
         )
-        reroll_tbl, reset_tbl = sim._get_ea_tables("chaos_collapse")
+        reroll_tbl = sim._get_ea_table("chaos_collapse")
         expected = sim.base_rerolls + 1
         # Reroll-aware EA table must be sized to base_rerolls + 1
         self.assertEqual(reroll_tbl._max_rerolls, expected,
                          "EA reroll table must be sized for the post-override reroll count")
-        # Reset table is not reroll-aware: it should NOT be sized up
-        self.assertNotEqual(reset_tbl._max_rerolls, expected,
-                            "EA reset table should not be sized up (non-reroll-aware)")
 
 
 class TestEndgameRiskPlumbing(unittest.TestCase):

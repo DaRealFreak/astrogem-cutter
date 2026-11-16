@@ -87,7 +87,7 @@ export class LastTurnGoal {
   /**
    * Port of models.py:57-165.
    * Defaults: first=1, second=1, minSideCoeff=0, sideCoeffFirst=0, sideCoeffSecond=0,
-   *           changeDestMaxCoeff=0.
+   *           changeDestCoeffs=[0, 0].
    */
   feasible(
     will: number,
@@ -99,13 +99,13 @@ export class LastTurnGoal {
       minSideCoeff?: number;
       sideCoeffFirst?: number;
       sideCoeffSecond?: number;
-      changeDestMaxCoeff?: number;
+      changeDestCoeffs?: readonly [number, number];
     }
   ): boolean {
     const minSideCoeff = opts?.minSideCoeff ?? 0;
     const sideCoeffFirst = opts?.sideCoeffFirst ?? 0;
     const sideCoeffSecond = opts?.sideCoeffSecond ?? 0;
-    const changeDestMaxCoeff = opts?.changeDestMaxCoeff ?? 0;
+    const changeDestCoeffs = opts?.changeDestCoeffs ?? [0, 0];
 
     const targetW = this.exactWill !== undefined ? this.exactWill : this.minWill;
     const targetC = this.exactChaos !== undefined ? this.exactChaos : this.minChaos;
@@ -163,23 +163,30 @@ export class LastTurnGoal {
       const available = turnsLeft - turnsNeededW - turnsNeededC;
       if (available < 0) return false;
 
-      // Strategy A: no change_effect; level both sides up to cap.
-      let upper =
-        sideCoeffFirst * Math.min(5, first + 4 * available) +
-        sideCoeffSecond * Math.min(5, second + 4 * available);
-
-      // Strategies B/C: change_first or change_second (1 turn) then
-      // level the remaining turns.  Only viable if at least 1 turn
-      // is free and a change destination has positive coeff.
-      if (available >= 1 && changeDestMaxCoeff > 0) {
-        const rest = available - 1;
-        upper = Math.max(
-          upper,
-          changeDestMaxCoeff * Math.min(5, first + 4 * rest) +
-            sideCoeffSecond * Math.min(5, second + 4 * rest),
-          sideCoeffFirst * Math.min(5, first + 4 * rest) +
-            changeDestMaxCoeff * Math.min(5, second + 4 * rest)
-        );
+      // Effect arrangements (first-slot coeff, second-slot coeff)
+      // reachable after exactly k change_*_effect turns, with A/B the
+      // equipped effects and C/D the two non-equipped pool members.
+      // A change draws from the effects not currently equipped, so a
+      // second change can pull the just-dropped effect into the other
+      // slot, and a third completes the set with the full swap (B, A).
+      // Each row lists only the arrangements NEW at that k: fewer
+      // changes leave more levelling turns, so earlier rows dominate.
+      const ca = sideCoeffFirst, cb = sideCoeffSecond;
+      const [cc, cd] = changeDestCoeffs;
+      const reach: [number, number][][] = [
+        [[ca, cb]],
+        [[cc, cb], [cd, cb], [ca, cc], [ca, cd]],
+        [[cc, ca], [cd, ca], [cc, cd], [cd, cc], [cb, cc], [cb, cd]],
+        [[cb, ca]],
+      ];
+      let upper = 0;
+      for (let k = 0; k <= Math.min(available, 3); k++) {
+        const rest = available - k;
+        const lvlFirst = Math.min(5, first + 4 * rest);
+        const lvlSecond = Math.min(5, second + 4 * rest);
+        for (const [c1, c2] of reach[k]!) {
+          upper = Math.max(upper, c1 * lvlFirst + c2 * lvlSecond);
+        }
       }
 
       if (upper < minSideCoeff) return false;

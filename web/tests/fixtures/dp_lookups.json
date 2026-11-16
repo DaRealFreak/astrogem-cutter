@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema": 1,
-  "arkgrid_sha": "e95a635"
+  "arkgrid_sha": "06c7188"
  },
  "records": [
   {
@@ -148,10 +148,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.0003205663990782969,
-    "epac": 0.0031533542117894984,
+    "lookup": 0.00044286982932221727,
+    "epac": 0.0038475807800775292,
     "reroll": false,
-    "reset_lookup": 0.0003205663990782969,
+    "reset_lookup": 0.00044286982932221727,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -186,10 +186,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.0009454583598500385,
-    "epac": 0.006286690335492281,
+    "lookup": 0.0012172330368182516,
+    "epac": 0.007575737209144142,
     "reroll": false,
-    "reset_lookup": 0.0003205663990782969,
+    "reset_lookup": 0.00044286982932221727,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -224,10 +224,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.0018591190008770252,
-    "epac": 0.009400136269219778,
+    "lookup": 0.0022491079137524172,
+    "epac": 0.011188206396464801,
     "reroll": false,
-    "reset_lookup": 0.0003205663990782969,
+    "reset_lookup": 0.00044286982932221727,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -262,12 +262,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.1239207468129937,
-    "epac": 0.2168521530894694,
+    "lookup": 0.12101412485444636,
+    "epac": 0.20744903241456822,
     "reroll": false,
-    "reset_lookup": 0.10826973163919562,
-    "relic_lookup": 0.15807852502107386,
-    "ancient_lookup": 0.009164137702648983
+    "reset_lookup": 0.11094501647962948,
+    "relic_lookup": 0.16222241828684716,
+    "ancient_lookup": 0.010057121674361983
    }
   },
   {
@@ -300,12 +300,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.1843668097452208,
-    "epac": 0.2935217440885873,
+    "lookup": 0.15343652938302463,
+    "epac": 0.24804505910925959,
     "reroll": false,
-    "reset_lookup": 0.10826973163919562,
-    "relic_lookup": 0.2763409442480362,
-    "ancient_lookup": 0.022161056259606095
+    "reset_lookup": 0.11094501647962948,
+    "relic_lookup": 0.21139587871455273,
+    "ancient_lookup": 0.01601277946577704
    }
   },
   {
@@ -338,12 +338,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.24465054371482947,
-    "epac": 0.3612739025487589,
+    "lookup": 0.18418371094557914,
+    "epac": 0.28679835439199075,
     "reroll": false,
-    "reset_lookup": 0.10826973163919562,
-    "relic_lookup": 0.39090238052899196,
-    "ancient_lookup": 0.0403563609790408
+    "reset_lookup": 0.11094501647962948,
+    "relic_lookup": 0.25402222978057826,
+    "ancient_lookup": 0.022793242990207952
    }
   },
   {
@@ -380,7 +380,7 @@
     "epac": 0.5,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.16045627376425858,
+    "relic_lookup": 0.18020741693966366,
     "ancient_lookup": 0.0
    }
   },
@@ -418,7 +418,7 @@
     "epac": 0.5,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.2951663317382065,
+    "relic_lookup": 0.2526396671989026,
     "ancient_lookup": 0.0
    }
   },
@@ -456,7 +456,7 @@
     "epac": 0.5,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.4082613157710875,
+    "relic_lookup": 0.2830075753303821,
     "ancient_lookup": 0.0
    }
   },
@@ -491,11 +491,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.5948280585530084,
+    "epac": 0.5879067195268333,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.4826439414750706,
-    "ancient_lookup": 0.004351910607870733
+    "relic_lookup": 0.4666698921215979,
+    "ancient_lookup": 0.0057814107395211655
    }
   },
   {
@@ -529,11 +529,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.6709054524945722,
+    "epac": 0.618403391952694,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.745436365653157,
-    "ancient_lookup": 0.012408075806744242
+    "relic_lookup": 0.5562253245271438,
+    "ancient_lookup": 0.013280567829846827
    }
   },
   {
@@ -567,11 +567,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.7320788917072637,
+    "epac": 0.6331689778328967,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.8845517914217166,
-    "ancient_lookup": 0.02359707872576808
+    "relic_lookup": 0.6111986369805624,
+    "ancient_lookup": 0.021111623927772136
    }
   },
   {
@@ -605,11 +605,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.8989729513535006,
+    "epac": 0.8667218380235302,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9243577112717726,
-    "ancient_lookup": 0.46722107164330995
+    "relic_lookup": 0.9482706407685572,
+    "ancient_lookup": 0.44472400588360667
    }
   },
   {
@@ -643,11 +643,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9434239114159493,
+    "epac": 0.8889104191053522,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9711154867659029,
-    "ancient_lookup": 0.6447267657023105
+    "relic_lookup": 0.9645547310805539,
+    "ancient_lookup": 0.5075545074373031
    }
   },
   {
@@ -681,11 +681,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9634671791949221,
+    "epac": 0.9035843664419094,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9892662011392378,
-    "ancient_lookup": 0.7709309876293412
+    "relic_lookup": 0.9737701237525149,
+    "ancient_lookup": 0.5545145511494626
    }
   },
   {
@@ -833,11 +833,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.8413009404388715,
+    "epac": 0.8060524091599982,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9999999999999999,
-    "ancient_lookup": 0.8328108672936257
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -871,11 +871,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.8992584339776535,
+    "epac": 0.8118348571577588,
     "reroll": true,
     "reset_lookup": 1.0,
     "relic_lookup": 1.0,
-    "ancient_lookup": 0.9371075362860034
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -909,11 +909,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9360496328541531,
+    "epac": 0.8124313828976492,
     "reroll": true,
     "reset_lookup": 1.0,
     "relic_lookup": 1.0,
-    "ancient_lookup": 0.976341392960252
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -947,11 +947,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.975682496778552,
+    "epac": 0.9463372735684488,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9945303899713598,
-    "ancient_lookup": 0.7554030690273453
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -985,11 +985,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9876152416993559,
+    "epac": 0.9533095501602938,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.998620464329762,
-    "ancient_lookup": 0.8767786525803248
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -1023,11 +1023,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9927803845777381,
+    "epac": 0.9581627691016263,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9996502736203146,
-    "ancient_lookup": 0.936252151991988
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -1060,10 +1060,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.1573261309925726,
+    "lookup": 0.14315221579941184,
     "epac": 0.25,
     "reroll": false,
-    "reset_lookup": 0.1573261309925726,
+    "reset_lookup": 0.14315221579941184,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -1098,10 +1098,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.2899007504920531,
+    "lookup": 0.20433420404569824,
     "epac": 0.25,
     "reroll": false,
-    "reset_lookup": 0.1573261309925726,
+    "reset_lookup": 0.14315221579941184,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -1136,10 +1136,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.4016179180378679,
+    "lookup": 0.23048284355410678,
     "epac": 0.25,
-    "reroll": true,
-    "reset_lookup": 0.1573261309925726,
+    "reroll": false,
+    "reset_lookup": 0.14315221579941184,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -1174,11 +1174,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.27893916020889975,
-    "epac": 0.3106963493405893,
+    "lookup": 0.25091581477048924,
+    "epac": 0.3059580532455141,
     "reroll": false,
-    "reset_lookup": 0.2725696628198815,
-    "relic_lookup": 0.0032577177451812178,
+    "reset_lookup": 0.24781149499906557,
+    "relic_lookup": 0.004544908476198654,
     "ancient_lookup": 0.0
    }
   },
@@ -1212,11 +1212,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.4023209777832835,
-    "epac": 0.36189216695834275,
+    "lookup": 0.3165716890131961,
+    "epac": 0.3318456085514193,
     "reroll": false,
-    "reset_lookup": 0.2725696628198815,
-    "relic_lookup": 0.009054439256553568,
+    "reset_lookup": 0.24781149499906557,
+    "relic_lookup": 0.010281201981673102,
     "ancient_lookup": 0.0
    }
   },
@@ -1250,11 +1250,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.5024828559510547,
-    "epac": 0.40525847286370337,
+    "lookup": 0.3616345711310597,
+    "epac": 0.3456187699744694,
     "reroll": false,
-    "reset_lookup": 0.2725696628198815,
-    "relic_lookup": 0.01680595883220439,
+    "reset_lookup": 0.24781149499906557,
+    "relic_lookup": 0.016577806834184233,
     "ancient_lookup": 0.0
    }
   },
@@ -1288,12 +1288,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.7713791494825908,
-    "epac": 0.723076079159275,
+    "lookup": 0.7055003857402005,
+    "epac": 0.6779940889612921,
     "reroll": false,
-    "reset_lookup": 0.7438466043747135,
-    "relic_lookup": 0.7053220809356111,
-    "ancient_lookup": 0.17747369624772408
+    "reset_lookup": 0.6897197799718932,
+    "relic_lookup": 0.6885671444278569,
+    "ancient_lookup": 0.1501220764137139
    }
   },
   {
@@ -1326,12 +1326,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.8477108050955823,
-    "epac": 0.800718518356919,
+    "lookup": 0.7440583858549779,
+    "epac": 0.71532440900798,
     "reroll": false,
-    "reset_lookup": 0.7438466043747135,
-    "relic_lookup": 0.8487713617950308,
-    "ancient_lookup": 0.31438145723310035
+    "reset_lookup": 0.6897197799718932,
+    "relic_lookup": 0.7499405548269856,
+    "ancient_lookup": 0.19325801358681355
    }
   },
   {
@@ -1364,12 +1364,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.8880199867900304,
-    "epac": 0.8461207683902672,
+    "lookup": 0.7709664889180217,
+    "epac": 0.7431849610579117,
     "reroll": true,
-    "reset_lookup": 0.7438466043747135,
-    "relic_lookup": 0.9261964311662424,
-    "ancient_lookup": 0.44479177756850863
+    "reset_lookup": 0.6897197799718932,
+    "relic_lookup": 0.7906062220479415,
+    "ancient_lookup": 0.22883623466189196
    }
   },
   {
@@ -1512,10 +1512,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.0026980245978313645,
-    "epac": 0.03345418020908991,
+    "lookup": 0.003540944333815019,
+    "epac": 0.03842860921300571,
     "reroll": false,
-    "reset_lookup": 0.0026980245978313645,
+    "reset_lookup": 0.003540944333815019,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -1549,10 +1549,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.007552163202719907,
-    "epac": 0.0642001613497182,
+    "lookup": 0.008213806919584739,
+    "epac": 0.0638249222094134,
     "reroll": false,
-    "reset_lookup": 0.0026980245978313645,
+    "reset_lookup": 0.003540944333815019,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -1586,10 +1586,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.014112940124733325,
-    "epac": 0.09249367036054827,
+    "lookup": 0.013549475375016022,
+    "epac": 0.08130412901988446,
     "reroll": false,
-    "reset_lookup": 0.0026980245978313645,
+    "reset_lookup": 0.003540944333815019,
     "relic_lookup": 0.0,
     "ancient_lookup": 0.0
    }
@@ -1623,12 +1623,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.1861815462746379,
-    "epac": 0.39374814167123035,
+    "lookup": 0.18952119752175453,
+    "epac": 0.387013691487108,
     "reroll": false,
-    "reset_lookup": 0.16970055858509264,
-    "relic_lookup": 0.03352228186294728,
-    "ancient_lookup": 0.0007664930569540348
+    "reset_lookup": 0.17856871636910412,
+    "relic_lookup": 0.03971839372630653,
+    "ancient_lookup": 0.001069446342733971
    }
   },
   {
@@ -1660,12 +1660,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.2691207451855776,
-    "epac": 0.49969424922776967,
+    "lookup": 0.23856548371670683,
+    "epac": 0.4479575848957464,
     "reroll": false,
-    "reset_lookup": 0.16970055858509264,
-    "relic_lookup": 0.07004163099032874,
-    "ancient_lookup": 0.0021297532209712837
+    "reset_lookup": 0.17856871636910412,
+    "relic_lookup": 0.0596399288859665,
+    "ancient_lookup": 0.002015086652057967
    }
   },
   {
@@ -1697,12 +1697,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.34710999650050756,
-    "epac": 0.5810746924328795,
+    "lookup": 0.27840108952361053,
+    "epac": 0.493642449505633,
     "reroll": false,
-    "reset_lookup": 0.16970055858509264,
-    "relic_lookup": 0.11226339586870841,
-    "ancient_lookup": 0.0043430329222457174
+    "reset_lookup": 0.17856871636910412,
+    "relic_lookup": 0.07858569310812667,
+    "ancient_lookup": 0.003268581366659088
    }
   },
   {
@@ -1738,7 +1738,7 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.16045627376425858,
+    "relic_lookup": 0.18020741693966366,
     "ancient_lookup": 0.0
    }
   },
@@ -1775,7 +1775,7 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.2951663317382065,
+    "relic_lookup": 0.2526396671989026,
     "ancient_lookup": 0.0
    }
   },
@@ -1812,7 +1812,7 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.4082613157710875,
+    "relic_lookup": 0.2830075753303821,
     "ancient_lookup": 0.0
    }
   },
@@ -1849,8 +1849,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.4826439414750706,
-    "ancient_lookup": 0.004351910607870733
+    "relic_lookup": 0.4666698921215979,
+    "ancient_lookup": 0.0057814107395211655
    }
   },
   {
@@ -1886,8 +1886,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.7452236184951271,
-    "ancient_lookup": 0.012408075806744242
+    "relic_lookup": 0.5560539034835857,
+    "ancient_lookup": 0.013280567829846827
    }
   },
   {
@@ -1923,8 +1923,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.8844725614456225,
-    "ancient_lookup": 0.02359707872576808
+    "relic_lookup": 0.610693834840778,
+    "ancient_lookup": 0.021111623927772136
    }
   },
   {
@@ -1960,8 +1960,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.8748805850975369,
-    "ancient_lookup": 0.3343840009545683
+    "relic_lookup": 0.9016083643752498,
+    "ancient_lookup": 0.30152926441938127
    }
   },
   {
@@ -1997,8 +1997,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9496866846368439,
-    "ancient_lookup": 0.515591112405235
+    "relic_lookup": 0.9289492238759556,
+    "ancient_lookup": 0.36065122898973356
    }
   },
   {
@@ -2034,8 +2034,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9785645729743773,
-    "ancient_lookup": 0.648147573949569
+    "relic_lookup": 0.9438702161454313,
+    "ancient_lookup": 0.40296238166159637
    }
   },
   {
@@ -2182,8 +2182,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9999999999999999,
-    "ancient_lookup": 0.8328108672936257
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -2220,7 +2220,7 @@
     "reroll": false,
     "reset_lookup": 1.0,
     "relic_lookup": 1.0,
-    "ancient_lookup": 0.9371075362860034
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -2257,7 +2257,7 @@
     "reroll": false,
     "reset_lookup": 1.0,
     "relic_lookup": 1.0,
-    "ancient_lookup": 0.976341392960252
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -2293,8 +2293,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9960478826103192,
-    "ancient_lookup": 0.7461153613241155
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -2330,8 +2330,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.999068692609436,
-    "ancient_lookup": 0.8710449347870252
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -2367,8 +2367,8 @@
     "epac": 1.0,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.9997436354737468,
-    "ancient_lookup": 0.9235556287652094
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -2512,10 +2512,10 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.6765455704270236,
+    "epac": 0.6663005987930264,
     "reroll": false,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.0032577177451812178,
+    "relic_lookup": 0.004544908476198654,
     "ancient_lookup": 0.0
    }
   },
@@ -2549,10 +2549,10 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.7907544639792409,
+    "epac": 0.7062353802127905,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.009054439256553568,
+    "relic_lookup": 0.010281201981673102,
     "ancient_lookup": 0.0
    }
   },
@@ -2586,48 +2586,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.8646372090114274,
+    "epac": 0.7288596926031465,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.01680595883220439,
+    "relic_lookup": 0.016577806834184233,
     "ancient_lookup": 0.0
-   }
-  },
-  {
-   "inputs": {
-    "table": "roll",
-    "gem_type": "order_stability",
-    "first_effect": "additional_damage",
-    "second_effect": "brand_power",
-    "optimize": "dps",
-    "goal": {
-     "min_total_will_chaos": 8
-    },
-    "rarity": "rare",
-    "max_rerolls": 2,
-    "min_side_coeff": 0,
-    "state": [
-     4,
-     4,
-     1,
-     1
-    ],
-    "turns_left": 7,
-    "rerolls": 0,
-    "offers": [
-     "will+1",
-     "will-1",
-     "chaos+1",
-     "chaos-1"
-    ]
-   },
-   "expected": {
-    "lookup": 1.0,
-    "epac": 0.9385982119055756,
-    "reroll": false,
-    "reset_lookup": 1.0,
-    "relic_lookup": 0.5055088727702035,
-    "ancient_lookup": 0.06118274648181734
    }
   },
   {
@@ -2650,6 +2613,43 @@
      1
     ],
     "turns_left": 7,
+    "rerolls": 0,
+    "offers": [
+     "will+1",
+     "will-1",
+     "chaos+1",
+     "chaos-1"
+    ]
+   },
+   "expected": {
+    "lookup": 1.0,
+    "epac": 0.9244404666931714,
+    "reroll": false,
+    "reset_lookup": 1.0,
+    "relic_lookup": 0.4867596434046719,
+    "ancient_lookup": 0.055009559248239394
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "order_stability",
+    "first_effect": "additional_damage",
+    "second_effect": "brand_power",
+    "optimize": "dps",
+    "goal": {
+     "min_total_will_chaos": 8
+    },
+    "rarity": "rare",
+    "max_rerolls": 2,
+    "min_side_coeff": 0,
+    "state": [
+     4,
+     4,
+     1,
+     1
+    ],
+    "turns_left": 7,
     "rerolls": 1,
     "offers": [
      "will+1",
@@ -2660,11 +2660,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.9729647181341198,
+    "epac": 0.9437411104511624,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.6996197432182406,
-    "ancient_lookup": 0.12843143003419288
+    "relic_lookup": 0.560389679379803,
+    "ancient_lookup": 0.07814919480845159
    }
   },
   {
@@ -2697,11 +2697,11 @@
    },
    "expected": {
     "lookup": 1.0,
-    "epac": 0.983946995215828,
+    "epac": 0.9552323370883589,
     "reroll": true,
     "reset_lookup": 1.0,
-    "relic_lookup": 0.8128976013528463,
-    "ancient_lookup": 0.20398665945271138
+    "relic_lookup": 0.6093675148925428,
+    "ancient_lookup": 0.0982873188341105
    }
   },
   {
@@ -2962,12 +2962,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.05287852405555819,
-    "epac": 0.10278951308207356,
+    "lookup": 0.0566908680109444,
+    "epac": 0.10573959219555305,
     "reroll": false,
-    "reset_lookup": 0.044423489146105145,
-    "relic_lookup": 0.15807852502107386,
-    "ancient_lookup": 0.009164137702648983
+    "reset_lookup": 0.05124616620489742,
+    "relic_lookup": 0.16222241828684716,
+    "ancient_lookup": 0.010057121674361983
    }
   },
   {
@@ -3000,12 +3000,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.09390048260062614,
-    "epac": 0.16622947124076543,
+    "lookup": 0.07786927682416264,
+    "epac": 0.13715871666620033,
     "reroll": false,
-    "reset_lookup": 0.044423489146105145,
-    "relic_lookup": 0.2763409442480362,
-    "ancient_lookup": 0.022161056259606095
+    "reset_lookup": 0.05124616620489742,
+    "relic_lookup": 0.21139587871455273,
+    "ancient_lookup": 0.01601277946577704
    }
   },
   {
@@ -3038,12 +3038,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.13825516862807685,
-    "epac": 0.22712963657322252,
+    "lookup": 0.09796446859542558,
+    "epac": 0.1649925178446388,
     "reroll": false,
-    "reset_lookup": 0.044423489146105145,
-    "relic_lookup": 0.39090238052899196,
-    "ancient_lookup": 0.0403563609790408
+    "reset_lookup": 0.05124616620489742,
+    "relic_lookup": 0.25402222978057826,
+    "ancient_lookup": 0.022793242990207952
    }
   },
   {
@@ -3076,11 +3076,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.049429657794676805,
+    "lookup": 0.05666755756526203,
     "epac": 0.0,
     "reroll": false,
-    "reset_lookup": 0.049429657794676805,
-    "relic_lookup": 0.16045627376425858,
+    "reset_lookup": 0.05666755756526203,
+    "relic_lookup": 0.18020741693966366,
     "ancient_lookup": 0.0
    }
   },
@@ -3114,11 +3114,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.09397273344995591,
+    "lookup": 0.08978218754878653,
     "epac": 0.0,
     "reroll": true,
-    "reset_lookup": 0.049429657794676805,
-    "relic_lookup": 0.2951663317382065,
+    "reset_lookup": 0.05666755756526203,
+    "relic_lookup": 0.2526396671989026,
     "ancient_lookup": 0.0
    }
   },
@@ -3152,11 +3152,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.13411231113170932,
+    "lookup": 0.10913327247392823,
     "epac": 0.0,
     "reroll": true,
-    "reset_lookup": 0.049429657794676805,
-    "relic_lookup": 0.4082613157710875,
+    "reset_lookup": 0.05666755756526203,
+    "relic_lookup": 0.2830075753303821,
     "ancient_lookup": 0.0
    }
   },
@@ -3190,12 +3190,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.1001830978525038,
-    "epac": 0.038759584090607827,
+    "lookup": 0.11280348465884263,
+    "epac": 0.0446851064310487,
     "reroll": false,
-    "reset_lookup": 0.09777110227814556,
-    "relic_lookup": 0.4826439414750706,
-    "ancient_lookup": 0.004351910607870733
+    "reset_lookup": 0.11087400186588457,
+    "relic_lookup": 0.4666698921215979,
+    "ancient_lookup": 0.0057814107395211655
    }
   },
   {
@@ -3228,12 +3228,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.1553577151399181,
-    "epac": 0.07343000199291856,
+    "lookup": 0.15358228262919302,
+    "epac": 0.06960157782723234,
     "reroll": true,
-    "reset_lookup": 0.09777110227814556,
-    "relic_lookup": 0.745436365653157,
-    "ancient_lookup": 0.012408075806744242
+    "reset_lookup": 0.11087400186588457,
+    "relic_lookup": 0.5562253245271438,
+    "ancient_lookup": 0.013280567829846827
    }
   },
   {
@@ -3266,12 +3266,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.207533626150357,
-    "epac": 0.10445075072277035,
+    "lookup": 0.18532285728732636,
+    "epac": 0.08363316282866726,
     "reroll": true,
-    "reset_lookup": 0.09777110227814556,
-    "relic_lookup": 0.8845517914217166,
-    "ancient_lookup": 0.02359707872576808
+    "reset_lookup": 0.11087400186588457,
+    "relic_lookup": 0.6111986369805624,
+    "ancient_lookup": 0.021111623927772136
    }
   },
   {
@@ -3304,12 +3304,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.6103373792821081,
-    "epac": 0.5267630288840224,
+    "lookup": 0.5862905327848136,
+    "epac": 0.5071676177744628,
     "reroll": false,
-    "reset_lookup": 0.5581611436686169,
-    "relic_lookup": 0.9243577112717726,
-    "ancient_lookup": 0.46722107164330995
+    "reset_lookup": 0.5603183997912489,
+    "relic_lookup": 0.9482706407685572,
+    "ancient_lookup": 0.44472400588360667
    }
   },
   {
@@ -3342,12 +3342,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.7177636727838251,
-    "epac": 0.6474225465914585,
-    "reroll": false,
-    "reset_lookup": 0.5581611436686169,
-    "relic_lookup": 0.9711154867659029,
-    "ancient_lookup": 0.6447267657023105
+    "lookup": 0.6356117318272582,
+    "epac": 0.5616797066810673,
+    "reroll": true,
+    "reset_lookup": 0.5603183997912489,
+    "relic_lookup": 0.9645547310805539,
+    "ancient_lookup": 0.5075545074373031
    }
   },
   {
@@ -3380,12 +3380,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.7937555218519304,
-    "epac": 0.736509344297784,
-    "reroll": false,
-    "reset_lookup": 0.5581611436686169,
-    "relic_lookup": 0.9892662011392378,
-    "ancient_lookup": 0.7709309876293412
+    "lookup": 0.6713274672145472,
+    "epac": 0.6022994795609586,
+    "reroll": true,
+    "reset_lookup": 0.5603183997912489,
+    "relic_lookup": 0.9737701237525149,
+    "ancient_lookup": 0.5545145511494626
    }
   },
   {
@@ -3418,10 +3418,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.32098765432098764,
+    "lookup": 0.31048515816494393,
     "epac": 0.0,
     "reroll": false,
-    "reset_lookup": 0.32098765432098764,
+    "reset_lookup": 0.31048515816494393,
     "relic_lookup": 1.0,
     "ancient_lookup": 1.0
    }
@@ -3456,10 +3456,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.5389422344154854,
+    "lookup": 0.3835628645859525,
     "epac": 0.0,
     "reroll": true,
-    "reset_lookup": 0.32098765432098764,
+    "reset_lookup": 0.31048515816494393,
     "relic_lookup": 1.0,
     "ancient_lookup": 1.0
    }
@@ -3494,10 +3494,10 @@
     ]
    },
    "expected": {
-    "lookup": 0.6869360850969346,
+    "lookup": 0.4284615053251129,
     "epac": 0.0,
     "reroll": true,
-    "reset_lookup": 0.32098765432098764,
+    "reset_lookup": 0.31048515816494393,
     "relic_lookup": 1.0,
     "ancient_lookup": 1.0
    }
@@ -3532,50 +3532,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.45137930620920286,
-    "epac": 0.17829153605015674,
+    "lookup": 0.43811330905135465,
+    "epac": 0.21323714203005045,
     "reroll": false,
-    "reset_lookup": 0.4210330923826027,
-    "relic_lookup": 0.9999999999999999,
-    "ancient_lookup": 0.8328108672936257
-   }
-  },
-  {
-   "inputs": {
-    "table": "roll",
-    "gem_type": "chaos_distortion",
-    "first_effect": "ally_damage",
-    "second_effect": "ally_attack",
-    "optimize": "dps",
-    "goal": {
-     "min_will": 4,
-     "min_chaos": 4
-    },
-    "rarity": "epic",
-    "max_rerolls": 3,
-    "min_side_coeff": 2000,
-    "state": [
-     5,
-     5,
-     5,
-     5
-    ],
-    "turns_left": 2,
-    "rerolls": 1,
-    "offers": [
-     "will-1",
-     "chaos-1",
-     "first-1",
-     "second-1"
-    ]
-   },
-   "expected": {
-    "lookup": 0.6316262192788787,
-    "epac": 0.3202540757264571,
-    "reroll": true,
-    "reset_lookup": 0.4210330923826027,
+    "reset_lookup": 0.4274881080934835,
     "relic_lookup": 1.0,
-    "ancient_lookup": 0.9371075362860034
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -3599,7 +3561,7 @@
      5
     ],
     "turns_left": 2,
-    "rerolls": 2,
+    "rerolls": 1,
     "offers": [
      "will-1",
      "chaos-1",
@@ -3608,12 +3570,50 @@
     ]
    },
    "expected": {
-    "lookup": 0.7498171378772832,
-    "epac": 0.43329007910507866,
+    "lookup": 0.509210275859637,
+    "epac": 0.26744596199092574,
     "reroll": true,
-    "reset_lookup": 0.4210330923826027,
+    "reset_lookup": 0.4274881080934835,
     "relic_lookup": 1.0,
-    "ancient_lookup": 0.976341392960252
+    "ancient_lookup": 1.0
+   }
+  },
+  {
+   "inputs": {
+    "table": "roll",
+    "gem_type": "chaos_distortion",
+    "first_effect": "ally_damage",
+    "second_effect": "ally_attack",
+    "optimize": "dps",
+    "goal": {
+     "min_will": 4,
+     "min_chaos": 4
+    },
+    "rarity": "epic",
+    "max_rerolls": 3,
+    "min_side_coeff": 2000,
+    "state": [
+     5,
+     5,
+     5,
+     5
+    ],
+    "turns_left": 2,
+    "rerolls": 2,
+    "offers": [
+     "will-1",
+     "chaos-1",
+     "first-1",
+     "second-1"
+    ]
+   },
+   "expected": {
+    "lookup": 0.5521612033949277,
+    "epac": 0.302421566274098,
+    "reroll": true,
+    "reset_lookup": 0.4274881080934835,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -3646,12 +3646,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.870358418312904,
-    "epac": 0.8014247681025062,
+    "lookup": 0.8398121174751159,
+    "epac": 0.7637448569412534,
     "reroll": false,
-    "reset_lookup": 0.8241398404292354,
-    "relic_lookup": 0.9945303899713598,
-    "ancient_lookup": 0.7554030690273453
+    "reset_lookup": 0.8142471844731645,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -3684,12 +3684,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.9149430742946087,
-    "epac": 0.8699920047484351,
+    "lookup": 0.8669663161185558,
+    "epac": 0.8040813383784615,
     "reroll": true,
-    "reset_lookup": 0.8241398404292354,
-    "relic_lookup": 0.998620464329762,
-    "ancient_lookup": 0.8767786525803248
+    "reset_lookup": 0.8142471844731645,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -3722,12 +3722,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.9422683831170064,
-    "epac": 0.9128339740718183,
+    "lookup": 0.8848078779797557,
+    "epac": 0.8311501621658919,
     "reroll": true,
-    "reset_lookup": 0.8241398404292354,
-    "relic_lookup": 0.9996502736203146,
-    "ancient_lookup": 0.936252151991988
+    "reset_lookup": 0.8142471844731645,
+    "relic_lookup": 1.0,
+    "ancient_lookup": 1.0
    }
   },
   {
@@ -3874,11 +3874,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.020254237943190603,
+    "lookup": 0.022866030699889888,
     "epac": 0.0,
     "reroll": false,
-    "reset_lookup": 0.020254237943190603,
-    "relic_lookup": 0.0032577177451812178,
+    "reset_lookup": 0.022866030699889885,
+    "relic_lookup": 0.004544908476198654,
     "ancient_lookup": 0.0
    }
   },
@@ -3912,11 +3912,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.0470968900872739,
+    "lookup": 0.037747150013310145,
     "epac": 0.0,
     "reroll": true,
-    "reset_lookup": 0.020254237943190603,
-    "relic_lookup": 0.009054439256553568,
+    "reset_lookup": 0.022866030699889885,
+    "relic_lookup": 0.010281201981673102,
     "ancient_lookup": 0.0
    }
   },
@@ -3950,11 +3950,11 @@
     ]
    },
    "expected": {
-    "lookup": 0.0747563959545337,
+    "lookup": 0.05113359131419288,
     "epac": 0.0,
     "reroll": true,
-    "reset_lookup": 0.020254237943190603,
-    "relic_lookup": 0.01680595883220439,
+    "reset_lookup": 0.022866030699889885,
+    "relic_lookup": 0.016577806834184233,
     "ancient_lookup": 0.0
    }
   },
@@ -3988,12 +3988,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.41965609260542,
-    "epac": 0.3362393460953529,
+    "lookup": 0.4147821753792722,
+    "epac": 0.33278598176156016,
     "reroll": false,
-    "reset_lookup": 0.38024825076128477,
-    "relic_lookup": 0.7053220809356111,
-    "ancient_lookup": 0.17747369624772408
+    "reset_lookup": 0.3921177454037399,
+    "relic_lookup": 0.6885671444278569,
+    "ancient_lookup": 0.1501220764137139
    }
   },
   {
@@ -4026,12 +4026,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.5336361333618442,
-    "epac": 0.4489512850928068,
-    "reroll": false,
-    "reset_lookup": 0.38024825076128477,
-    "relic_lookup": 0.8487713617950308,
-    "ancient_lookup": 0.31438145723310035
+    "lookup": 0.4695240192329922,
+    "epac": 0.38611650710375583,
+    "reroll": true,
+    "reset_lookup": 0.3921177454037399,
+    "relic_lookup": 0.7499405548269856,
+    "ancient_lookup": 0.19325801358681355
    }
   },
   {
@@ -4064,12 +4064,12 @@
     ]
    },
    "expected": {
-    "lookup": 0.6150208096689739,
-    "epac": 0.5332421872360753,
+    "lookup": 0.5107386711390944,
+    "epac": 0.4278769749150622,
     "reroll": true,
-    "reset_lookup": 0.38024825076128477,
-    "relic_lookup": 0.9261964311662424,
-    "ancient_lookup": 0.44479177756850863
+    "reset_lookup": 0.3921177454037399,
+    "relic_lookup": 0.7906062220479415,
+    "ancient_lookup": 0.22883623466189196
    }
   }
  ]
