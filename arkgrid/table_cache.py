@@ -10,12 +10,18 @@ Invalidation is automatic: cache entries live under a directory named by
 `model_fingerprint()` — a hash of the model source files — so ANY change
 to the probability model, pool, constants, or state dataclasses starts a
 fresh cache and stale tables can never be served. Older fingerprint
-directories are removed on first use, and the newest-N files are kept per
-fingerprint (each pickle is ~2-7MB on top of the flat-list storage).
+directories are removed on first use, and the N most recently USED files
+are kept per fingerprint (a hit refreshes the entry's timestamp; each pickle
+is ~2-7MB on top of the flat-list storage).
 
 Environment knobs:
-    ASTROGEM_CACHE_DIR      override the cache root (used by tests)
-    ASTROGEM_NO_DISK_CACHE  set to any non-empty value to disable entirely
+    ASTROGEM_CACHE_DIR        override the cache root (used by tests)
+    ASTROGEM_NO_DISK_CACHE    set to any non-empty value to disable entirely
+    ASTROGEM_CACHE_MAX_FILES  how many tables to keep (default 128). Normal
+                              use fits; the test suite cycles through more
+                              (one module alone needs ~130), so it rebuilds
+                              tables on every run unless this is raised
+                              (~4MB of disk per table).
 """
 from __future__ import annotations
 
@@ -97,11 +103,21 @@ def _prune_stale_fingerprints() -> None:
         pass
 
 
+def _max_files() -> int:
+    raw = os.environ.get("ASTROGEM_CACHE_MAX_FILES")
+    if raw:
+        try:
+            return max(1, int(raw))
+        except ValueError:
+            pass
+    return _MAX_FILES_PER_FINGERPRINT
+
+
 def _prune_excess_files(d: Path) -> None:
-    """Keep only the newest N pickles (best-effort)."""
+    """Keep only the N most recently used pickles (best-effort)."""
     try:
         files = sorted(d.glob("*.pkl"), key=lambda p: p.stat().st_mtime)
-        for f in files[:-_MAX_FILES_PER_FINGERPRINT]:
+        for f in files[:-_max_files()]:
             try:
                 f.unlink()
             except OSError:
@@ -123,9 +139,19 @@ def cached_table(key: str, build: Callable[[], T]) -> T:
     if fname.exists():
         try:
             with open(fname, "rb") as f:
-                return pickle.load(f)
+                obj = pickle.load(f)
         except Exception:
             pass  # corrupt/incompatible -> rebuild below
+        else:
+            # Mark it used: pruning keeps the newest-N by mtime, so without
+            # this a table loaded on every run but built long ago is evicted
+            # as soon as enough other configs have been cached (eviction by
+            # WRITE time), and the hot tables keep getting rebuilt.
+            try:
+                os.utime(fname, None)
+            except OSError:
+                pass
+            return obj
     obj = build()
     try:
         _prune_stale_fingerprints()

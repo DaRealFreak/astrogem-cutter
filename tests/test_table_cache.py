@@ -55,6 +55,49 @@ class TestCachedTable(unittest.TestCase):
         got = table_cache.cached_table("k1", lambda: {"v": 2})
         self.assertEqual(got, {"v": 2})
 
+    def test_recently_used_entry_survives_pruning(self):
+        # Eviction must be least-recently-USED: a table that is loaded on
+        # every run but was built long ago has to outlive ones that were
+        # merely written more recently, or the hot tables get rebuilt as
+        # soon as enough new configs have been cached.
+        builds = []
+
+        def builder(name):
+            return lambda: builds.append(name) or {"name": name}
+
+        with mock.patch.dict(os.environ, {"ASTROGEM_CACHE_MAX_FILES": "2"}):
+            table_cache.cached_table("old-but-hot", builder("hot"))
+            table_cache.cached_table("newer-but-cold", builder("cold"))
+            # Backdate both, the hot one furthest.
+            files = sorted(table_cache.cache_dir().glob("*.pkl"),
+                           key=lambda p: p.stat().st_mtime)
+            self.assertEqual(len(files), 2)
+            for age, f in zip((2000, 1000), files):
+                stamp = f.stat().st_mtime - age
+                os.utime(f, (stamp, stamp))
+            table_cache.cached_table("old-but-hot", builder("hot"))   # a hit
+            table_cache.cached_table("third", builder("third"))      # prunes
+            builds.clear()
+            table_cache.cached_table("old-but-hot", builder("hot"))
+            self.assertEqual(builds, [], "the hot entry was evicted")
+            table_cache.cached_table("newer-but-cold", builder("cold"))
+            self.assertEqual(builds, ["cold"])
+
+    def test_cap_is_configurable_by_env(self):
+        # One test module alone cycles through more tables than the default
+        # cap, so a developer needs to be able to raise it.
+        def count():
+            return len(list(table_cache.cache_dir().glob("*.pkl")))
+
+        with mock.patch.dict(os.environ, {"ASTROGEM_CACHE_MAX_FILES": "1"}):
+            table_cache.cached_table("a", lambda: 1)
+            table_cache.cached_table("b", lambda: 2)
+            self.assertEqual(count(), 1)
+        # Garbage falls back to the default instead of failing the write.
+        with mock.patch.dict(os.environ, {"ASTROGEM_CACHE_MAX_FILES": "lots"}):
+            table_cache.cached_table("c", lambda: 3)
+            self.assertEqual(count(), 2)
+
     def test_disabled_by_env(self):
         calls = []
         with mock.patch.dict(os.environ, {"ASTROGEM_NO_DISK_CACHE": "1"}):
