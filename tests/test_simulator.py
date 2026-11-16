@@ -211,7 +211,7 @@ class TestSimulator(unittest.TestCase):
 
         # Neutralize DP-driven rerolls inside the roll loop so the scripted
         # decision-loop rerolls are the only reroll spend.
-        def roll_plain(self, state, turn, rng, log_obj=None):
+        def roll_plain(self, state, turn, rng, log_obj=None, reserve=0):
             turns_left = self.turns_total - turn + 1
             offers = self.pool.generate_offers(state, turn, turns_left, rng)
             return self._resolve_effect_offers(offers, state, rng)

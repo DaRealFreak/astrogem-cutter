@@ -116,6 +116,16 @@ class DecisionContext:
     # so value == E[side_coeff]); ~0 when the goal is unreachable, which is why
     # the coeff enabler "requires the goal" for free.
     expected_coeff_table: Optional[SideValueTable] = None
+    # --- Opt-in spending gates (see `decide_post_roll`); 0 = off ---
+    # Never spend the reset ticket on a gem already holding this many total
+    # points (16 = relic+, 19 = ancient).
+    reset_keep_points: int = 0
+    # Spend the gold reroll ticket only when the reroll it buys is worth at
+    # least this much: P(goal) for a goal-chasing reroll, gem value
+    # (coefficient units) for a side-value / grade reroll. Each bar governs
+    # its own kind of reroll; an unset bar leaves that kind ungated.
+    ticket_min_goal_gain: float = 0.0
+    ticket_min_value_gain: float = 0.0
 
 
 @dataclass
@@ -483,9 +493,11 @@ def _side_value_finish_decision(
     (the side-value table's optimal-play value, always >= `finish_val`).
 
     Rerolls are free and gem supply — not gold — is the bottleneck, so the
-    decision **never finishes while a reroll remains**: it spends every
+    decision **never finishes while a free reroll remains**: it spends every
     leftover reroll fishing for better offers, and processes the hand only
-    when those offers already beat a redraw. Finishing happens only once
+    when those offers already beat a redraw. The gold reroll ticket is the
+    exception: it is not spent when neither a redraw nor the hand can beat
+    stopping (e.g. a fully maxed gem) — that finishes instead. Finishing happens only once
     rerolls are exhausted (or on turn 1, where rerolling is disallowed),
     when `finish_val` beats `process_ev` by the `--endgame-risk` margin.
 
@@ -521,7 +533,31 @@ def _side_value_finish_decision(
         reroll_val = svt.lookup(ti.state, ti.turns_left, rerolls=ti.rerolls - 1)
         metrics = {"finish_val": finish_val, "process_ev": process_ev,
                    "reroll_val": reroll_val}
-        if reroll_val >= process_ev:
+        if (ti.ticket_lent and ti.rerolls == 1
+                and max(reroll_val, process_ev)
+                <= finish_val + _GRADE_VALUE_EPS):
+            # The only reroll left is the gold ticket, and neither a redraw
+            # nor the hand can beat stopping (a maxed gem): provably no
+            # upside, so finish instead of paying for a zero-gain reroll.
+            # (FREE rerolls are still spent in this situation — they cost
+            # nothing.)
+            reason = (f"goal met, no upside left (finish_val={finish_val:.0f} "
+                      f">= continue={max(reroll_val, process_ev):.0f}) — "
+                      f"not spending the reroll ticket")
+            if (ctx.confirm_active
+                    and _side_coeff(ctx, ti.state) >= ctx.confirm_min_coeff):
+                return Decision(
+                    action=ActionKind.FINISH, branch="side_value_finish",
+                    reason=reason + " — player confirmation required",
+                    metrics=metrics, needs_confirmation=True,
+                    confirm_choices=_legal_actions(ti),
+                )
+            return Decision(
+                action=ActionKind.FINISH, branch="side_value_finish",
+                reason=reason, metrics=metrics,
+            )
+        if reroll_val + _GRADE_VALUE_EPS >= process_ev:
+            # (A tie rerolls — the epsilon keeps float noise from deciding.)
             # Free rerolls are spent before the lent ticket, so the reroll
             # recommended here is the gold-costing ticket ("Charge") only
             # when it is the sole reroll left in the budget.
@@ -559,8 +595,9 @@ def _side_value_finish_decision(
     margin = 0.0 if ctx.endgame_risk is None else ctx.endgame_risk
     metrics = {"finish_val": finish_val, "process_ev": process_ev,
                "margin": margin, "grade_protect": grade_protect}
-    if not grade_protect and finish_val < process_ev + margin:
-        return None  # PROCESS — continuing beats finishing
+    if (not grade_protect
+            and finish_val + _GRADE_VALUE_EPS < process_ev + margin):
+        return None  # PROCESS — continuing beats finishing (not a tie)
 
     if grade_protect:
         reason = (f"goal met, no rerolls left, side coeff "
@@ -1058,10 +1095,114 @@ _POST_ROLL_BRANCHES = (
 )
 
 
-def decide_post_roll(ctx: DecisionContext, ti: TurnInput) -> Decision:
-    """Full Branch 0–6 tree. Used by automation each frame and by the
-    simulator after the per-turn reroll loop completes.
+def _spends_ticket(ti: TurnInput) -> bool:
+    """A REROLL this turn would spend the gold reroll ticket: free rerolls
+    go first, so the ticket is the last reroll of a budget it was lent to."""
+    return ti.ticket_lent and ti.rerolls == 1 and ti.turn != 1
+
+
+def ticket_gates_active(ctx: DecisionContext) -> bool:
+    return ctx.ticket_min_goal_gain > 0 or ctx.ticket_min_value_gain > 0
+
+
+def _ticket_gain(ctx: DecisionContext, ti: TurnInput, alt: Decision):
+    """What spending the ticket is worth, as `(kind, gain)`.
+
+    `kind` is "goal" (gain in P(goal)) while a redraw can still reach the
+    goal, else "value" (gain in gem value, coefficient units): side value
+    once the goal is met, grade value once it is dead. The gain is the
+    redraw's value with the ticket gone, minus the value of `alt` — what
+    the turn would do without the ticket. When `alt` processes the hand the
+    ticket stays available for later turns, so that arm keeps one reroll.
+    Returns `("value", None)` when no table can price it (gem type unknown).
     """
+    st, tl = ti.state, ti.turns_left
+    met = _goal_fully_satisfied(ctx, st)
+    if not met:
+        p_spend = ctx.prob_table.lookup(st, tl, rerolls=0)
+        if p_spend > 0:
+            if alt.action == ActionKind.PROCESS:
+                p_alt = ctx.prob_table.expected_prob_after_click(
+                    st, ti.offers, tl - 1, rerolls=1)
+            elif alt.action == ActionKind.RESET:
+                p_alt = ctx.p_fresh
+            else:
+                p_alt = 0.0
+            return "goal", p_spend - p_alt
+        table = ctx.grade_value_table
+    elif (ctx.maxed_value_table is not None
+            and st.will == 5 and st.chaos == 5):
+        table = ctx.maxed_value_table
+    else:
+        table = ctx.side_value_table
+    if table is None or not table.enabled:
+        return "value", None
+    v_spend = table.lookup(st, tl, rerolls=0)
+    if alt.action == ActionKind.PROCESS:
+        v_alt = table.expected_value_after_click(
+            st, ti.offers, tl - 1, rerolls=1)
+    else:
+        v_alt = table.gem_value(st)
+    return "value", v_spend - v_alt
+
+
+def decide_post_roll(ctx: DecisionContext, ti: TurnInput) -> Decision:
+    """The per-turn decision. Used by automation each frame and by the
+    simulator after the per-turn reroll loop completes.
+
+    The Branch 0-6 tree (`_decide_tree`) picks the action; two opt-in gates
+    then guard the scarce resources (both default off = no change):
+
+    * **Reset ticket** (`ctx.reset_keep_points`): a gem that already holds
+      relic / ancient grade is not reset — the turn is decided as if no
+      reset were available (grade chase / finish).
+    * **Reroll ticket** (`ctx.ticket_min_goal_gain` /
+      `ticket_min_value_gain`): when the chosen REROLL would spend the gold
+      ticket, it must be worth the bar (`_ticket_gain`); otherwise the turn
+      is decided without the ticket and it stays available for later turns.
+      Free rerolls are never gated.
+    """
+    d = _decide_guarding_reset(ctx, ti)
+    if (d.action == ActionKind.REROLL and _spends_ticket(ti)
+            and ticket_gates_active(ctx)):
+        alt = _decide_guarding_reset(ctx, replace(ti, rerolls=0,
+                                                  ticket_lent=False))
+        kind, gain = _ticket_gain(ctx, ti, alt)
+        bar = (ctx.ticket_min_goal_gain if kind == "goal"
+               else ctx.ticket_min_value_gain)
+        if gain is None or bar <= 0:
+            return d
+        metrics = {"ticket_gain_kind": kind, "ticket_gain": gain,
+                   "ticket_gain_bar": bar}
+        if gain >= bar:
+            return replace(d, metrics={**d.metrics, **metrics})
+        shown = f"{gain:.1%}" if kind == "goal" else f"{gain:.0f}"
+        bar_shown = f"{bar:.1%}" if kind == "goal" else f"{bar:.0f}"
+        return replace(
+            alt,
+            reason=(f"{alt.reason} [reroll ticket held: {kind} gain "
+                    f"{shown} < {bar_shown}]"),
+            metrics={**alt.metrics, **metrics, "ticket_held": True})
+    return d
+
+
+def _decide_guarding_reset(ctx: DecisionContext, ti: TurnInput) -> Decision:
+    """`_decide_tree`, with the reset ticket withheld from a gem that already
+    holds the protected grade (`ctx.reset_keep_points`)."""
+    d = _decide_tree(ctx, ti)
+    if (d.action == ActionKind.RESET and ctx.reset_keep_points > 0
+            and ti.state.total_points() >= ctx.reset_keep_points):
+        kept = _decide_tree(ctx, replace(ti, reset_available=False))
+        return replace(
+            kept,
+            reason=(f"{kept.reason} [reset ticket kept: gem holds "
+                    f"{ti.state.total_points()} points]"),
+            metrics={**kept.metrics, "reset_kept": True})
+    return d
+
+
+def _decide_tree(ctx: DecisionContext, ti: TurnInput) -> Decision:
+    """Full Branch 0–6 tree."""
     m = compute_post_roll_metrics(ctx, ti)
     for fn in _POST_ROLL_BRANCHES:
         d = fn(ctx, ti, m)

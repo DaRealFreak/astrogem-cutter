@@ -50,6 +50,9 @@ describe('decidePostRoll parity', () => {
             endgameRisk: cfg.endgame_risk ?? undefined,
             ignoreSideNodeValues: cfg.ignore_side,
             extraTicket: cfg.extra_ticket ?? null,
+            resetKeepGrade: cfg.reset_keep_grade ?? null,
+            ticketMinGoalGain: cfg.ticket_min_goal_gain,
+            ticketMinValueGain: cfg.ticket_min_value_gain,
           }
         );
         cache.set(ckey, engCtx);
@@ -62,9 +65,13 @@ describe('decidePostRoll parity', () => {
         firstEffect: i.fe, secondEffect: i.se, rerolls: i.rerolls });
       const offers = i.offers.map((k: string) => byKey.get(k)!);
       const d = decidePostRoll(ctx, { state: st, offers, turn: i.turn,
-        turnsLeft: i.turns_left, rerolls: i.rerolls, resetAvailable: i.reset_available });
-      expect({ action: d.action, branch: d.branch })
-        .toEqual({ action: r.expected.action, branch: r.expected.branch });
+        turnsLeft: i.turns_left, rerolls: i.rerolls, resetAvailable: i.reset_available,
+        ticketLent: i.ticket_lent ?? false });
+      expect({ action: d.action, branch: d.branch,
+               ticket_held: d.metrics['ticket_held'] === true,
+               reset_kept: d.metrics['reset_kept'] === true })
+        .toEqual({ action: r.expected.action, branch: r.expected.branch,
+                   ticket_held: r.expected.ticket_held, reset_kept: r.expected.reset_kept });
     }
   }, 180_000);
 

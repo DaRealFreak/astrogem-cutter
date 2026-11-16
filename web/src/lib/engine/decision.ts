@@ -99,6 +99,16 @@ export interface DecisionContext {
   // Goal-conditioned expected side-coefficient table (relic/ancient coeff 0,
   // so value == E[side_coeff]); ~0 when the goal is unreachable.
   expectedCoeffTable: SideValueTable | null;
+  // --- Opt-in spending gates (see `decidePostRoll`); 0 / undefined = off ---
+  // Never spend the reset ticket on a gem already holding this many total
+  // points (16 = relic+, 19 = ancient).
+  resetKeepPoints?: number;
+  // Spend the gold reroll ticket only when the reroll it buys is worth at
+  // least this much: P(goal) for a goal-chasing reroll, gem value
+  // (coefficient units) for a side-value / grade reroll. Each bar governs its
+  // own kind of reroll; an unset bar leaves that kind ungated.
+  ticketMinGoalGain?: number;
+  ticketMinValueGain?: number;
 }
 
 /**
@@ -420,7 +430,29 @@ function sideValueFinishDecision(
     // Never finish with a free reroll in hand.
     const rerollVal = svt.lookup(ti.state, ti.turnsLeft, ti.rerolls - 1);
     const metrics = { finish_val: finishVal, process_ev: processEv, reroll_val: rerollVal };
-    if (rerollVal >= processEv) {
+    if (ti.ticketLent === true && ti.rerolls === 1
+        && Math.max(rerollVal, processEv) <= finishVal + GRADE_VALUE_EPS) {
+      // The only reroll left is the gold ticket, and neither a redraw nor the
+      // hand can beat stopping (a maxed gem): provably no upside, so finish
+      // instead of paying for a zero-gain reroll. (FREE rerolls are still
+      // spent in this situation — they cost nothing.)
+      const reason = 'goal met, no upside left — not spending the reroll ticket';
+      if (ctx.confirmActive && sideCoeff(ctx, ti.state) >= ctx.confirmMinCoeff) {
+        return makeDecision({
+          action: ActionKind.FINISH,
+          branch: 'side_value_finish',
+          reason: reason + ' — player confirmation required',
+          metrics,
+          needsConfirmation: true,
+          confirmChoices: legalActions(ti),
+        });
+      }
+      return makeDecision({
+        action: ActionKind.FINISH, branch: 'side_value_finish', reason, metrics,
+      });
+    }
+    if (rerollVal + GRADE_VALUE_EPS >= processEv) {
+      // (A tie rerolls — the epsilon keeps float noise from deciding.)
       // Free rerolls are spent before the lent ticket, so the reroll
       // recommended here is the gold-costing ticket ("Charge") only when it
       // is the sole reroll left in the budget.
@@ -463,8 +495,8 @@ function sideValueFinishDecision(
     margin,
     grade_protect: gradeProtect,
   };
-  if (!gradeProtect && finishVal < processEv + margin) {
-    return null; // PROCESS — continuing beats finishing
+  if (!gradeProtect && finishVal + GRADE_VALUE_EPS < processEv + margin) {
+    return null; // PROCESS — continuing beats finishing (not a tie)
   }
 
   let reason: string;
@@ -902,7 +934,111 @@ const POST_ROLL_BRANCHES: BranchFn[] = [
   dpRerollDecision,
 ];
 
+/** A REROLL this turn would spend the gold reroll ticket: free rerolls go
+ *  first, so the ticket is the last reroll of a budget it was lent to. */
+function spendsTicket(ti: TurnInput): boolean {
+  return ti.ticketLent === true && ti.rerolls === 1 && ti.turn !== 1;
+}
+
+export function ticketGatesActive(ctx: DecisionContext): boolean {
+  return (ctx.ticketMinGoalGain ?? 0) > 0 || (ctx.ticketMinValueGain ?? 0) > 0;
+}
+
+/** What spending the ticket is worth, as `[kind, gain]`.
+ *
+ * `kind` is 'goal' (gain in P(goal)) while a redraw can still reach the goal,
+ * else 'value' (gain in gem value, coefficient units): side value once the
+ * goal is met, grade value once it is dead. The gain is the redraw's value
+ * with the ticket gone, minus the value of `alt` — what the turn would do
+ * without the ticket. When `alt` processes the hand the ticket stays
+ * available for later turns, so that arm keeps one reroll. `gain` is null
+ * when no table can price it (gem type unknown). Mirrors `_ticket_gain`.
+ */
+function ticketGain(
+  ctx: DecisionContext, ti: TurnInput, alt: Decision
+): ['goal' | 'value', number | null] {
+  const st = ti.state;
+  const tl = ti.turnsLeft;
+  let table: SideValueTable | null;
+  if (!goalFullySatisfied(ctx, st)) {
+    const pSpend = ctx.probTable.lookup(st, tl, 0);
+    if (pSpend > 0) {
+      let pAlt = 0.0;
+      if (alt.action === ActionKind.PROCESS) {
+        pAlt = ctx.probTable.expectedProbAfterClick(st, ti.offers, tl - 1, 1);
+      } else if (alt.action === ActionKind.RESET) {
+        pAlt = ctx.pFresh;
+      }
+      return ['goal', pSpend - pAlt];
+    }
+    table = ctx.gradeValueTable;
+  } else if (ctx.maxedValueTable !== null && st.will === 5 && st.chaos === 5) {
+    table = ctx.maxedValueTable;
+  } else {
+    table = ctx.sideValueTable;
+  }
+  if (table === null || !table.enabled) return ['value', null];
+  const vSpend = table.lookup(st, tl, 0);
+  const vAlt = alt.action === ActionKind.PROCESS
+    ? table.expectedValueAfterClick(st, ti.offers, tl - 1, 1)
+    : table.gemValue(st);
+  return ['value', vSpend - vAlt];
+}
+
+/** The per-turn decision.
+ *
+ * The Branch 0-6 tree (`decideTree`) picks the action; two opt-in gates then
+ * guard the scarce resources (both default off = no change):
+ *
+ * - Reset ticket (`ctx.resetKeepPoints`): a gem that already holds relic /
+ *   ancient grade is not reset — the turn is decided as if no reset were
+ *   available.
+ * - Reroll ticket (`ctx.ticketMinGoalGain` / `ticketMinValueGain`): when the
+ *   chosen REROLL would spend the gold ticket it must be worth the bar
+ *   (`ticketGain`); otherwise the turn is decided without the ticket and it
+ *   stays available for later turns. Free rerolls are never gated.
+ *
+ * Mirrors arkgrid/decision.py::decide_post_roll.
+ */
 export function decidePostRoll(ctx: DecisionContext, ti: TurnInput): Decision {
+  const d = decideGuardingReset(ctx, ti);
+  if (d.action === ActionKind.REROLL && spendsTicket(ti) && ticketGatesActive(ctx)) {
+    const alt = decideGuardingReset(ctx, { ...ti, rerolls: 0, ticketLent: false });
+    const [kind, gain] = ticketGain(ctx, ti, alt);
+    const bar = (kind === 'goal' ? ctx.ticketMinGoalGain : ctx.ticketMinValueGain) ?? 0;
+    if (gain === null || bar <= 0) return d;
+    const metrics = { ticket_gain_kind: kind, ticket_gain: gain, ticket_gain_bar: bar };
+    if (gain >= bar) return { ...d, metrics: { ...d.metrics, ...metrics } };
+    const shown = kind === 'goal' ? `${(gain * 100).toFixed(1)}%` : gain.toFixed(0);
+    const barShown = kind === 'goal' ? `${(bar * 100).toFixed(1)}%` : bar.toFixed(0);
+    return {
+      ...alt,
+      reason: `${alt.reason} [reroll ticket held: ${kind} gain ${shown} < ${barShown}]`,
+      metrics: { ...alt.metrics, ...metrics, ticket_held: true },
+    };
+  }
+  return d;
+}
+
+/** `decideTree`, with the reset ticket withheld from a gem that already holds
+ *  the protected grade (`ctx.resetKeepPoints`). */
+function decideGuardingReset(ctx: DecisionContext, ti: TurnInput): Decision {
+  const d = decideTree(ctx, ti);
+  const keep = ctx.resetKeepPoints ?? 0;
+  const points = ti.state.will + ti.state.chaos + ti.state.first + ti.state.second;
+  if (d.action === ActionKind.RESET && keep > 0 && points >= keep) {
+    const kept = decideTree(ctx, { ...ti, resetAvailable: false });
+    return {
+      ...kept,
+      reason: `${kept.reason} [reset ticket kept: gem holds ${points} points]`,
+      metrics: { ...kept.metrics, reset_kept: true },
+    };
+  }
+  return d;
+}
+
+/** Full Branch 0-6 tree. */
+function decideTree(ctx: DecisionContext, ti: TurnInput): Decision {
   const m = computePostRollMetrics(ctx, ti);
   for (const fn of POST_ROLL_BRANCHES) {
     const d = fn(ctx, ti, m);

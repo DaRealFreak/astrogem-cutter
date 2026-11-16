@@ -10,7 +10,7 @@ from arkgrid.constants import (
 from arkgrid.decision import (
     ActionKind, DecisionContext, TurnInput,
     compute_post_roll_metrics, decide_post_roll, ticket_enabled,
-    early_finish_decision, has_progress_offer,
+    early_finish_decision, has_progress_offer, ticket_gates_active,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState, RunResult
 from arkgrid.pool import OptionPool
@@ -20,6 +20,10 @@ from arkgrid.table_cache import (
     goal_table as cached_goal_table,
     side_value_table as cached_side_value_table,
 )
+
+
+# `--reset-keep-grade`: total points at which a gem holds the grade.
+RESET_KEEP_POINTS = {None: 0, "relic": 16, "ancient": 19}
 
 
 class GemSimulator:
@@ -52,6 +56,9 @@ class GemSimulator:
             reroll_goal: Optional[int] = None,
             reroll_goal_threshold: float = 0.0,
             reroll_aware_value: bool = True,
+            reset_keep_grade: Optional[str] = None,
+            ticket_min_goal_gain: float = 0.0,
+            ticket_min_value_gain: float = 0.0,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -69,6 +76,10 @@ class GemSimulator:
         self.ignore_side_node_values = ignore_side_node_values
         self.reroll_goal = reroll_goal
         self.reroll_goal_threshold = reroll_goal_threshold
+        # Opt-in spending gates (decision.decide_post_roll); off by default.
+        self.reset_keep_points = RESET_KEEP_POINTS[reset_keep_grade]
+        self.ticket_min_goal_gain = ticket_min_goal_gain
+        self.ticket_min_value_gain = ticket_min_value_gain
         # Phase B: when True, the finish/continue/grade/maxed value oracles are
         # built reroll-aware (max_rerolls=dp_max_rerolls) so the decision prices
         # the value of remaining rerolls. Default False = legacy flat behavior.
@@ -472,6 +483,9 @@ class GemSimulator:
             reroll_goal_threshold=self.reroll_goal_threshold,
             reroll_min_coeff=self.reroll_min_coeff,
             expected_coeff_table=expected_coeff_table,
+            reset_keep_points=self.reset_keep_points,
+            ticket_min_goal_gain=self.ticket_min_goal_gain,
+            ticket_min_value_gain=self.ticket_min_value_gain,
         )
 
     def should_early_finish(self, state: GemState, offers: List[Option],
@@ -555,7 +569,15 @@ class GemSimulator:
             turn: int,
             rng: random.Random,
             log_obj: Optional[Dict[str, Any]] = None,
+            reserve: int = 0,
     ) -> List[Option]:
+        """Draw the turn's offers, spending DP-optimal rerolls.
+
+        `reserve` rerolls are left untouched for the caller's
+        `decide_post_roll` loop — the lent reroll ticket when a spend gate
+        is active, so the gate (which lives there) decides whether it is
+        worth its gold.
+        """
         turns_left = self.turns_total - turn + 1
         turns_left_after = turns_left - 1
 
@@ -566,7 +588,7 @@ class GemSimulator:
             log_obj["offers_history"] = [self._offer_keys(offers)]
             log_obj["reroll_reasons_history"] = []
 
-        while turn != 1 and state.rerolls > 0:
+        while turn != 1 and state.rerolls > reserve:
             forced = (self._force_reroll_active
                       and not self._has_progress_offer(offers, state))
             if forced:
@@ -710,7 +732,10 @@ class GemSimulator:
                 if ticket_lent:
                     state.rerolls += 1
                 rerolls_before = state.rerolls
-                offers = self.roll_offers_with_rerolls(state, turn, rng, entry if log else None)
+                offers = self.roll_offers_with_rerolls(
+                    state, turn, rng, entry if log else None,
+                    reserve=(1 if ticket_lent and ticket_gates_active(ctx)
+                             else 0))
                 rerolls_used = rerolls_before - state.rerolls
                 if rerolls_used > 0:
                     rerolls_by_turn[turn] = rerolls_used

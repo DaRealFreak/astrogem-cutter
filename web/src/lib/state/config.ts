@@ -29,6 +29,10 @@ export interface AdvisorStoredConfig {
   // goal-probability ticket enabler (port of --reroll-goal / --reroll-goal-threshold)
   rerollGoal: number | null;           // will+chaos target for the enabler (null = off)
   rerollGoalThreshold: number;         // enable ticket when P(will+chaos ≥ goal) ≥ F (0 = off)
+  // spending gates (port of --ticket-min-goal-gain / --ticket-min-value-gain / --reset-keep-grade)
+  ticketMinGoalGain: number;           // spend the ticket on a goal reroll only if it adds ≥ this P(goal) (0 = off)
+  ticketMinValueGain: number;          // ... on a value/grade reroll only if it adds ≥ this value (0 = off)
+  resetKeepGrade: 'off' | 'relic' | 'ancient'; // never reset a gem already holding this grade
   resetMinCoeff: number;               // allow reset only if gem coeff ≥ N (0 = off)
   resetTicketRarity: 'off' | 'common' | 'rare' | 'epic'; // allow reset only at this rarity or higher
   // overrides
@@ -46,6 +50,7 @@ export const DEFAULT_CONFIG: AdvisorStoredConfig = {
   ignoreSideNodeValues: false, extraTicket: null,
   rerollMinCoeff: 0, resetMinCoeff: 0, resetTicketRarity: 'off',
   rerollGoal: null, rerollGoalThreshold: 0,
+  ticketMinGoalGain: 0, ticketMinValueGain: 0, resetKeepGrade: 'off',
   optimizeOverride: 'auto', rarityOverride: 'auto', resetOverride: 'auto',
 };
 
@@ -97,6 +102,9 @@ export function effectiveConfig(
     rerollMinCoeff: stored.rerollMinCoeff,
     rerollGoal: stored.rerollGoal ?? undefined,
     rerollGoalThreshold: stored.rerollGoalThreshold,
+    resetKeepGrade: stored.resetKeepGrade === 'off' ? null : stored.resetKeepGrade,
+    ticketMinGoalGain: stored.ticketMinGoalGain,
+    ticketMinValueGain: stored.ticketMinValueGain,
     optimize,
   };
   return { advisorConfig, optimize, resetOverride: stored.resetOverride, resetPolicyAllowed, coeffSum };

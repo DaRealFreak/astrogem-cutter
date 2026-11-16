@@ -53,6 +53,10 @@ export interface AdvisorConfig {
   rerollMinCoeff?: number;
   rerollGoal?: number;
   rerollGoalThreshold?: number;
+  /** Opt-in spending gates (mirror --reset-keep-grade / --ticket-min-*-gain). */
+  resetKeepGrade?: 'relic' | 'ancient' | null;
+  ticketMinGoalGain?: number;
+  ticketMinValueGain?: number;
   optimize?: 'dps' | 'support';
 }
 
@@ -383,6 +387,10 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     rerollGoalThreshold,
     rerollMinCoeff,
     expectedCoeffTable,
+    resetKeepPoints: config.resetKeepGrade === 'relic' ? 16
+      : config.resetKeepGrade === 'ancient' ? 19 : 0,
+    ticketMinGoalGain: config.ticketMinGoalGain ?? 0,
+    ticketMinValueGain: config.ticketMinValueGain ?? 0,
   };
 
   return {

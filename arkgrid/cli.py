@@ -162,6 +162,30 @@ def _build_parser() -> argparse.ArgumentParser:
                              "P(will+chaos >= --reroll-goal) >= F. Both flags "
                              "required. Always disabled by --no-extra-ticket. "
                              "0.0 = disabled. Default: 0.0.")
+        p.add_argument("--ticket-min-goal-gain", type=float, default=0.0,
+                        metavar="F",
+                        help="Spend gate for the gold reroll ticket: use it on a "
+                             "goal-chasing reroll only when it adds at least F to "
+                             "P(goal) (0.01 = one percentage point). The ticket "
+                             "stays available for later turns when held back; "
+                             "free rerolls are never gated. Cuts ticket use "
+                             "sharply for little success: try 0.005-0.02. "
+                             "0.0 = spend on any gain. Default: 0.0")
+        p.add_argument("--ticket-min-value-gain", type=float, default=0.0,
+                        metavar="N",
+                        help="Spend gate for the gold reroll ticket on rerolls "
+                             "that chase gem VALUE rather than the goal (side "
+                             "nodes once the goal is met, relic/ancient grade "
+                             "once it is dead): use it only when it adds at "
+                             "least N coefficient-equivalent value. "
+                             "0.0 = spend on any gain. Default: 0.0")
+        p.add_argument("--reset-keep-grade", choices=("relic", "ancient"),
+                        default=None,
+                        help="Never spend the reset ticket on a gem that already "
+                             "holds this grade (relic = 16+ total points, "
+                             "ancient = 19+); it finishes / chases grade "
+                             "instead. Trades a little goal success for more "
+                             "relic+ gems. Default: off (always reset).")
         p.add_argument("--force-reroll-no-progress", type=int, default=0, metavar="N",
                         help="Heuristic override: when the gem's starting target-effect "
                              "coefficient is >= N, force a reroll (if rerolls available) "
@@ -645,6 +669,9 @@ def cmd_stats(args: argparse.Namespace) -> None:
                     ignore_side_node_values=args.ignore_side_node_values,
                     reroll_goal=args.reroll_goal,
                     reroll_goal_threshold=args.reroll_goal_threshold,
+                    reset_keep_grade=args.reset_keep_grade,
+                    ticket_min_goal_gain=args.ticket_min_goal_gain,
+                    ticket_min_value_gain=args.ticket_min_value_gain,
                 )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
@@ -686,6 +713,9 @@ def cmd_sim(args: argparse.Namespace) -> None:
         ignore_side_node_values=args.ignore_side_node_values,
         reroll_goal=args.reroll_goal,
         reroll_goal_threshold=args.reroll_goal_threshold,
+        reset_keep_grade=args.reset_keep_grade,
+        ticket_min_goal_gain=args.ticket_min_goal_gain,
+        ticket_min_value_gain=args.ticket_min_value_gain,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -1164,6 +1194,9 @@ def cmd_live(args: argparse.Namespace) -> None:
             ignore_side_node_values=getattr(args, "ignore_side_node_values", False),
             reroll_goal=getattr(args, "reroll_goal", None),
             reroll_goal_threshold=getattr(args, "reroll_goal_threshold", 0.0),
+            reset_keep_grade=getattr(args, "reset_keep_grade", None),
+            ticket_min_goal_gain=getattr(args, "ticket_min_goal_gain", 0.0),
+            ticket_min_value_gain=getattr(args, "ticket_min_value_gain", 0.0),
         )
         summary = GemAnalyzer.estimate_summary(
             trials=args.trials, simulator=sim, seed=args.seed,
@@ -1213,6 +1246,9 @@ def cmd_auto(args: argparse.Namespace) -> None:
         ignore_side_node_values=args.ignore_side_node_values,
         reroll_goal=args.reroll_goal,
         reroll_goal_threshold=args.reroll_goal_threshold,
+        reset_keep_grade=args.reset_keep_grade,
+        ticket_min_goal_gain=args.ticket_min_goal_gain,
+        ticket_min_value_gain=args.ticket_min_value_gain,
     )
 
 

@@ -47,7 +47,7 @@ from arkgrid.run_logger import (
     GemOutcome, RunLogger, format_gem_result, format_run_overview,
     format_tally,
 )
-from arkgrid.simulator import GemSimulator
+from arkgrid.simulator import GemSimulator, RESET_KEEP_POINTS
 from arkgrid.vision.capture import grab_screen
 from arkgrid.vision.template_recognizer import (
     DetectionResult,
@@ -676,6 +676,9 @@ def run_auto(
     ignore_side_node_values: bool = False,
     reroll_goal: Optional[int] = None,
     reroll_goal_threshold: float = 0.0,
+    reset_keep_grade: Optional[str] = None,
+    ticket_min_goal_gain: float = 0.0,
+    ticket_min_value_gain: float = 0.0,
     args=None,
 ) -> None:
     """Run the full automation loop: detect → decide → click → repeat."""
@@ -1147,6 +1150,9 @@ def run_auto(
                     reroll_goal_threshold=reroll_goal_threshold,
                     reroll_min_coeff=reroll_min_coeff,
                     expected_coeff_table=expected_coeff_table,
+                    reset_keep_points=RESET_KEEP_POINTS[reset_keep_grade],
+                    ticket_min_goal_gain=ticket_min_goal_gain,
+                    ticket_min_value_gain=ticket_min_value_gain,
                 )
 
             # --- Analyze ---

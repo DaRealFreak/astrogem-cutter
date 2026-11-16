@@ -287,7 +287,9 @@ def export_side_values():
 
 def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=None,
               relic_thr=0.0, force_reroll=0, min_side_coeff=0,
-              endgame_risk=None, ignore_side=False, extra_ticket=None):
+              endgame_risk=None, ignore_side=False, extra_ticket=None,
+              reset_keep_grade=None, ticket_min_goal_gain=0.0,
+              ticket_min_value_gain=0.0):
     pool = OptionPool()
     goal = LastTurnGoal(**g)
     turns = RARITY_TURNS[rarity]
@@ -329,7 +331,10 @@ def build_ctx(gt, fe, se, opt, g, rarity, *, relic_coeff=None, ancient_coeff=Non
         prob_table=roll, relic_prob_table=relic,
         gem_type=gt, force_reroll_active=False, confirm_active=False,
         confirm_min_coeff=0, endgame_risk=endgame_risk, side_value_table=svt,
-        grade_value_table=gvt, maxed_value_table=mvt)
+        grade_value_table=gvt, maxed_value_table=mvt,
+        reset_keep_points={None: 0, "relic": 16, "ancient": 19}[reset_keep_grade],
+        ticket_min_goal_gain=ticket_min_goal_gain,
+        ticket_min_value_gain=ticket_min_value_gain)
     return ctx, pool, fe, se, mr
 
 
@@ -350,33 +355,58 @@ def export_decisions():
         dict(gt="chaos_distortion", fe="ally_damage", se="ally_attack",
              opt="dps", g={"min_will": 4, "min_chaos": 4}, rarity="epic",
              min_side_coeff=2000),
+        # Opt-in spending gates: the reroll-ticket spend gate (goal and value
+        # bars) and reset protection for a gem already holding relic grade.
+        dict(gt="order_immutability", fe="boss_damage", se="additional_damage",
+             opt="dps", g={"min_will": 4, "min_chaos": 5}, rarity="epic",
+             ticket_min_goal_gain=0.01, ticket_min_value_gain=200,
+             reset_keep_grade="relic"),
     ]
     for cfg in configs:
         ctx, pool, fe, se, mr = build_ctx(**cfg)
-        for w, c, f, s in [(1, 1, 1, 1), (4, 5, 3, 2), (5, 5, 5, 5), (4, 4, 1, 1), (5, 5, 2, 2)]:
+        gated = "ticket_min_goal_gain" in cfg
+        states = [(1, 1, 1, 1), (4, 5, 3, 2), (5, 5, 5, 5), (4, 4, 1, 1), (5, 5, 2, 2)]
+        if gated:
+            # mid-game goal chase, goal-met value chase, dead goal at relic
+            # grade, dead goal below it
+            states += [(2, 3, 2, 2), (3, 4, 2, 3), (3, 5, 4, 5), (3, 5, 3, 3),
+                       (4, 5, 2, 2)]
+        for w, c, f, s in states:
             st = GemState(will=w, chaos=c, first=f, second=s,
                           first_effect=fe, second_effect=se)
-            for turn in (1, 2, ctx.turns_total):
+            turns = (1, 2, 6, ctx.turns_total) if gated else (1, 2, ctx.turns_total)
+            for turn in turns:
                 tl = ctx.turns_total - turn + 1
                 for r in (0, 1):
                     for reset_av in (False, True):
-                        offers = _offers(pool, st, turn, tl)
-                        st.rerolls = r
-                        ti = D.TurnInput(state=st.clone(), offers=offers,
-                            turn=turn, turns_left=tl, rerolls=r,
-                            reset_available=reset_av)
-                        d = D.decide_post_roll(ctx, ti)
-                        recs.append({"inputs": {**{k: cfg[k] for k in
-                            ("gt", "fe", "se", "opt", "g", "rarity")},
-                            "config": {k: cfg[k] for k in cfg if k not in
-                                ("gt", "fe", "se", "opt", "g", "rarity")},
-                            "turns_total": ctx.turns_total,
-                            "dp_max_rerolls": mr,
-                            "state": [w, c, f, s], "turn": turn, "turns_left": tl,
-                            "rerolls": r, "reset_available": reset_av,
-                            "offers": [o.key for o in offers]},
-                          "expected": {"action": d.action.value,
-                            "branch": d.branch}})
+                        # The ticket is the last reroll of the budget: only a
+                        # gated config exercises it.
+                        for lent in ((False, True) if gated and r == 1 else (False,)):
+                            hands = [_offers(pool, st, turn, tl)]
+                            if gated:
+                                elig = [o for o in pool.pool
+                                        if pool.eligible(o, st, turn, tl)]
+                                hands.append(elig[-4:])
+                            for offers in hands:
+                                st.rerolls = r
+                                ti = D.TurnInput(state=st.clone(), offers=offers,
+                                    turn=turn, turns_left=tl, rerolls=r,
+                                    reset_available=reset_av, ticket_lent=lent)
+                                d = D.decide_post_roll(ctx, ti)
+                                recs.append({"inputs": {**{k: cfg[k] for k in
+                                    ("gt", "fe", "se", "opt", "g", "rarity")},
+                                    "config": {k: cfg[k] for k in cfg if k not in
+                                        ("gt", "fe", "se", "opt", "g", "rarity")},
+                                    "turns_total": ctx.turns_total,
+                                    "dp_max_rerolls": mr,
+                                    "state": [w, c, f, s], "turn": turn, "turns_left": tl,
+                                    "rerolls": r, "reset_available": reset_av,
+                                    "ticket_lent": lent,
+                                    "offers": [o.key for o in offers]},
+                                  "expected": {"action": d.action.value,
+                                    "branch": d.branch,
+                                    "ticket_held": bool(d.metrics.get("ticket_held")),
+                                    "reset_kept": bool(d.metrics.get("reset_kept"))}})
     dump("decisions", recs)
 
 

@@ -141,6 +141,24 @@
       </div>
     </div>
     <div class="field-row">
+      <label for="ticket-min-goal-gain" title="Spend gate for the gold reroll ticket: use it on a goal-chasing reroll only when it adds at least this many percentage points of P(goal). Held back, the ticket stays available for later turns; free rerolls are never gated. 0 = spend on any gain. Port of --ticket-min-goal-gain.">Ticket min goal gain (pp)</label>
+      <input id="ticket-min-goal-gain" type="number" min="0" step="any"
+        value={+(c.current.ticketMinGoalGain * 100).toFixed(4)}
+        oninput={(e) => c.current.ticketMinGoalGain = (+e.currentTarget.value || 0) / 100} />
+    </div>
+    <div class="field-row">
+      <label for="ticket-min-value-gain" title="Spend gate for the gold reroll ticket on rerolls that chase gem value instead of the goal (side nodes once the goal is met, relic/ancient grade once it is dead): use it only when it adds at least this much coefficient-equivalent value. 0 = spend on any gain. Port of --ticket-min-value-gain.">Ticket min value gain</label>
+      <input id="ticket-min-value-gain" type="number" min="0" step="any" bind:value={c.current.ticketMinValueGain} />
+    </div>
+    <div class="field-row">
+      <label for="reset-keep-grade" title="Never recommend the reset on a gem that already holds this grade (relic = 16+ points, ancient = 19+). Trades a little goal success for more relic+ gems. Port of --reset-keep-grade.">Keep grade from reset</label>
+      <select id="reset-keep-grade" bind:value={c.current.resetKeepGrade}>
+        <option value="off">Off (always reset)</option>
+        <option value="relic">Relic+ (16)</option>
+        <option value="ancient">Ancient (19)</option>
+      </select>
+    </div>
+    <div class="field-row">
       <label for="reset-min-coeff" title="Allow a reset only when the gem's starting target-effect coefficient is ≥ this. 0 = off. Port of --reset-min-coeff.">Reset min coeff</label>
       <input id="reset-min-coeff" type="number" min="0" step="any" bind:value={c.current.resetMinCoeff} />
     </div>
