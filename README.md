@@ -121,7 +121,7 @@ When no effects are specified, each simulation trial randomly picks a gem type a
 | `--no-extra-ticket` | Hard off: the extra ticket is never granted and all enablers are disarmed. |
 | `--reset-ticket` / `--no-reset-ticket` | Use reset ticket. Default: run both variants. |
 | `--side-threshold F` | Base threshold at which side-node upgrades become valued, scaled by effect coefficient (see [strategy](documentation/strategy.md#coefficient-scaled-effective-threshold)). Default: `0.5`. |
-| `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value (the reroll-aware estimate — rerolls still in hand count). `0.0` = disabled (binary feasibility only). Try `0.01`-`0.03` for typical goals. Default: `0.0`. |
+| `--prob-reset-threshold F` | Reset proactively when DP-estimated goal probability drops below this value (the reroll-aware estimate — rerolls still in hand count). `0.0` = disabled (binary feasibility only). Default: `0.0`. This saves turns (gold/time) on gems that are going badly, but it does **not** raise the success rate: continuing keeps the reset available, so resetting before the last turn is never better for success (measured on epic will≥4 chaos≥5: 28.8% at `0.05` vs 29.3% disabled). |
 | `--bis-only` | Actively pursue target effects via `change_effect` offers in desperate mode. Side-node upgrades still use the coefficient-scaled threshold but are filtered to target-type slots only. In `stats`, only runs where both effects end up as target-type count as success. |
 | `--reset-min-coeff N` | Only use reset ticket when the sum of starting target-effect coefficients meets this threshold (e.g. atk_power+additional_damage = 1100 passes, brand_power alone = 1050 does not). `0` = always use. Default: `0`. |
 | `--reroll-min-coeff N` | Enable the extra reroll ticket when the sum of starting target-effect coefficients is ≥ N (evaluated at run start). Same logic as `--reset-min-coeff` but acts as an enabler for the off-by-default ticket. Default: `0` (disabled — ticket stays off unless another enabler fires). |
@@ -191,7 +191,7 @@ python -m arkgrid stats --min-will 3 --min-chaos 3 --optimize support \
 # Exact goals, no extra ticket
 python -m arkgrid stats --exact-will 5 --exact-chaos 5 --no-extra-ticket
 
-# Probability-based early reset (resets before goal becomes impossible)
+# Probability-based early reset (gives up on bad gems sooner; saves turns, costs a little success)
 python -m arkgrid stats --min-will 4 --min-chaos 5 --rarity epic --reset-ticket --prob-reset-threshold 0.02
 
 # Stricter side-node threshold (only value side upgrades when >=70% of offers keep goal feasible)

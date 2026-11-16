@@ -48,7 +48,7 @@ The `arkgrid/` package is split into modules:
 
 Tests live in `tests/`, split by module (e.g. `test_pool.py`, `test_simulator.py`).
 
-Developer scripts live in `tools/` (not part of the `arkgrid` package): `extract_templates.py` (crops template-candidate regions from screenshots into `tools/extracted/` for manual sorting, with a debug overlay per screenshot), plus `benchmark_reroll.py`, `calibration.py`, and `scenario.py` analysis scripts. Run them from the project root, e.g. `python tools/extract_templates.py`.
+Developer scripts live in `tools/` (not part of the `arkgrid` package): `extract_templates.py` (crops template-candidate regions from screenshots into `tools/extracted/` for manual sorting, with a debug overlay per screenshot), plus `benchmark_reroll.py`, `calibration.py`, and `scenario.py` analysis scripts, and `validate_hand_model.py` — the check to run after ANY change to the reroll / hand model: it compares the engine's `hand_e_max` with exact enumeration of all C(n,4) hands at visited states (one step) and each table's prediction with what its own policy achieves under real 4-offer play (end to end). Run both: an earlier model was only right on hard goals because two errors cancelled, which only the one-step check exposes. (`reroll_value_*.py` are historical prototypes of the superseded Gaussian model; they do not test the engine.) Run them from the project root, e.g. `python tools/extract_templates.py`.
 
 ### Vision subpackage (`arkgrid/vision/`)
 
