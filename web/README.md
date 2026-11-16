@@ -25,6 +25,8 @@ web/
     decision.ts        # <- arkgrid/decision.py    (decide_post_roll branch tree)
     index.ts           # buildEngineContext() + advise() — the advisor entry point
   tests/               # vitest unit + golden-vector parity suites
+    table_fingerprints.mjs  # bit-exact before/after check for changes to the table builds
+    perf_measure.mjs        # per-table build timings
     fixtures/          # golden vectors emitted by the Python (see fixtures/README.md)
 ```
 

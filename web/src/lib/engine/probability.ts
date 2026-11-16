@@ -142,8 +142,36 @@ export interface HandContext {
   diag: [number, number][];         // (class, pair coefficient) for same-class pairs
   off: [number, number, number][];  // (class a, class b, 2 * pair coefficient), a < b
   nc: number;                       // number of weight classes
+  /** The same data in typed arrays, for `handTurnValue` — it runs millions
+   *  of times per table build. */
+  flat: HandContextFlat;
+}
+interface HandContextFlat {
+  n: number;             // options
+  probs: Float64Array;
+  hasClasses: boolean;   // false when <= 4 options are eligible
+  cls: Int32Array;
+  nc: number;
+  diagA: Int32Array; diagC: Float64Array;                   // same-class pairs
+  offA: Int32Array; offB: Int32Array; offC: Float64Array;   // cross-class pairs
 }
 const HAND_CONTEXTS = new Map<string, HandContext>();
+
+function flattenHandContext(
+  probs: number[], cls: number[] | null, diag: [number, number][],
+  off: [number, number, number][], nc: number,
+): HandContextFlat {
+  return {
+    n: probs.length,
+    probs: Float64Array.from(probs),
+    hasClasses: cls !== null,
+    cls: Int32Array.from(cls ?? []),
+    nc,
+    diagA: Int32Array.from(diag, (d) => d[0]), diagC: Float64Array.from(diag, (d) => d[1]),
+    offA: Int32Array.from(off, (o) => o[0]), offB: Int32Array.from(off, (o) => o[1]),
+    offC: Float64Array.from(off, (o) => o[2]),
+  };
+}
 
 export function handContext(weights: number[]): HandContext {
   const key = weights.join(',');
@@ -151,7 +179,8 @@ export function handContext(weights: number[]): HandContext {
   if (ctx === undefined) {
     const n = weights.length;
     if (n <= 4) {
-      ctx = { probs: weights.map(() => 1.0 / n), cls: null, diag: [], off: [], nc: 0 };
+      const probs = weights.map(() => 1.0 / n);
+      ctx = { probs, cls: null, diag: [], off: [], nc: 0, flat: flattenHandContext(probs, null, [], [], 0) };
     } else {
       const stats = handStats([...weights].sort((a, b) => a - b));
       const cls = weights.map((w) => stats.index.get(w)!);
@@ -164,7 +193,8 @@ export function handContext(weights: number[]): HandContext {
       for (let a = 0; a < nc; a++) {
         for (let b = a + 1; b < nc; b++) off.push([a, b, 2.0 * stats.pair[a]![b]!]);
       }
-      ctx = { probs: cls.map((a) => stats.applied[a]!), cls, diag, off, nc };
+      const probs = cls.map((a) => stats.applied[a]!);
+      ctx = { probs, cls, diag, off, nc, flat: flattenHandContext(probs, cls, diag, off, nc) };
     }
     HAND_CONTEXTS.set(key, ctx);
   }
@@ -180,6 +210,13 @@ for (let n1 = 0; n1 <= 4; n1++) {
     HAND_TRINOM.push([n1, n2, n3, 24.0 / (FACT[n1]! * FACT[n2]! * FACT[n3]!)]);
   }
 }
+// The same table in typed arrays, and scratch for the three weights' powers
+// (handEMax runs millions of times per build; it must not allocate).
+const TRI_N1 = Int32Array.from(HAND_TRINOM, (x) => x[0]);
+const TRI_N2 = Int32Array.from(HAND_TRINOM, (x) => x[1]);
+const TRI_N3 = Int32Array.from(HAND_TRINOM, (x) => x[2]);
+const TRI_COEF = Float64Array.from(HAND_TRINOM, (x) => x[3]);
+const TRI_POW = new Float64Array(15); // w1^0..4, w2^0..4, w3^0..4
 const BINOM = [[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1]];
 const TWO_THIRDS_PI = (2.0 * Math.PI) / 3.0;
 
@@ -274,13 +311,17 @@ export function handEMax(
   const a1 = s * z1;
   const a2 = s * z2;
   const a3 = s * z3;
-  const p1 = [1.0, w1, w1 * w1, w1 * w1 * w1, w1 * w1 * w1 * w1];
-  const p2 = [1.0, w2, w2 * w2, w2 * w2 * w2, w2 * w2 * w2 * w2];
-  const p3 = [1.0, w3, w3 * w3, w3 * w3 * w3, w3 * w3 * w3 * w3];
+  // Powers w^0..4 by repeated multiplication — (w * w) * w, ((w * w) * w) * w
+  // — exactly as `w * w * w` and `w * w * w * w` evaluate.
+  const pw = TRI_POW;
+  pw[0] = 1.0; pw[1] = w1; pw[2] = w1 * w1; pw[3] = pw[2] * w1; pw[4] = pw[3] * w1;
+  pw[5] = 1.0; pw[6] = w2; pw[7] = w2 * w2; pw[8] = pw[7] * w2; pw[9] = pw[8] * w2;
+  pw[10] = 1.0; pw[11] = w3; pw[12] = w3 * w3; pw[13] = pw[12] * w3; pw[14] = pw[13] * w3;
   let total = 0.0;
-  for (const [n1, n2, n3, coef] of HAND_TRINOM) {
+  for (let j = 0; j < 15; j++) {
+    const n1 = TRI_N1[j]!, n2 = TRI_N2[j]!, n3 = TRI_N3[j]!;
     const h = mu + n1 * a1 + n2 * a2 + n3 * a3;
-    total += coef * p1[n1]! * p2[n2]! * p3[n3]! * (h > t ? h : t);
+    total += TRI_COEF[j]! * pw[n1]! * pw[5 + n2]! * pw[10 + n3]! * (h > t ? h : t);
   }
   return total;
 }
@@ -367,15 +408,34 @@ export function handAtoms(
 export function handMoments(
   ctx: HandContext, posts: ArrayLike<number>
 ): [number, number, number, number, number, number] {
-  const probs = ctx.probs;
-  const n = probs.length;
+  momentsInto(ctx, posts);
+  return [MOM[0]!, MOM[1]!, MOM[2]!, MOM[3]!, MOM[4]!, MOM[5]!];
+}
+
+// Scratch for `momentsInto`. The engine is synchronous and these calls never
+// nest, so one set is enough. A hand has at most one weight class per pool
+// option (27).
+const MOM = new Float64Array(6);          // mu, m2, m3, m4, m5, rho
+const CLASS_SUMS = new Float64Array(32);    // per class: sum of deviations
+const CLASS_SQUARES = new Float64Array(32); // per class: sum of squared deviations
+
+/** `handMoments` written to `MOM` instead of a fresh tuple: the table builds
+ *  call this once per cell (~540k times for an epic table), and the two
+ *  per-call arrays plus the tuple were most of its cost. */
+function momentsInto(ctx: HandContext, posts: ArrayLike<number>): void {
+  const flat = ctx.flat;
+  const probs = flat.probs;
+  const n = flat.n;
   let mu = 0.0;
   for (let i = 0; i < n; i++) mu += probs[i]! * posts[i]!;
-  const cls = ctx.cls;
-  if (cls === null) return [mu, 0.0, 0.0, 0.0, 0.0, 0.0];
+  MOM[0] = mu;
+  MOM[1] = 0.0; MOM[2] = 0.0; MOM[3] = 0.0; MOM[4] = 0.0; MOM[5] = 0.0;
+  if (!flat.hasClasses) return;
+  const cls = flat.cls;
+  const sums = CLASS_SUMS, squares = CLASS_SQUARES;
+  const nc = flat.nc;
+  for (let a = 0; a < nc; a++) { sums[a] = 0.0; squares[a] = 0.0; }
   let m2 = 0.0, m3 = 0.0, m4 = 0.0, m5 = 0.0;
-  const sums: number[] = new Array(ctx.nc).fill(0.0);    // per class: sum of deviations
-  const squares: number[] = new Array(ctx.nc).fill(0.0); // per class: sum of squared deviations
   for (let i = 0; i < n; i++) {
     const d = posts[i]! - mu;
     const d2 = d * d;
@@ -388,14 +448,20 @@ export function handMoments(
     m4 += pd * d2;
     m5 += pd * d2 * d;
   }
-  if (m2 <= 0.0) return [mu, 0.0, 0.0, 0.0, 0.0, 0.0];
+  if (m2 <= 0.0) return;
   // 16 Var(hand mean) = sum_i pi_i d_i^2 + sum_{i != j} pi_ij d_i d_j,
   // with pi_i = 4 p_i; the cross term by class sums.
   let cross = 0.0;
-  for (const [a, coef] of ctx.diag) cross += coef * (sums[a]! * sums[a]! - squares[a]!);
-  for (const [a, b, coef] of ctx.off) cross += coef * sums[a]! * sums[b]!;
+  const diagA = flat.diagA, diagC = flat.diagC;
+  for (let k = 0; k < diagA.length; k++) {
+    const a = diagA[k]!;
+    cross += diagC[k]! * (sums[a]! * sums[a]! - squares[a]!);
+  }
+  const offA = flat.offA, offB = flat.offB, offC = flat.offC;
+  for (let k = 0; k < offA.length; k++) cross += offC[k]! * sums[offA[k]!]! * sums[offB[k]!]!;
   const rho = 1.0 + cross / (4.0 * m2);
-  return [mu, m2, m3, m4, m5, rho > 0.0 ? rho : 0.0];
+  MOM[1] = m2; MOM[2] = m3; MOM[3] = m4; MOM[4] = m5;
+  MOM[5] = rho > 0.0 ? rho : 0.0;
 }
 
 /** Value of a turn whose 4-offer hand (options described by `ctx`; post-click
@@ -403,10 +469,11 @@ export function handMoments(
  *  alternative (redraw, or finishing) — and given up for that alternative
  *  otherwise. Mirrors `_hand_turn_value`. */
 export function handTurnValue(ctx: HandContext, posts: ArrayLike<number>, alt: number): number {
-  const [mu, m2, m3, m4, m5, rho] = handMoments(ctx, posts);
+  momentsInto(ctx, posts);
+  const mu = MOM[0]!, m2 = MOM[1]!;
   // Certain hand: <= 4 eligible options, or all offers worth the same.
   if (m2 <= 0.0) return mu > alt ? mu : alt;
-  return handEMax(mu, m2, m3, m4, m5, rho, alt);
+  return handEMax(mu, m2, MOM[2]!, MOM[3]!, MOM[4]!, MOM[5]!, alt);
 }
 
 /** `handContext` per `${label},${cs}` and state625 — the same three-turn-type
@@ -436,6 +503,204 @@ function handContexts(pool: OptionPool, maxTurns: number): Record<string, HandCo
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Shared machinery of the reroll-aware, effect-aware builds
+// ---------------------------------------------------------------------------
+//
+// These builds fill (turns left x state625 x cost state x effect pair x
+// rerolls) cells — ~540k for an epic gem — and read ~25 option destinations
+// per cell. Two things keep that fast:
+//  - transitions live in typed arrays (`FlatTrans`) instead of mixed-type
+//    tuples that are destructured and string-compared per option;
+//  - the per-cell work is a small module-level function per table kind
+//    (`goalFillPair`, `sideValueFillPair`, `realisedFillPair`). The JIT
+//    optimises a small function called 135k times almost at once; the same
+//    code written as loops nested nine deep inside one large method ran
+//    2-3x slower (and unoptimised for most of a first build).
+// The arithmetic — operation order included — is exactly the Python's.
+
+/** One state's eligible options in typed-array form. */
+interface FlatTrans {
+  /** Eligible options. */
+  n: number;
+  /** Transition entries: `n`, or one stay-in-place entry of probability 1
+   *  when nothing is eligible. */
+  m: number;
+  p: Float64Array;   // applied probability
+  code: Uint8Array;  // 0 plain, 1 change_first_effect, 2 change_second_effect
+  nst: Uint16Array;  // next state625
+  ncs: Uint8Array;   // next cost state
+  vd: Uint8Array;    // view delta (rerolls gained)
+  weights: number[]; // the eligible options' weights, in pool order
+}
+
+/** `FlatTrans` per `${label},${cs}` and state625 — the same three-turn-type
+ *  layout as `handContexts`. */
+function flatTransitions(pool: OptionPool, maxTurns: number): Record<string, FlatTrans[]> {
+  const out: Record<string, FlatTrans[]> = {};
+  const turnSpecs: [string, number, number][] = [
+    ['first', 1, maxTurns],
+    ['last', maxTurns, 1],
+    ['middle', 2, maxTurns > 2 ? maxTurns - 1 : 2],
+  ];
+  for (const [label, turn, tl] of turnSpecs) {
+    for (let cs = 0; cs <= 1; cs++) {
+      const cache: FlatTrans[] = new Array(625);
+      for (let w = 1; w <= 5; w++) {
+        for (let c = 1; c <= 5; c++) {
+          for (let f = 1; f <= 5; f++) {
+            for (let s = 1; s <= 5; s++) {
+              const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
+              const elig = pool.pool.filter((o) => pool.eligible(o, state, turn, tl));
+              const n = elig.length;
+              const m = n > 0 ? n : 1;
+              const tr: FlatTrans = {
+                n, m, p: new Float64Array(m), code: new Uint8Array(m), nst: new Uint16Array(m),
+                ncs: new Uint8Array(m), vd: new Uint8Array(m), weights: elig.map((o) => o.weight),
+              };
+              if (n === 0) {
+                tr.p[0] = 1.0;
+                tr.nst[0] = s625(w, c, f, s);
+                tr.ncs[0] = cs;
+              } else {
+                const probs = appliedProbs(tr.weights);
+                for (let i = 0; i < n; i++) {
+                  const o = elig[i]!;
+                  let nw = w, nc = c, nf = f, ns = s, ncs = cs, vd = 0;
+                  if (o.kind === 'will') nw = clampLevel(w + o.delta);
+                  else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
+                  else if (o.kind === 'first') nf = clampLevel(f + o.delta);
+                  else if (o.kind === 'second') ns = clampLevel(s + o.delta);
+                  else if (o.kind === 'view') vd = o.delta;
+                  else if (o.kind === 'cost') ncs = 1 - cs;
+                  tr.p[i] = probs[i]!;
+                  tr.code[i] = o.key === 'change_first_effect' ? 1 : o.key === 'change_second_effect' ? 2 : 0;
+                  tr.nst[i] = s625(nw, nc, nf, ns);
+                  tr.ncs[i] = ncs;
+                  tr.vd[i] = vd;
+                }
+              }
+              cache[s625(w, c, f, s)] = tr;
+            }
+          }
+        }
+      }
+      out[`${label},${cs}`] = cache;
+    }
+  }
+  return out;
+}
+
+/** The effect pair(s) each option leads to from pair (fi, si): a change-effect
+ *  card lands on either non-equipped effect (`ea2`, else -1). */
+function optionDestinations(
+  tr: FlatTrans, fi: number, si: number, dests: number[], ea1: Int32Array, ea2: Int32Array,
+): void {
+  const ea = fi * 4 + si;
+  const d0 = dests[0]!, d1 = dests[1]!;
+  const code = tr.code;
+  const m = tr.m;
+  for (let i = 0; i < m; i++) {
+    const k = code[i]!;
+    if (k === 1) { ea1[i] = d0 * 4 + si; ea2[i] = d1 * 4 + si; }
+    else if (k === 2) { ea1[i] = fi * 4 + d0; ea2[i] = fi * 4 + d1; }
+    else { ea1[i] = ea; ea2[i] = -1; }
+  }
+}
+
+/** What a reroll-aware goal or side-value build shares across cells. The
+ *  table layout is `(((st * 2 + cs) * 16 + ea) * rDim + r) * tlDim + tl`. */
+interface RerollBuildEnv {
+  dp: Float64Array;
+  maxR: number;
+  tlDim: number;
+  stride: number;                     // rDim * tlDim: one (st, cs, ea) block
+  changeDests: (number[] | null)[];
+  ea1: Int32Array; ea2: Int32Array;   // scratch: destinations per option
+  posts: Float64Array;                // scratch: table value after each option
+}
+
+function rerollBuildEnv(
+  dp: Float64Array, maxR: number, rDim: number, tlDim: number,
+  changeDests: (number[] | null)[], maxOptions: number,
+): RerollBuildEnv {
+  return {
+    dp, maxR, tlDim, stride: rDim * tlDim, changeDests,
+    ea1: new Int32Array(maxOptions), ea2: new Int32Array(maxOptions),
+    posts: new Float64Array(maxOptions),
+  };
+}
+
+/** Goal table: fill one (state, cost state, effect pair) for every reroll
+ *  count at `tl` turns left. With a reroll in hand the 4-offer hand is kept
+ *  when it beats a redraw; otherwise the turn is the options' average. */
+function goalFillPair(
+  e: RerollBuildEnv, tr: FlatTrans, hand: HandContext, tl: number, rerollTurn: boolean,
+  st: number, cs: number, fi: number, si: number,
+): void {
+  const dp = e.dp, maxR = e.maxR, tlDim = e.tlDim, stride = e.stride;
+  const ea1 = e.ea1, ea2 = e.ea2, posts = e.posts;
+  const p = tr.p, nst = tr.nst, ncs = tr.ncs, vd = tr.vd;
+  const m = tr.m;
+  const ea = fi * 4 + si;
+  optionDestinations(tr, fi, si, e.changeDests[ea]!, ea1, ea2);
+  const here0 = ((st * 2 + cs) * 16 + ea) * stride;
+  for (let r = 0; r <= maxR; r++) {
+    for (let i = 0; i < m; i++) {
+      let nr = r + vd[i]!;
+      if (nr > maxR) nr = maxR;
+      const blk = (nst[i]! * 2 + ncs[i]!) * 16;
+      const off = nr * tlDim + (tl - 1);
+      posts[i] = ea2[i]! < 0
+        ? dp[(blk + ea1[i]!) * stride + off]!
+        : dp[(blk + ea1[i]!) * stride + off]! / 2 + dp[(blk + ea2[i]!) * stride + off]! / 2;
+    }
+    const here = here0 + r * tlDim + tl;
+    if (r > 0 && rerollTurn) {
+      dp[here] = handTurnValue(hand, posts, dp[here - tlDim]!);
+    } else {
+      let val = 0.0;
+      for (let i = 0; i < m; i++) val += p[i]! * posts[i]!;
+      dp[here] = val;
+    }
+  }
+}
+
+/** Side-value table: the same for the gem's value. The hand is weighed
+ *  against the best alternative: finishing now, or (with a reroll in hand)
+ *  redrawing. */
+function sideValueFillPair(
+  e: RerollBuildEnv, tr: FlatTrans, hand: HandContext, tl: number, rerollTurn: boolean,
+  st: number, cs: number, fi: number, si: number,
+): void {
+  const dp = e.dp, maxR = e.maxR, tlDim = e.tlDim, stride = e.stride;
+  const ea1 = e.ea1, ea2 = e.ea2, posts = e.posts;
+  const nst = tr.nst, ncs = tr.ncs, vd = tr.vd;
+  const m = tr.m;
+  const ea = fi * 4 + si;
+  optionDestinations(tr, fi, si, e.changeDests[ea]!, ea1, ea2);
+  const here0 = ((st * 2 + cs) * 16 + ea) * stride;
+  const finishVal = dp[here0]!; // the gem's value as it stands (r = 0, tl = 0)
+  for (let r = 0; r <= maxR; r++) {
+    for (let i = 0; i < m; i++) {
+      let nr = r + vd[i]!;
+      if (nr > maxR) nr = maxR;
+      const blk = (nst[i]! * 2 + ncs[i]!) * 16;
+      const off = nr * tlDim + (tl - 1);
+      posts[i] = ea2[i]! < 0
+        ? dp[(blk + ea1[i]!) * stride + off]!
+        : (dp[(blk + ea1[i]!) * stride + off]! + dp[(blk + ea2[i]!) * stride + off]!) / 2;
+    }
+    const here = here0 + r * tlDim + tl;
+    let alt = finishVal;
+    if (r > 0 && rerollTurn) {
+      const redraw = dp[here - tlDim]!;
+      alt = finishVal > redraw ? finishVal : redraw;
+    }
+    dp[here] = handTurnValue(hand, posts, alt);
+  }
 }
 
 // Effect-aware option-level transition entry:
@@ -995,12 +1260,20 @@ export class GoalProbabilityTable {
       }
     }
 
-    const transCache = this._buildEaTransCache();
+    const transCache = flatTransitions(this.pool, mt);
     const handCache = handContexts(this.pool, mt);
+    const tlDim = this._tlDim;
+    const stride = this._rDim * tlDim;
+    const env = rerollBuildEnv(dp, maxR, this._rDim, tlDim, this._changeDests, this.pool.pool.length);
+    const earlyFinish = this.earlyFinish;
 
     // Backward induction
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
+      const label = turnNumber === 1 ? 'first' : tl === 1 ? 'last' : 'middle';
+      const rerollTurn = turnNumber !== 1;
+      const transByCs = [transCache[`${label},0`]!, transCache[`${label},1`]!];
+      const handsByCs = [handCache[`${label},0`]!, handCache[`${label},1`]!];
 
       for (let w = 1; w <= 5; w++) {
         for (let c = 1; c <= 5; c++) {
@@ -1009,60 +1282,16 @@ export class GoalProbabilityTable {
               const goalSat = this.goal.satisfied(w, c, f, s);
               const st = s625(w, c, f, s);
               for (let cs = 0; cs <= 1; cs++) {
-                const trans = this._build_effect_aware_turnTable(turnNumber, tl, cs, transCache)[st]!;
-                const hand = handCache[`${turnNumber === 1 ? 'first' : tl === 1 ? 'last' : 'middle'},${cs}`]![st]!;
+                const tr = transByCs[cs]![st]!;
+                const hand = handsByCs[cs]![st]!;
                 for (const [fi, si] of validPairs) {
-                  const dests = this._changeDests[fi * 4 + si]!;
-                  const nDests = dests.length;
-
-                  // post_val: V at a transition destination, routing
-                  // change_effect uniformly across non-equipped pool members.
-                  const postVal = (
-                    optKey: string,
-                    nst: number,
-                    ncs: number,
-                    nr: number
-                  ): number => {
-                    if (optKey === 'change_first_effect') {
-                      let v = 0.0;
-                      for (const newFi of dests) {
-                        v += dp[this._idx(nst, ncs, newFi * 4 + si, nr, tl - 1)]! / nDests;
-                      }
-                      return v;
-                    }
-                    if (optKey === 'change_second_effect') {
-                      let v = 0.0;
-                      for (const newSi of dests) {
-                        v += dp[this._idx(nst, ncs, fi * 4 + newSi, nr, tl - 1)]! / nDests;
-                      }
-                      return v;
-                    }
-                    return dp[this._idx(nst, ncs, fi * 4 + si, nr, tl - 1)]!;
-                  };
-
-                  for (let r = 0; r <= maxR; r++) {
-                    if (this.earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
-                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = 1.0;
-                      continue;
-                    }
-
-                    if (r > 0 && turnNumber !== 1) {
-                      const rerollVal = dp[this._idx(st, cs, fi * 4 + si, r - 1, tl)]!;
-                      const posts: number[] = [];
-                      for (const [, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
-                        const nr = Math.min(maxR, r + vd);
-                        posts.push(postVal(optKey, s625(nw, nc, nf, ns), ncs, nr));
-                      }
-                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = handTurnValue(hand, posts, rerollVal);
-                    } else {
-                      let val = 0.0;
-                      for (const [p, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
-                        const nr = Math.min(maxR, r + vd);
-                        val += p * postVal(optKey, s625(nw, nc, nf, ns), ncs, nr);
-                      }
-                      dp[this._idx(st, cs, fi * 4 + si, r, tl)] = val;
-                    }
+                  if (earlyFinish && goalSat && this._coeffSatisfiedIdx(f, s, fi, si)) {
+                    // Goal met: the player can stop here.
+                    const base = ((st * 2 + cs) * 16 + fi * 4 + si) * stride + tl;
+                    for (let r = 0; r <= maxR; r++) dp[base + r * tlDim] = 1.0;
+                    continue;
                   }
+                  goalFillPair(env, tr, hand, tl, rerollTurn, st, cs, fi, si);
                 }
               }
             }
@@ -1642,95 +1871,24 @@ export class SideValueTable {
                 for (let r = 0; r <= maxR; r++) dp[this._idx(st, cs, fi * 4 + si, r, 0)] = v;
             }
 
-    type RTrans = [number, string, string, number, number, number, number, number, number];
-    const transitions = (w: number, c: number, f: number, s: number, cs: number,
-                         turn: number, tl: number): RTrans[] => {
-      const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
-      const elig = this._pool.pool.filter((o) => this._pool.eligible(o, state, turn, tl));
-      if (elig.length === 0) return [[1.0, '', '', w, c, f, s, cs, 0]];
-      const probs = appliedProbs(elig.map((o) => o.weight));
-      const out: RTrans[] = [];
-      for (let i = 0; i < elig.length; i++) {
-        const o = elig[i]!;
-        let nw = w, nc = c, nf = f, ns = s, ncs = cs, vd = 0;
-        if (o.kind === 'will') nw = clampLevel(w + o.delta);
-        else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
-        else if (o.kind === 'first') nf = clampLevel(f + o.delta);
-        else if (o.kind === 'second') ns = clampLevel(s + o.delta);
-        else if (o.kind === 'view') vd = o.delta;
-        else if (o.kind === 'cost') ncs = 1 - cs;
-        out.push([probs[i]!, o.key, o.kind, nw, nc, nf, ns, ncs, vd]);
-      }
-      return out;
-    };
-
-    const labels: [string, number, number][] = [
-      ['first', 1, mt], ['last', mt, 1], ['middle', 2, mt > 2 ? mt - 1 : 2]];
-    const transCache: Record<string, RTrans[][]> = {};
-    for (const [label, turn, tl] of labels) {
-      for (let cs = 0; cs <= 1; cs++) {
-        const cache: RTrans[][] = new Array(625);
-        for (let w = 1; w <= 5; w++)
-          for (let c = 1; c <= 5; c++)
-            for (let f = 1; f <= 5; f++)
-              for (let s = 1; s <= 5; s++)
-                cache[s625(w, c, f, s)] = transitions(w, c, f, s, cs, turn, tl);
-        transCache[`${label},${cs}`] = cache;
-      }
-    }
-
+    const transCache = flatTransitions(this._pool, mt);
     const handCache = handContexts(this._pool, mt);
-    const cd = this._changeDests;
-    const postVal = (optKey: string, nst: number,
-                     ncs: number, fi: number, si: number, nr: number, tl: number): number => {
-      if (optKey === 'change_first_effect') {
-        const d = cd[fi * 4 + si]!;
-        let sum = 0;
-        for (const di of d) sum += dp[this._idx(nst, ncs, di * 4 + si, nr, tl)]!;
-        return sum / d.length;
-      }
-      if (optKey === 'change_second_effect') {
-        const d = cd[fi * 4 + si]!;
-        let sum = 0;
-        for (const di of d) sum += dp[this._idx(nst, ncs, fi * 4 + di, nr, tl)]!;
-        return sum / d.length;
-      }
-      return dp[this._idx(nst, ncs, fi * 4 + si, nr, tl)]!;
-    };
+    const env = rerollBuildEnv(dp, maxR, this._rDim, this._tlDim, this._changeDests, this._pool.pool.length);
 
     for (let tl = 1; tl <= mt; tl++) {
       const turnNumber = mt - tl + 1;
       const label = turnNumber === 1 ? 'first' : tl === 1 ? 'last' : 'middle';
-      for (let w = 1; w <= 5; w++)
-        for (let c = 1; c <= 5; c++)
-          for (let f = 1; f <= 5; f++)
-            for (let s = 1; s <= 5; s++) {
-              const st = s625(w, c, f, s);
-              for (let cs = 0; cs <= 1; cs++) {
-                const trans = transCache[`${label},${cs}`]![st]!;
-                const hand = handCache[`${label},${cs}`]![st]!;
-                for (const [fi, si] of validPairs) {
-                  const finishVal = this._gemValueIdx(w, c, f, s, fi, si);
-                  for (let r = 0; r <= maxR; r++) {
-                    const posts: number[] = [];
-                    for (const [, optKey, , nw, nc, nf, ns, ncs, vd] of trans) {
-                      const nr = Math.min(maxR, r + vd);
-                      posts.push(postVal(optKey, s625(nw, nc, nf, ns), ncs, fi, si, nr, tl - 1));
-                    }
-                    // The hand is weighed against the best alternative:
-                    // finishing now, or (with a reroll in hand) redrawing.
-                    let t: number;
-                    if (r > 0 && turnNumber !== 1) {
-                      const rc = dp[this._idx(st, cs, fi * 4 + si, r - 1, tl)]!;
-                      t = finishVal > rc ? finishVal : rc;
-                    } else {
-                      t = finishVal;
-                    }
-                    dp[this._idx(st, cs, fi * 4 + si, r, tl)] = handTurnValue(hand, posts, t);
-                  }
-                }
-              }
-            }
+      const rerollTurn = turnNumber !== 1;
+      const transByCs = [transCache[`${label},0`]!, transCache[`${label},1`]!];
+      const handsByCs = [handCache[`${label},0`]!, handCache[`${label},1`]!];
+      for (let st = 0; st < 625; st++)
+        for (let cs = 0; cs <= 1; cs++) {
+          const tr = transByCs[cs]![st]!;
+          const hand = handsByCs[cs]![st]!;
+          for (const [fi, si] of validPairs) {
+            sideValueFillPair(env, tr, hand, tl, rerollTurn, st, cs, fi, si);
+          }
+        }
     }
   }
 
@@ -1852,14 +2010,6 @@ function keepStats(
   return [pKeep, eY > 1.0 ? 1.0 : eY < 0.0 ? 0.0 : eY];
 }
 
-/** One state's eligible options for the realised-success build: transition
- *  code (0 plain, 1 change_first, 2 change_second), next state625, next cost
- *  state and view delta per option, plus the option weights. */
-interface RealisedTrans {
-  n: number; code: Uint8Array; nst: Uint16Array; ncs: Uint8Array; vd: Uint8Array;
-  weights: number[];
-}
-
 /** What a realised-success build shares across states (tables, policy knobs
  *  and scratch buffers). */
 interface RealisedEnv {
@@ -1878,12 +2028,11 @@ interface RealisedEnv {
 }
 
 /** Fill one (state, cost state, effect pair) for every reroll count at
- *  `tl` turns left. Kept as a small standalone function on purpose: it is
- *  the build's hot kernel, and the JIT optimises a small function called
- *  135k times far sooner than loops nested nine deep inside one large
- *  function (which cost ~600ms on the first build). */
+ *  `tl` turns left (the build's hot kernel — see "Shared machinery of the
+ *  reroll-aware, effect-aware builds"). Loops run over `tr.n`: with nothing
+ *  eligible there is no hand, and the cell stays 0. */
 function realisedFillPair(
-  e: RealisedEnv, tr: RealisedTrans, hand: HandContext, tl: number, rerollTurn: boolean,
+  e: RealisedEnv, tr: FlatTrans, hand: HandContext, tl: number, rerollTurn: boolean,
   st: number, cs: number, fi: number, si: number, capped: boolean, total: number,
   sideCoeff: number,
 ): void {
@@ -1893,16 +2042,7 @@ function realisedFillPair(
   const probs = hand.probs;
   const n = tr.n;
   const ea = fi * 4 + si;
-  const d = e.changeDests[ea]!;
-  const d0 = d[0]!, d1 = d[1]!;
-  // Destinations per option: change_effect lands on either non-equipped
-  // effect.
-  for (let i = 0; i < n; i++) {
-    const code = tr.code[i]!;
-    if (code === 1) { ea1[i] = d0 * 4 + si; ea2[i] = d1 * 4 + si; }
-    else if (code === 2) { ea1[i] = fi * 4 + d0; ea2[i] = fi * 4 + d1; }
-    else { ea1[i] = ea; ea2[i] = -1; }
-  }
+  optionDestinations(tr, fi, si, e.changeDests[ea]!, ea1, ea2);
   const isMet = met[st * 16 + ea] === 1;
   const here0 = ((st * 2 + cs) * 16 + ea) * stride; // index of (r = 0, tl = 0)
   let nSafe = 0;
@@ -2096,44 +2236,7 @@ export class RealisedSuccessTable {
           for (let r = 0; r <= maxR; r++) dp[this._idx(st, cs, ea, r, 0)] = v;
       }
 
-    // Per (turn label, cost state) and state: the eligible options'
-    // transitions and weights.
-    const labels: [string, number, number][] = [
-      ['first', 1, mt], ['last', mt, 1], ['middle', 2, mt > 2 ? mt - 1 : 2]];
-    const transCache: Record<string, RealisedTrans[]> = {};
-    for (const [label, turn, tl] of labels) {
-      for (let cs = 0; cs <= 1; cs++) {
-        const cache: RealisedTrans[] = new Array(625);
-        for (let w = 1; w <= 5; w++)
-          for (let c = 1; c <= 5; c++)
-            for (let f = 1; f <= 5; f++)
-              for (let s = 1; s <= 5; s++) {
-                const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
-                const elig = pool.pool.filter((o) => pool.eligible(o, state, turn, tl));
-                const n = elig.length;
-                const t: RealisedTrans = {
-                  n, code: new Uint8Array(n), nst: new Uint16Array(n), ncs: new Uint8Array(n),
-                  vd: new Uint8Array(n), weights: elig.map((o) => o.weight),
-                };
-                for (let i = 0; i < n; i++) {
-                  const o = elig[i]!;
-                  let nw = w, nc = c, nf = f, ns = s, ncs = cs, vd = 0;
-                  if (o.kind === 'will') nw = clampLevel(w + o.delta);
-                  else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
-                  else if (o.kind === 'first') nf = clampLevel(f + o.delta);
-                  else if (o.kind === 'second') ns = clampLevel(s + o.delta);
-                  else if (o.kind === 'view') vd = o.delta;
-                  else if (o.kind === 'cost') ncs = 1 - cs;
-                  t.code[i] = o.key === 'change_first_effect' ? 1 : o.key === 'change_second_effect' ? 2 : 0;
-                  t.nst[i] = s625(nw, nc, nf, ns);
-                  t.ncs[i] = ncs;
-                  t.vd[i] = vd;
-                }
-                cache[s625(w, c, f, s)] = t;
-              }
-        transCache[`${label},${cs}`] = cache;
-      }
-    }
+    const transCache = flatTransitions(pool, mt);
     const handCache = handContexts(pool, mt);
 
     const maxN = pool.pool.length;
