@@ -31,11 +31,10 @@ except Exception:
 from arkgrid.analyzer import GemAnalyzer
 from arkgrid.constants import (
     DPS_COEFF, DPS_EFFECTS, GEM_TYPES,
-    SUPPORT_COEFF, SUPPORT_EFFECTS, change_dest_max_coeff,
+    SUPPORT_COEFF, SUPPORT_EFFECTS,
 )
 from arkgrid.decision import (
     ActionKind, DecisionContext, TurnInput, decide_post_roll, ticket_enabled,
-    has_progress_offer,
 )
 from arkgrid.models import AstroGem, GemState, LastTurnGoal, Option
 from arkgrid.pool import OptionPool
@@ -44,12 +43,14 @@ from arkgrid.table_cache import (
     goal_table as cached_goal_table,
     side_value_table as cached_side_value_table,
 )
-from arkgrid.run_logger import RunLogger
+from arkgrid.run_logger import (
+    GemOutcome, RunLogger, format_gem_result, format_run_overview,
+    format_tally,
+)
 from arkgrid.simulator import GemSimulator
 from arkgrid.vision.capture import grab_screen
 from arkgrid.vision.template_recognizer import (
     DetectionResult,
-    FinishDetectionResult,
     OptionDetection,
     detect,
     detect_finish,
@@ -621,22 +622,59 @@ def _still_waiting(det_turn, det_rerolls, det_sig, waiting) -> bool:
     return True
 
 
+def _goal_shortfalls(goal: LastTurnGoal, state: GemState, optimize: str,
+                     bis_only: bool, min_side_coeff: int) -> List[str]:
+    """Success conditions `state` misses, as short labels for the per-gem
+    `Result:` line (``will 1<4``, ``side_coeff 4200<4201``). Empty exactly
+    when the gem is a success — `_run_success` is defined by it."""
+    missed: List[str] = []
+    w, c = state.will, state.chaos
+    if not goal.satisfied(w, c, state.first, state.second):
+        # `satisfied` decides membership; the checks below only label it.
+        if goal.exact_will is not None and w != goal.exact_will:
+            missed.append(f"will {w}!={goal.exact_will}")
+        if goal.exact_chaos is not None and c != goal.exact_chaos:
+            missed.append(f"chaos {c}!={goal.exact_chaos}")
+        if goal.min_will is not None and w < goal.min_will:
+            missed.append(f"will {w}<{goal.min_will}")
+        if goal.min_chaos is not None and c < goal.min_chaos:
+            missed.append(f"chaos {c}<{goal.min_chaos}")
+        wc = w + c
+        if (goal.exact_total_will_chaos is not None
+                and wc != goal.exact_total_will_chaos):
+            missed.append(f"will+chaos {wc}!={goal.exact_total_will_chaos}")
+        if (goal.min_total_will_chaos is not None
+                and wc < goal.min_total_will_chaos):
+            missed.append(f"will+chaos {wc}<{goal.min_total_will_chaos}")
+        if goal.min_first is not None and state.first < goal.min_first:
+            missed.append(f"1st {state.first}<{goal.min_first}")
+        if goal.min_second is not None and state.second < goal.min_second:
+            missed.append(f"2nd {state.second}<{goal.min_second}")
+        total = state.total_points()
+        if goal.min_total is not None and total < goal.min_total:
+            missed.append(f"total {total}<{goal.min_total}")
+        if not missed:
+            missed.append("goal")
+    if bis_only:
+        target = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        off = [e for e in (state.first_effect, state.second_effect)
+               if e not in target]
+        if off:
+            missed.append(f"non-{optimize} effect {'/'.join(map(str, off))}")
+    if min_side_coeff > 0:
+        coeff = GemAnalyzer._side_coeff(state, optimize)
+        if coeff < min_side_coeff:
+            missed.append(f"side_coeff {coeff}<{min_side_coeff}")
+    return missed
+
+
 def _run_success(goal: LastTurnGoal, state: GemState, optimize: str,
                  bis_only: bool, min_side_coeff: int) -> bool:
     """End-of-gem success — mirrors `GemSimulator`'s check (goal +
     `bis_only` target effects + `min_side_coeff` floor) so the auto JSONL
     agrees with `sim` batches."""
-    if not goal.satisfied(state.will, state.chaos, state.first, state.second):
-        return False
-    if bis_only:
-        target = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
-        if (state.first_effect not in target
-                or state.second_effect not in target):
-            return False
-    if min_side_coeff > 0:
-        if GemAnalyzer._side_coeff(state, optimize) < min_side_coeff:
-            return False
-    return True
+    return not _goal_shortfalls(goal, state, optimize, bis_only,
+                                min_side_coeff)
 
 
 # ---------------------------------------------------------------------------
@@ -700,6 +738,8 @@ def run_auto(
 
     stop_requested = False
     gem_count = 0
+    # Completed gems' results — per-gem Result line, all-mode tally, run_end.
+    outcomes: List[GemOutcome] = []
     while True:  # outer: iterate over gems (only repeats when --all is set)
         gem_count += 1
         if all_gems and gem_count > 1:
@@ -746,6 +786,7 @@ def run_auto(
 
         # Auto-detected gem (from first screen capture)
         detected_gem: Optional[AstroGem] = astro_gem
+        gem_rarity: Optional[str] = None  # set on first detection
 
         # Internal state tracking
         # Resolved against the gem's rarity once detection succeeds; until
@@ -1051,6 +1092,7 @@ def run_auto(
                         second_effect=det.second_effect,
                         total_steps=det.total_steps,
                     )
+                    gem_rarity = rarity_for_log
                     gem_logged_detected = True
                 # Gate tickets by coefficient thresholds (same as simulator)
                 # Reset only checked on first detection (reset restores
@@ -1611,6 +1653,8 @@ def run_auto(
         side_coeff_value = GemAnalyzer._side_coeff(final_state_obj, optimize)
         success = _run_success(goal, final_state_obj, optimize,
                                bis_only, min_side_coeff)
+        missed = _goal_shortfalls(goal, final_state_obj, optimize,
+                                  bis_only, min_side_coeff)
 
         if pending_turn_record is not None:
             pending_turn_record["state_after"] = final_state_obj
@@ -1637,14 +1681,31 @@ def run_auto(
             extra_ticket_used=extra_ticket_consumed,
             final_state=final_state_obj,
             reason=reason,
+            gem_index=gem_count,
+            missed=missed,
         )
+
+        # --- Per-gem result + running all-mode tally ---
+        # Only completed gems count; a gem stopped mid-cut is no attempt.
+        if gem_completed:
+            outcomes.append(GemOutcome(
+                gem_index=gem_count, success=success,
+                final_state=final_state_obj, reason=reason,
+                rarity=gem_rarity, side_coeff=side_coeff_value,
+                shortfalls=tuple(missed),
+            ))
+            print(format_gem_result(outcomes[-1]))
+            if all_gems:
+                print(f"[all mode] {format_tally(outcomes)}")
+        else:
+            print(f"Result: not counted ({reason})")
 
         # --- Decide whether to continue to next gem (--all mode) ---
         if stop_requested or not all_gems or not gem_completed or dry_run:
             break
 
         print()
-        print(f"[all mode] Confirming processed gem...")
+        print("[all mode] Confirming processed gem...")
         _click(*BTN_CONFIRM_GEM_DONE, monitor)
         time.sleep(ALL_MODE_CLICK_DELAY)
 
@@ -1652,7 +1713,7 @@ def run_auto(
             print("\n[stopped by Escape]")
             break
 
-        print(f"[all mode] Selecting next gem...")
+        print("[all mode] Selecting next gem...")
         _click(*BTN_NEXT_GEM, monitor)
         # Park cursor away from the gem slot so the tooltip doesn't
         # cover the detection ROIs on the next capture.
@@ -1671,8 +1732,14 @@ def run_auto(
         # Give the UI a moment to render the new gem before re-detection
         time.sleep(ALL_MODE_CLICK_DELAY)
 
+    if all_gems:
+        print()
+        for line in format_run_overview(outcomes):
+            print(line)
+        print()
+
     # Close log files and restore stdout
-    logger.log_run_end()
+    logger.log_run_end(outcomes)
     log_path = logger.log_path
     jsonl_path = logger.jsonl_path
     logger.close()

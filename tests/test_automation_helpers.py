@@ -11,7 +11,9 @@ from __future__ import annotations
 import unittest
 from types import SimpleNamespace
 
-from arkgrid.automation import _offer_signature, _run_success, _still_waiting
+from arkgrid.automation import (
+    _goal_shortfalls, _offer_signature, _run_success, _still_waiting,
+)
 from arkgrid.models import GemState, LastTurnGoal
 
 
@@ -99,6 +101,67 @@ class TestRunSuccess(unittest.TestCase):
                                      bis_only=False, min_side_coeff=4200))
         self.assertFalse(_run_success(goal, self._state(), "dps",
                                       bis_only=False, min_side_coeff=4201))
+
+
+class TestGoalShortfalls(unittest.TestCase):
+    """The per-gem `Result:` line names every missed success condition, and
+    the list is empty exactly when the gem counts as a success.
+    """
+
+    def _missed(self, goal, state, bis_only=False, min_side_coeff=0):
+        return _goal_shortfalls(goal, state, "dps", bis_only=bis_only,
+                                min_side_coeff=min_side_coeff)
+
+    def test_met_goal_has_no_shortfalls(self):
+        goal = LastTurnGoal(min_will=4, min_chaos=5)
+        self.assertEqual(self._missed(goal, GemState(will=4, chaos=5)), [])
+
+    def test_names_each_missed_stat(self):
+        goal = LastTurnGoal(min_will=4, min_chaos=5)
+        state = GemState(will=1, chaos=1, first=1, second=3)
+        self.assertEqual(self._missed(goal, state),
+                         ["will 1<4", "chaos 1<5"])
+
+    def test_exact_and_total_targets(self):
+        goal = LastTurnGoal(exact_will=3, min_total_will_chaos=9,
+                            min_total=16)
+        state = GemState(will=4, chaos=4, first=3, second=3)
+        self.assertEqual(self._missed(goal, state),
+                         ["will 4!=3", "will+chaos 8<9", "total 14<16"])
+
+    def test_side_node_levels(self):
+        goal = LastTurnGoal(min_first=3, min_second=2)
+        state = GemState(will=5, chaos=5, first=2, second=1)
+        self.assertEqual(self._missed(goal, state), ["1st 2<3", "2nd 1<2"])
+
+    def test_bis_only_off_target_effect(self):
+        goal = LastTurnGoal(min_will=5, min_chaos=5)
+        state = GemState(will=5, chaos=5, first=3, second=3,
+                         first_effect="boss_damage",
+                         second_effect="ally_damage")
+        self.assertEqual(self._missed(goal, state), [])
+        self.assertEqual(self._missed(goal, state, bis_only=True),
+                         ["non-dps effect ally_damage"])
+
+    def test_side_coeff_floor(self):
+        goal = LastTurnGoal(min_will=5, min_chaos=5)
+        state = GemState(will=5, chaos=5, first=3, second=3,
+                         first_effect="boss_damage",
+                         second_effect="attack_power")
+        # 3*1000 + 3*400 = 4200
+        self.assertEqual(self._missed(goal, state, min_side_coeff=4201),
+                         ["side_coeff 4200<4201"])
+
+    def test_agrees_with_goal_satisfied(self):
+        goal = LastTurnGoal(min_will=4, exact_chaos=4, min_first=2,
+                            min_total=12)
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    state = GemState(will=w, chaos=c, first=f, second=1)
+                    self.assertEqual(not self._missed(goal, state),
+                                     goal.satisfied(w, c, f, 1),
+                                     msg=f"w={w} c={c} 1st={f}")
 
 
 if __name__ == "__main__":

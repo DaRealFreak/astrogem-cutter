@@ -16,9 +16,9 @@ import argparse
 import json
 import os
 import sys
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from arkgrid.models import AstroGem, GemState, LastTurnGoal
 
@@ -48,6 +48,97 @@ def _state_dict(state: GemState) -> Dict[str, Any]:
         "rerolls": state.rerolls,
         "total": state.total_points(),
     }
+
+
+# Grade thresholds on total points (same as GemAnalyzer's relic+/ancient rates).
+_RELIC_MIN_POINTS = 16
+_ANCIENT_MIN_POINTS = 19
+_RARITY_ORDER = ("common", "rare", "epic")
+
+
+@dataclass(frozen=True)
+class GemOutcome:
+    """End-of-cut result of one completed gem, collected for the run tally."""
+    gem_index: int
+    success: bool
+    final_state: GemState
+    reason: str  # early_finish / ran_to_end
+    rarity: Optional[str] = None
+    side_coeff: int = 0
+    shortfalls: Tuple[str, ...] = ()
+
+
+def _successes(outcomes: Sequence[GemOutcome]) -> List[GemOutcome]:
+    return [o for o in outcomes if o.success]
+
+
+def _rate(part: int, whole: int) -> float:
+    return part / whole if whole else 0.0
+
+
+def format_tally(outcomes: Sequence[GemOutcome]) -> str:
+    """``"3/25 successes (12.0%)"`` over the completed gems."""
+    wins, n = len(_successes(outcomes)), len(outcomes)
+    return f"{wins}/{n} successes ({_rate(wins, n):.1%})"
+
+
+def format_gem_result(outcome: GemOutcome) -> str:
+    """Greppable per-gem line: ``Result: SUCCESS`` / ``Result: FAIL (missed: ...)``."""
+    if outcome.success:
+        verdict = "SUCCESS"
+    elif outcome.shortfalls:
+        verdict = f"FAIL (missed: {', '.join(outcome.shortfalls)})"
+    else:
+        verdict = "FAIL"
+    context = [f"gem #{outcome.gem_index}"]
+    if outcome.rarity:
+        context.append(outcome.rarity)
+    context.append(outcome.reason)
+    return f"Result: {verdict}  [{', '.join(context)}]"
+
+
+def format_run_overview(outcomes: Sequence[GemOutcome]) -> List[str]:
+    """End-of-run all-mode block: success tally, grade counts, per-rarity
+    split, and the successful gems with their final stats."""
+    n = len(outcomes)
+    lines = [f"=== All mode summary: {format_tally(outcomes)} ==="]
+    if not n:
+        return lines
+
+    totals = [o.final_state.total_points() for o in outcomes]
+    relic = sum(1 for t in totals if t >= _RELIC_MIN_POINTS)
+    ancient = sum(1 for t in totals if t >= _ANCIENT_MIN_POINTS)
+    lines.append(f"  Relic+ (>={_RELIC_MIN_POINTS}): {relic}/{n}   "
+                 f"Ancient (>={_ANCIENT_MIN_POINTS}): {ancient}/{n}")
+
+    by_rarity: Dict[str, List[int]] = {}  # rarity -> [successes, gems]
+    for o in outcomes:
+        if o.rarity:
+            counts = by_rarity.setdefault(o.rarity, [0, 0])
+            counts[0] += o.success
+            counts[1] += 1
+    if by_rarity:
+        order = sorted(by_rarity, key=lambda r: (
+            _RARITY_ORDER.index(r) if r in _RARITY_ORDER else len(_RARITY_ORDER)))
+        lines.append("  By rarity: " + ", ".join(
+            f"{r} {by_rarity[r][0]}/{by_rarity[r][1]}" for r in order))
+
+    wins = _successes(outcomes)
+    if not wins:
+        lines.append("  No successful gems.")
+        return lines
+    lines.append("  Successful gems:")
+    for o in wins:
+        s = o.final_state
+        rarity = f"  {o.rarity}" if o.rarity else ""
+        lines.append(
+            f"    #{o.gem_index}{rarity}  w={s.will} c={s.chaos} "
+            f"1st={s.first} 2nd={s.second}  (total={s.total_points()})  "
+            f"effects={s.first_effect}/{s.second_effect}  "
+            f"side_coeff={o.side_coeff}  {o.reason}")
+    lines.append('  Find them: "Result: SUCCESS" in the .log, or gem_end '
+                 'records with "success": true in the .jsonl')
+    return lines
 
 
 class _Tee:
@@ -128,10 +219,10 @@ class RunLogger:
                   f"[{astro_gem.first_effect} + {astro_gem.second_effect}] "
                   f"optimize={astro_gem.optimize}")
         else:
-            print(f"[LOG] Gem: random")
+            print("[LOG] Gem: random")
 
         if args is not None:
-            print(f"[LOG] Settings:")
+            print("[LOG] Settings:")
             for k in sorted(args_dict.keys()):
                 v = args_dict[k]
                 print(f"         {k} = {v}")
@@ -214,9 +305,12 @@ class RunLogger:
         extra_ticket_used: bool,
         final_state: GemState,
         reason: str,
+        gem_index: Optional[int] = None,
+        missed: Sequence[str] = (),
     ) -> None:
         self._emit(
             "gem_end",
+            gem_index=gem_index,
             success=success,
             total_points=total_points,
             side_coeff=side_coeff,
@@ -224,10 +318,24 @@ class RunLogger:
             extra_ticket_used=extra_ticket_used,
             final_state=_state_dict(final_state),
             reason=reason,
+            missed=list(missed),
         )
 
-    def log_run_end(self) -> None:
-        self._emit("run_end")
+    def log_run_end(
+        self, outcomes: Optional[Sequence[GemOutcome]] = None,
+    ) -> None:
+        """Emit ``run_end``; with `outcomes`, also the run's success tally."""
+        if outcomes is None:
+            self._emit("run_end")
+            return
+        wins = _successes(outcomes)
+        self._emit(
+            "run_end",
+            gems=len(outcomes),
+            successes=len(wins),
+            success_rate=_rate(len(wins), len(outcomes)),
+            successful_gems=[o.gem_index for o in wins],
+        )
 
     def close(self) -> None:
         """Restore stdout and close both files. Idempotent."""
