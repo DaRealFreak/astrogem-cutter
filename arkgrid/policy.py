@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from arkgrid.constants import (
-    DPS_COEFF, DPS_EFFECTS, DPS_PRIORITY, GEM_TYPES,
-    SUPPORT_COEFF, SUPPORT_EFFECTS, SUPPORT_PRIORITY,
+    DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS,
 )
 from arkgrid.models import Option, LastTurnGoal, AstroGem, GemState
 

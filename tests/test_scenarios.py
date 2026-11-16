@@ -9,7 +9,7 @@ Usage:
 from __future__ import annotations
 
 import unittest
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from arkgrid import (
@@ -20,7 +20,6 @@ from arkgrid import (
     LastTurnGoal,
     Option,
     OptionPool,
-    RerollPolicy,
 )
 from arkgrid.constants import DPS_COEFF, DPS_EFFECTS, SUPPORT_COEFF, SUPPORT_EFFECTS
 
@@ -195,7 +194,7 @@ class ScenarioHelper:
         print(f"Should early finish:    {result.should_early_finish}")
         if result.relic_prob is not None:
             print(f"P(relic+ >=16):         {result.relic_prob:.4f}")
-        print(f"\nPer-offer breakdown:")
+        print("\nPer-offer breakdown:")
         for o in result.per_offer:
             print(f"  {o['key']:>12s} -> {o['state_after']}  "
                   f"DP={o['dp_after']:.4f}  "
@@ -710,10 +709,10 @@ class TestScenarioSupportGemDpsOptimizeNoReset(unittest.TestCase):
         p_ea = ea.lookup(state, turns_left, rerolls=2)
         offers = ScenarioHelper.make_offers(
             "first+1", "change_first_effect", "will+1", "view+2")
-        print(f"--- Effect-aware DP comparison ---")
+        print("--- Effect-aware DP comparison ---")
         print(f"P(goal) standard    : {self.result.dp_current:.4f}")
         print(f"P(goal) effect-aware: {p_ea:.4f}")
-        print(f"Per-offer effect-aware lookup:")
+        print("Per-offer effect-aware lookup:")
         for o in offers:
             nw = min(5, max(1, state.will + o.delta)) if o.kind == "will" else state.will
             nc = min(5, max(1, state.chaos + o.delta)) if o.kind == "chaos" else state.chaos

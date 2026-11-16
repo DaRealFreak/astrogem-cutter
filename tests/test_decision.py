@@ -355,12 +355,10 @@ class TestNoFeasibleOfferBranch(unittest.TestCase):
         offers = make_offers("first+1", "will+1", "first+2", "chaos+2")
         ti = build_ti(state=state, offers=offers, turn=9, turns_left=1,
                       rerolls=0, reset_available=False)
-        m = compute_post_roll_metrics(ctx, ti)
         # The DP feasible_count check would only fire if the prob_table
         # was built with min_side_coeff. Our test ctx doesn't enforce
-        # it on the prob_table itself — but the branch helper still
-        # respects the metric. Force feasible_count=0 by checking the
-        # full pipeline via decide_post_roll instead.
+        # it on the prob_table itself, so check the full pipeline via
+        # decide_post_roll instead.
         d = decide_post_roll(ctx, ti)
         # Either default_process or no_feasible_offer relic chase, but
         # NOT a finish — relic+ is reachable.

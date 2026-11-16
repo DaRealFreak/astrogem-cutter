@@ -11,7 +11,6 @@ from arkgrid.constants import (
 )
 from arkgrid.models import LastTurnGoal, AstroGem, GemState
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable
 from arkgrid.table_cache import (
     goal_table as cached_goal_table,
     side_value_table as cached_side_value_table,
@@ -374,8 +373,6 @@ def _resolve_args(args: argparse.Namespace) -> Tuple[
         astro_gem = AstroGem(resolved_type, first, second, args.optimize)
     elif first or second:
         raise SystemExit("Both --first-effect and --second-effect are required")
-
-    min_side_coeff = getattr(args, "min_side_coeff", 0)
 
     rarities = args.rarity if args.rarity else ["common", "rare", "epic"]
 
@@ -1107,7 +1104,6 @@ def cmd_live(args: argparse.Namespace) -> None:
             and goal.satisfied(state.will, state.chaos,
                                state.first, state.second)
             and gem_type_domain in GEM_TYPES):
-        from arkgrid.probability import SideValueTable
         svt = cached_side_value_table(
             goal, current_turn + turns_left - 1, pool,
             gem_type=gem_type_domain,

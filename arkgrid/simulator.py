@@ -579,7 +579,6 @@ class GemSimulator:
         worth its gold.
         """
         turns_left = self.turns_total - turn + 1
-        turns_left_after = turns_left - 1
 
         offers = self.pool.generate_offers(state, turn, turns_left, rng)
         offers = self._resolve_effect_offers(offers, state, rng)

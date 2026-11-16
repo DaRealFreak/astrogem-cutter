@@ -4,15 +4,19 @@ Run from repo root:  python tools/export_golden.py
 Writes web/tests/fixtures/*.json. Commit the output.
 """
 from __future__ import annotations
-import json, subprocess, itertools, os, sys
+import itertools
+import json
+import os
+import subprocess
+import sys
 
 # Run as `python tools/export_golden.py` from the project root:
 # add the project root to sys.path so `arkgrid` imports resolve.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pathlib import Path
-from arkgrid.constants import GEM_TYPES, DPS_COEFF, SUPPORT_COEFF, DPS_EFFECTS, SUPPORT_EFFECTS
-from arkgrid.models import Option, LastTurnGoal, GemState, AstroGem
+from arkgrid.constants import DPS_COEFF, SUPPORT_COEFF, DPS_EFFECTS, SUPPORT_EFFECTS
+from arkgrid.models import LastTurnGoal, GemState, AstroGem
 from arkgrid.pool import OptionPool
 from arkgrid.probability import GoalProbabilityTable, SideValueTable
 from arkgrid import decision as D

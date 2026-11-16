@@ -5,7 +5,6 @@ Unlike the TS version which packs sprites into atlases for browser perf,
 this loads individual PNG files – equally fast on desktop.
 """
 
-import os
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
