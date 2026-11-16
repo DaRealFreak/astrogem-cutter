@@ -105,7 +105,7 @@
     <summary>Advanced</summary>
 
     <div class="field-row">
-      <label for="endgame-risk" title="On a goal-met gem, once free rerolls are gone: finish when the stop value ≥ best continue value + this margin (a coefficient amount). Blank = auto-gate by grade (protect a relic/ancient gem whose side coeff is below the fusion benchmark). Higher = stop sooner; negative = keep cutting longer.">Endgame risk</label>
+      <label for="endgame-risk" title="On a goal-met gem, once free rerolls are gone: finish when the stop value ≥ best continue value + this margin (a coefficient amount). Blank = auto-gate by grade (protect a relic/ancient gem whose side coeff is below the fusion benchmark). Higher = keep cutting longer (finishing must beat continuing by more); negative = stop sooner (more goal gems, fewer relic/side-node upgrades).">Endgame risk</label>
       <input id="endgame-risk" type="number" step="any" placeholder="auto-gate"
         value={c.current.endgameRisk ?? ''} oninput={(e) => c.current.endgameRisk = e.currentTarget.value === '' ? null : +e.currentTarget.value} />
     </div>
