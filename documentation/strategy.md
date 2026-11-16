@@ -293,16 +293,17 @@ Example: `--min-side-coeff 5000` with boss_damage(1000) as first effect requires
 
 ## DP probability vs MC success rate
 
-The `stats` command shows both a **DP probability** and an **MC success rate**. The DP probability is the analytical probability of reaching the goal from the initial state through plain turn-by-turn transitions — it does **not** model rerolls, reset tickets, extra reroll tickets, or any smart policy decisions. It represents the baseline "how likely is this goal with pure luck?"
+The `stats` command prints up to three analytical numbers next to the **MC success rate**. They answer different questions:
 
-The MC success rate is typically higher because each simulated trial benefits from:
-- **Rerolls** (epic has 2 base + 1 extra = 3 rerolls) — re-draw bad offers
-- **Reset ticket** — full restart when the run goes badly
-- **DP-optimal reroll timing** — save rerolls for late turns where they protect against negative nodes
-- **Early finish** — lock in a satisfied goal instead of risking it
-- **Relic+ overrides** — re-enable tickets mid-run when on track for 16+ points
+| Line | What it is |
+| --- | --- |
+| `DP probability (reroll-aware)` — `P(goal)~` in turn headers | Success if play **stops the moment the goal is met**, with optimal use of the free rerolls. No reset ticket. This is the most any policy can reach without a reset, and it is what the reroll and reset decisions are made on. |
+| `DP probability (no-reroll, conservative)` | The same without any rerolls — "pure luck". Shown for reference only; no decision reads it. |
+| `DP success of this policy` — `P(bot)~` in turn headers | What the bot's **own** policy delivers: it keeps cutting for side value after the goal is met (and can lose the goal doing so), and it spends the reset ticket when one is allowed. This is the analytic counterpart of the MC success rate. |
 
-For example, a goal showing 5% DP probability might show 10% MC success rate — the extra mechanics roughly double the odds. The gap depends on the goal difficulty and which tickets/options are enabled.
+So `P(bot)` sits about 1 percentage point **below** `P(goal)` without a reset ticket (the price of chasing side value) and about 10 points **above** it with one (a failed gem gets a second cutting process). Example, epic boss_damage + additional_damage, will ≥ 4 / chaos ≥ 5 / side coeff ≥ 2000, reset allowed, reroll ticket lent by `--relic-reroll-threshold 0.1`: `P(goal)` 19.1%, `P(bot)` 30.6%, MC 29.2% (the 1.4-point over-read is the enabler-lent ticket, see below).
+
+`P(bot)` is a policy evaluation built on the side-value table (`RealisedSuccessTable`). Measured against Monte Carlo it is within ~0.3 points for a fixed reroll budget (reroll ticket off, or forced on with `--extra-ticket`). It treats a lent reroll ticket as a reroll in hand, so it reads about 1 point high when the ticket is lent by the per-turn enablers (`--reroll-min-coeff`, `--relic-reroll-threshold`, `--reroll-goal`) rather than forced on, and it does not model `--prob-reset-threshold`, `--reset-keep-grade` or the ticket spend gates. It is shown by `stats` (configured gem only), `sim` and `auto`; `live` and the web advisor do not show it yet.
 
 ## DP probability tables
 

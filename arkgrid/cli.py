@@ -129,10 +129,12 @@ def _build_parser() -> argparse.ArgumentParser:
                              "is below its grade's fusion-derived average "
                              "finishes to protect the grade; at or above it, "
                              "EV-optimal play continues. Pass a float to take "
-                             "manual control of the margin for every gem. "
-                             "When --confirm-min-coeff is set, the side-value "
-                             "finish surfaces as a confirmation prompt instead "
-                             "and this margin is not applied.")
+                             "manual control: a goal-met gem with no rerolls "
+                             "left finishes when stopping is worth at least "
+                             "the hand's value + F. Higher = keep cutting "
+                             "longer; negative = stop sooner (more goal gems, "
+                             "fewer relic / side-node upgrades). An explicit "
+                             "margin also applies under --confirm-min-coeff.")
         p.add_argument("--relic-coeff", type=int, default=None, metavar="N",
                         help="Coefficient-equivalent worth of the relic+ grade "
                              "(>=16 total points), added to gem_value in the "
@@ -642,34 +644,41 @@ def cmd_stats(args: argparse.Namespace) -> None:
             )
             summary["ancient_dp_prob"] = ancient_dp
 
+            sim = GemSimulator(
+                rarity=rarity,
+                use_extra_ticket=args.extra_ticket,
+                use_reset_ticket=resolved_reset,
+                goal=goal,
+                side_node_threshold=args.side_threshold,
+                astro_gem=astro_gem,
+                optimize=args.optimize,
+                prob_reset_threshold=args.prob_reset_threshold,
+                bis_only=args.bis_only,
+                reset_min_coeff=args.reset_min_coeff,
+                reroll_min_coeff=args.reroll_min_coeff,
+                min_side_coeff=args.min_side_coeff,
+                relic_reroll_threshold=args.relic_reroll_threshold,
+                force_reroll_no_progress=args.force_reroll_no_progress,
+                effect_aware=True,
+                confirm_min_coeff=args.confirm_min_coeff,
+                endgame_risk=args.endgame_risk,
+                relic_coeff=args.relic_coeff,
+                ancient_coeff=args.ancient_coeff,
+                ignore_side_node_values=args.ignore_side_node_values,
+                reroll_goal=args.reroll_goal,
+                reroll_goal_threshold=args.reroll_goal_threshold,
+                reset_keep_grade=args.reset_keep_grade,
+                ticket_min_goal_gain=args.ticket_min_goal_gain,
+                ticket_min_value_gain=args.ticket_min_value_gain,
+            )
+            # What this policy actually delivers (it keeps cutting for side
+            # value after the goal is met, and may spend the reset ticket):
+            # the analytic counterpart of the Monte Carlo success rate.
+            if astro_gem is not None:
+                policy = sim.policy_success_at_start(astro_gem)
+                if policy is not None:
+                    summary["dp_policy_prob"] = policy
             if args.trials > 0:
-                sim = GemSimulator(
-                    rarity=rarity,
-                    use_extra_ticket=args.extra_ticket,
-                    use_reset_ticket=resolved_reset,
-                    goal=goal,
-                    side_node_threshold=args.side_threshold,
-                    astro_gem=astro_gem,
-                    optimize=args.optimize,
-                    prob_reset_threshold=args.prob_reset_threshold,
-                    bis_only=args.bis_only,
-                    reset_min_coeff=args.reset_min_coeff,
-                    reroll_min_coeff=args.reroll_min_coeff,
-                    min_side_coeff=args.min_side_coeff,
-                    relic_reroll_threshold=args.relic_reroll_threshold,
-                    force_reroll_no_progress=args.force_reroll_no_progress,
-                    effect_aware=True,
-                    confirm_min_coeff=args.confirm_min_coeff,
-                    endgame_risk=args.endgame_risk,
-                    relic_coeff=args.relic_coeff,
-                    ancient_coeff=args.ancient_coeff,
-                    ignore_side_node_values=args.ignore_side_node_values,
-                    reroll_goal=args.reroll_goal,
-                    reroll_goal_threshold=args.reroll_goal_threshold,
-                    reset_keep_grade=args.reset_keep_grade,
-                    ticket_min_goal_gain=args.ticket_min_goal_gain,
-                    ticket_min_value_gain=args.ticket_min_value_gain,
-                )
                 mc = GemAnalyzer.estimate_summary(
                     trials=args.trials, simulator=sim, seed=args.seed,
                 )
@@ -713,6 +722,7 @@ def cmd_sim(args: argparse.Namespace) -> None:
         reset_keep_grade=args.reset_keep_grade,
         ticket_min_goal_gain=args.ticket_min_goal_gain,
         ticket_min_value_gain=args.ticket_min_value_gain,
+        log_policy_success=True,
     )
     r = sim.simulate_one(seed=args.seed, log=True)
 
@@ -726,12 +736,16 @@ def cmd_sim(args: argparse.Namespace) -> None:
     print(f"Rerolls left: {r.rerolls_left}")
     print()
 
-    print("(P(goal)~ is the reroll-aware DP estimate)")
+    print("(P(goal)~ = success if you stop the moment the goal is met; "
+          "P(bot)~ = what this policy delivers from here, reset ticket "
+          "included while unused)")
     print()
     for t in (r.turn_log or []):
         hdr = f"Turn {t['turn']} (left={t['turns_left']})"
         if t.get("goal_prob") is not None:
             hdr += f"  P(goal)~={t['goal_prob']:.1%}"
+        if t.get("bot_prob") is not None:
+            hdr += f"  P(bot)~={t['bot_prob']:.1%}"
         if t.get("relic_prob") is not None:
             hdr += f"  P(r+)={t['relic_prob']:.1%}"
         if "rerolls_available" in t:

@@ -47,7 +47,7 @@ from arkgrid.run_logger import (
     GemOutcome, RunLogger, format_gem_result, format_run_overview,
     format_tally,
 )
-from arkgrid.simulator import GemSimulator, RESET_KEEP_POINTS
+from arkgrid.simulator import GemSimulator, RESET_KEEP_POINTS, realised_tables
 from arkgrid.vision.capture import grab_screen
 from arkgrid.vision.template_recognizer import (
     DetectionResult,
@@ -396,6 +396,41 @@ def _timed_table(label: str, build):
     return obj
 
 
+def _bot_success(cache: dict, side_value_table, decision_ctx,
+                 start_effects: Tuple[str, str], turns_total: int,
+                 base_rerolls: int, ticket_owned: bool,
+                 endgame_risk: Optional[float], confirm_active: bool,
+                 reset_live: bool, state: GemState, turns_left: int,
+                 rerolls: int) -> float:
+    """P(the bot's own policy ends with a goal-meeting gem) from `state` —
+    the `P(bot)~` column of the turn header (see
+    `probability.RealisedSuccessTable`).
+
+    `start_effects` are the effects the gem began with (a reset restores
+    them); `reset_live` whether the reset ticket is still unused. The two
+    tables are built once per gem and reset state and kept in `cache`.
+    """
+    tables = cache.get(reset_live)
+    if tables is None:
+        start_state = GemState(will=1, chaos=1, first=1, second=1,
+                               first_effect=start_effects[0],
+                               second_effect=start_effects[1])
+        # Turn-1 budget of a fresh process: free rerolls plus the ticket
+        # when an enabler lends it there.
+        fresh_rerolls = base_rerolls + (1 if (
+            ticket_owned and ticket_enabled(
+                decision_ctx, start_state, turns_total, base_rerolls)) else 0)
+        tables = _timed_table(
+            "realised-success table",
+            lambda: realised_tables(
+                side_value_table, start_state, turns_total, fresh_rerolls,
+                endgame_risk=endgame_risk,
+                auto_grade_gate=not confirm_active, with_reset=reset_live))
+        cache[reset_live] = tables
+    table = tables[1] if tables[1] is not None else tables[0]
+    return table.lookup(state, turns_left, rerolls=rerolls)
+
+
 def _parse_view_delta(delta_key: Optional[str]) -> int:
     """Extract the signed integer from a view/reroll delta key (e.g. 'reroll+1' -> 1)."""
     if not delta_key:
@@ -696,7 +731,9 @@ def run_auto(
     print("=== Astrogem Auto Mode ===")
     print(f"Press Escape to stop.{' (DRY RUN)' if dry_run else ''}"
           f"{' [ALL GEMS]' if all_gems else ''}")
-    print("(P(goal)~ is the reroll-aware DP estimate)")
+    print("(P(goal)~ = success if you stop the moment the goal is met; "
+          "P(bot)~ = what this bot delivers from here, reset ticket "
+          "included while unused)")
     if not dry_run:
         for i in range(3, 0, -1):
             if _is_stop_pressed():
@@ -730,6 +767,13 @@ def run_auto(
         side_coeff_first: int = 0
         side_coeff_second: int = 0
         cached_effects: Optional[Tuple[str, str]] = None
+        # The effects the gem started with (a reset restores them): what a
+        # fresh start is worth in the P(bot) column. Taken from the first
+        # detection of the gem.
+        gem_start_effects: Optional[Tuple[str, str]] = None
+        # (plain, reset-aware) realised-success tables, keyed by whether the
+        # reset ticket is still in play.
+        realised_cache: dict = {}
         p_fresh: Optional[float] = None
         decision_ctx: Optional[DecisionContext] = None
 
@@ -1248,9 +1292,31 @@ def run_auto(
                 p_r = relic_table.lookup(analysis.state, analysis.turns_left,
                                          rerolls=analysis.reroll_count)
                 relic_info = f"  P(r+)={p_r:.1%}"
+            # What the bot's own policy delivers from here: it keeps cutting
+            # for side value once the goal is met, and still has the reset
+            # ticket while that is unused.
+            bot_info = ""
+            if (side_value_table is not None and side_value_table.enabled
+                    and decision_ctx is not None):
+                if gem_start_effects is None:
+                    gem_start_effects = (det.first_effect, det.second_effect)
+                # Display only — it must never take a live run down.
+                try:
+                    p_bot = _bot_success(
+                        realised_cache, side_value_table, decision_ctx,
+                        gem_start_effects, det.total_steps, base_rerolls,
+                        ownable, endgame_risk, confirm_active,
+                        bool(reset_available and not reset_used),
+                        analysis.state, analysis.turns_left,
+                        effective_rerolls)
+                    bot_info = f"  P(bot)~={p_bot:.1%}"
+                except Exception as exc:  # noqa: BLE001
+                    if not realised_cache.get("warned"):
+                        realised_cache["warned"] = True
+                        print(f"  [warn] P(bot) unavailable: {exc!r}")
             print(f"Turn {analysis.current_turn}/{analysis.turns_total} "
                   f"(left={analysis.turns_left})  "
-                  f"P(goal)~={analysis.p_current:.1%}{relic_info}  "
+                  f"P(goal)~={analysis.p_current:.1%}{bot_info}{relic_info}  "
                   f"rerolls={analysis.reroll_count}{note}")
             opts_with_prob = [
                 f"{lbl} ({p:.1%})"

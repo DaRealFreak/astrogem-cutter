@@ -33,7 +33,9 @@ from typing import Callable, Optional, TypeVar
 
 from arkgrid.models import LastTurnGoal
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable, SideValueTable
+from arkgrid.probability import (
+    GoalProbabilityTable, RealisedSuccessTable, SideValueTable,
+)
 
 T = TypeVar("T")
 
@@ -189,3 +191,16 @@ def side_value_table(goal: LastTurnGoal, max_turns: int, pool: OptionPool,
     return cached_table(
         _key("side", goal, max_turns, opts),
         lambda: SideValueTable(goal, max_turns, pool, **opts))
+
+
+def realised_table(value_table: SideValueTable, **opts) -> RealisedSuccessTable:
+    """Disk-cached drop-in for `RealisedSuccessTable(value_table, **opts)`.
+
+    Keyed by the value table's `signature()` (what it was built from) plus
+    the policy options.
+    """
+    key = "|".join(
+        ["realised", repr(value_table.signature())]
+        + [f"{k}={opts[k]!r}" for k in sorted(opts)])
+    return cached_table(
+        key, lambda: RealisedSuccessTable(value_table, **opts))

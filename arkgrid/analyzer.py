@@ -104,6 +104,9 @@ def pprint_result(title: str, result: Dict[str, float]) -> None:
         print(f"  DP relic+ (>=16): {result['relic_dp_prob'] * 100:.2f}%")
     if "ancient_dp_prob" in result:
         print(f"  DP ancient (>=19): {result['ancient_dp_prob'] * 100:.2f}%")
+    if "dp_policy_prob" in result:
+        print(f"  DP success of this policy (value-chasing, reset incl.): "
+              f"{result['dp_policy_prob'] * 100:.2f}%")
     if "p_success" in result:
         print(
             f"  Success rate: {result['p_success'] * 100:.2f}% "

@@ -16,7 +16,7 @@ No external dependencies required for the simulator (stdlib only). Vision featur
 
 ### `stats` - Probability estimation
 
-Run a Monte Carlo simulation and print success rates, average total points, relic/ancient rates, and reset usage.
+Run a Monte Carlo simulation and print success rates, average total points, relic/ancient rates, and reset usage. With a gem configured (`--first-effect` / `--second-effect`) it also prints **DP success of this policy**: the analytic success rate of the bot's own play — it keeps cutting for side value after the goal is met and uses the reset ticket — next to the stop-when-met `DP probability`. See [strategy.md](documentation/strategy.md#dp-probability-vs-mc-success-rate).
 
 ```bash
 python -m arkgrid stats [options]
@@ -24,7 +24,7 @@ python -m arkgrid stats [options]
 
 ### `sim` - Single run with turn log
 
-Run one simulation and print the turn-by-turn log showing offers, rerolls, picks, and state changes.
+Run one simulation and print the turn-by-turn log showing offers, rerolls, picks, and state changes. Each turn header shows `P(goal)~` (success if you stop the moment the goal is met) and `P(bot)~` (what this policy delivers from here, reset ticket included while unused).
 
 ```bash
 python -m arkgrid sim [options]
@@ -54,7 +54,7 @@ Automate the gem cutting process: captures screen, detects state, makes decision
 python -m arkgrid auto --min-will 4 --min-chaos 4 [options]
 ```
 
-Requires Lost Ark to be running and the Processing dialog to be open. Press Escape to stop at any time. Use `--dry-run` to test detection and decisions without clicking.
+Requires Lost Ark to be running and the Processing dialog to be open. Press Escape to stop at any time. Use `--dry-run` to test detection and decisions without clicking. Turn headers show `P(goal)~` and `P(bot)~` like `sim`.
 
 ### `report` - Aggregate past auto runs
 

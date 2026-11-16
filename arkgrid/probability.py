@@ -252,6 +252,83 @@ def hand_e_max(mu: float, m2: float, m3: float, m4: float, m5: float,
     return total
 
 
+def _hand_atoms2(mu: float, m2: float, m3: float, rho: float):
+    """Atoms of the hand mean for a two-valued offer distribution (the
+    distribution `_hand_e_max2` prices)."""
+    sd = math.sqrt(m2)
+    g = m3 / (m2 * sd)
+    r = math.sqrt(4.0 + g * g)
+    q = 2.0 / (r * (r + g)) if g >= 0.0 else 1.0 - 2.0 / (r * (r - g))
+    lo = mu - sd * math.sqrt(q / (1.0 - q))
+    step = (mu + sd * math.sqrt((1.0 - q) / q) - lo) / 4.0
+    mean_k = 4.0 * q
+    denom = 1.0 - (1.0 - q) * rho
+    n = mean_k / denom if denom > mean_k / 4.0 else 4.0
+    floor_n = 1.0 if mean_k < 1.0 else mean_k
+    if n < floor_n:
+        n = floor_n
+    n_lo = int(n)
+    if n_lo >= 4:
+        parts = ((4, 1.0),)
+    elif n_lo < mean_k:
+        parts = ((n_lo + 1, 1.0),)
+    else:
+        lam = (1.0 / n - 1.0 / (n_lo + 1)) / (1.0 / n_lo - 1.0 / (n_lo + 1))
+        parts = ((n_lo, lam), (n_lo + 1, 1.0 - lam))
+    atoms = []
+    for n_j, share in parts:
+        if share <= 0.0:
+            continue
+        q_j = mean_k / n_j
+        for k in range(n_j + 1):
+            atoms.append((lo + step * k,
+                          share * math.comb(n_j, k) * q_j ** k
+                          * (1.0 - q_j) ** (n_j - k)))
+    return atoms
+
+
+def hand_atoms(mu: float, m2: float, m3: float, m4: float, m5: float,
+               rho: float):
+    """The hand-mean distribution `hand_e_max` prices, as explicit
+    `(value, probability)` atoms — for callers that need more than
+    `E[max(H, t)]` (e.g. `P(H > t)` in the realised-success table).
+    `sum(p * max(h, t))` over the atoms equals `hand_e_max(..., t)`.
+    """
+    if m2 <= 1e-12 * (mu * mu if mu * mu > 1.0 else 1.0):
+        return [(mu, 1.0)]
+    sd = math.sqrt(m2)
+    g = m3 / (m2 * sd)
+    k = m4 / (m2 * m2)
+    h5 = m5 / (m2 * m2 * sd)
+    det = k - g * g - 1.0
+    if det <= 1e-9 * (k if k > 1.0 else 1.0):
+        return _hand_atoms2(mu, m2, m3, rho)
+    c2 = (g + g * k - h5) / det
+    c1 = -k - g * c2
+    c0 = -g - c2
+    p = c1 - c2 * c2 / 3.0
+    if p >= 0.0:
+        return _hand_atoms2(mu, m2, m3, rho)
+    q = 2.0 * c2 * c2 * c2 / 27.0 - c2 * c1 / 3.0 + c0
+    amp = 2.0 * math.sqrt(-p / 3.0)
+    arg = 3.0 * q / (p * amp)
+    arg = 1.0 if arg > 1.0 else (-1.0 if arg < -1.0 else arg)
+    phi = math.acos(arg) / 3.0
+    shift = c2 / 3.0
+    z1 = amp * math.cos(phi) - shift
+    z2 = amp * math.cos(phi - _TWO_THIRDS_PI) - shift
+    z3 = amp * math.cos(phi - 2.0 * _TWO_THIRDS_PI) - shift
+    w1 = (1.0 + z2 * z3) / ((z1 - z2) * (z1 - z3))
+    w2 = (1.0 + z1 * z3) / ((z2 - z1) * (z2 - z3))
+    w3 = 1.0 - w1 - w2
+    if not (w1 > 0.0 and w2 > 0.0 and w3 > 0.0):
+        return _hand_atoms2(mu, m2, m3, rho)
+    s = sd * math.sqrt(rho) * 0.25
+    return [(mu + s * (n1 * z1 + n2 * z2 + n3 * z3),
+             coef * w1 ** n1 * w2 ** n2 * w3 ** n3)
+            for n1, n2, n3, coef in _HAND_TRINOM]
+
+
 def _hand_moments(ctx: tuple, posts: List[float]):
     """`(mu, m2, m3, m4, m5, rho)` of a hand over `ctx`'s options with
     post-click values `posts`: the single-offer mean and central moments,
@@ -1793,6 +1870,14 @@ class SideValueTable:
 
     # -- public API --------------------------------------------------
 
+    def signature(self) -> tuple:
+        """Everything that determines this table's values — the cache key of
+        tables derived from it (`RealisedSuccessTable`)."""
+        return (repr(self.goal), self.max_turns, self._gem_type,
+                self._optimize, self._min_side_coeff, self.relic_coeff,
+                self.ancient_coeff, self.value_mode, self._policy_value_mode,
+                self._max_rerolls)
+
     def gem_value(self, state: GemState) -> float:
         """Value of finishing the gem in its current state."""
         if not self.enabled:
@@ -1870,3 +1955,329 @@ class SideValueTable:
                 total += self._dp[self._idx(nst, ncs, fi * 4 + si, nr,
                                             turns_left_after)]
         return total / len(offers)
+
+
+# Value comparisons in the realised-success policy mirror decision.py's
+# `_GRADE_VALUE_EPS` tie handling.
+_POLICY_EPS = 1e-9
+
+
+def _keep_stats(ctx: tuple, values: List[float], successes: List[float],
+                threshold: float):
+    """`(P(keep), E[success | keep])` for a hand that is kept when its mean
+    VALUE beats `threshold`.
+
+    The hand's value mean follows the hand model (`hand_atoms`); its mean
+    success is regressed linearly on its value mean (offers that break the
+    goal are also the low-value ones, so the two move together).
+    """
+    mu, m2, m3, m4, m5, rho = _hand_moments(ctx, values)
+    probs = ctx[0]
+    mu_y = 0.0
+    for p, y in zip(probs, successes):
+        mu_y += p * y
+    if m2 <= 0.0:
+        return (1.0 if mu > threshold else 0.0), mu_y
+    cov = 0.0
+    for p, x, y in zip(probs, values, successes):
+        cov += p * (x - mu) * (y - mu_y)
+    p_keep = 0.0
+    dev = 0.0
+    for h, pr in hand_atoms(mu, m2, m3, m4, m5, rho):
+        if h > threshold:
+            p_keep += pr
+            dev += pr * (h - mu)
+    if p_keep <= 0.0:
+        return 0.0, mu_y
+    e_y = mu_y + cov / m2 * dev / p_keep
+    return p_keep, (1.0 if e_y > 1.0 else 0.0 if e_y < 0.0 else e_y)
+
+
+class RealisedSuccessTable:
+    """P(the bot's OWN policy ends with a gem that meets the goal).
+
+    `GoalProbabilityTable` answers "how likely is the goal if play stops the
+    moment it is met" — the most success any policy can have. The bot does
+    not play that way: once the goal is met it keeps cutting for side value
+    (and can lose the goal doing so), and it can spend a reset ticket. This
+    table evaluates that policy, so the number matches what runs deliver:
+    a little below P(goal) without a reset, far above it with one.
+
+    Policy evaluated (mirrors `decision.decide_post_roll`):
+
+    * **Goal not met** — chase it: with a reroll in hand the 4-offer hand is
+      kept when it beats a redraw (`_hand_turn_value`, as in the goal table).
+    * **Goal met, rerolls in hand** — the hand is processed only when it is
+      risk-free (no offer can break the goal) AND worth more than a redraw
+      per `value_table`; otherwise reroll.
+    * **Goal met, no rerolls** — finish, unless the hand's value beats
+      finishing by `endgame_risk` (auto grade-protect gate when it is None).
+    * **Reset** (`fresh` given = reset ticket still available, worth `fresh`):
+      a last-turn hand is weighed against a fresh start, and a dead gem is
+      worth one. Without it a dead gem is worth 0.
+
+    Built on `value_table` (the side-value table the decisions read), with
+    its state layout. Approximations: P(risk-free hand) treats the 4 offers
+    as independent; the hand's success is regressed linearly on its value
+    (`_keep_stats`); the reroll ticket is treated as a reroll in hand (its
+    per-turn enablers and spend gates are not modelled), as are
+    `--prob-reset-threshold` and `--reset-keep-grade`. Against Monte Carlo
+    of the simulator it lands within ~0.3pp for a fixed reroll budget, with
+    and without the reset ticket.
+    """
+
+    def __init__(self, value_table: "SideValueTable", *,
+                 endgame_risk: Optional[float] = None,
+                 auto_grade_gate: bool = True,
+                 fresh: Optional[float] = None) -> None:
+        svt = value_table
+        self.enabled = svt.enabled
+        self.goal = svt.goal
+        self.max_turns = svt.max_turns
+        self.pool = svt.pool
+        self.fresh = fresh
+        self._min_side_coeff = svt._min_side_coeff
+        self._max_rerolls = svt._max_rerolls
+        self._r_dim = svt._r_dim
+        self._tl_dim = svt._tl_dim
+        self._effect_tuple = svt._effect_tuple
+        self._effect_coeffs = svt._effect_coeffs
+        self._dp: List[float] = [0.0] * len(svt._dp) if self.enabled else []
+        if self.enabled:
+            self._build(svt, endgame_risk,
+                        endgame_risk is None and auto_grade_gate)
+
+    def _idx(self, st: int, cs: int, ea: int, r: int, tl: int) -> int:
+        return (((st * 2 + cs) * 16 + ea) * self._r_dim + r) * self._tl_dim + tl
+
+    def _build(self, svt: "SideValueTable", endgame_risk: Optional[float],
+               grade_gate: bool) -> None:
+        dp = self._dp
+        value = svt._dp
+        idx = self._idx
+        mt = self.max_turns
+        max_r = self._max_rerolls
+        fresh = self.fresh
+        coeffs = self._effect_coeffs
+        msc = self._min_side_coeff
+        margin = 0.0 if endgame_risk is None else endgame_risk
+        hold_cap = svt.value_mode == "will_chaos"
+        relic_bench, ancient_bench = svt.relic_coeff, svt.ancient_coeff
+        pairs = [(fi, si) for fi in range(4) for si in range(4) if fi != si]
+        dests = svt._change_dests
+
+        # met[st * 16 + ea]: goal AND side-coefficient floor satisfied.
+        met = [False] * (625 * 16)
+        for w in range(1, 6):
+            for c in range(1, 6):
+                for f in range(1, 6):
+                    for s in range(1, 6):
+                        if not self.goal.satisfied(w, c, f, s):
+                            continue
+                        st = _s625(w, c, f, s)
+                        for fi, si in pairs:
+                            met[st * 16 + fi * 4 + si] = (
+                                msc <= 0
+                                or coeffs[fi] * f + coeffs[si] * s >= msc)
+
+        for st in range(625):
+            for fi, si in pairs:
+                ea = fi * 4 + si
+                v = 1.0 if met[st * 16 + ea] else 0.0
+                for cs in (0, 1):
+                    for r in range(max_r + 1):
+                        dp[idx(st, cs, ea, r, 0)] = v
+
+        # Per (turn label, cost state) and state: option transitions
+        # [(key, next state625, next cs, view delta)] and their weights.
+        trans_cache = {}
+        for label, turn, tl in (("first", 1, mt), ("last", mt, 1),
+                                ("middle", 2, mt - 1 if mt > 2 else 2)):
+            for cs in (0, 1):
+                cache = [None] * 625
+                for w in range(1, 6):
+                    for c in range(1, 6):
+                        for f in range(1, 6):
+                            for s in range(1, 6):
+                                state = GemState(will=w, chaos=c, first=f,
+                                                 second=s,
+                                                 cost_ratio=100 if cs else 0)
+                                entries = []
+                                weights = []
+                                for o in self.pool.pool:
+                                    if not self.pool.eligible(o, state, turn, tl):
+                                        continue
+                                    nw, nc, nf, ns, ncs, vd = w, c, f, s, cs, 0
+                                    if o.kind == "will":
+                                        nw = min(5, max(1, w + o.delta))
+                                    elif o.kind == "chaos":
+                                        nc = min(5, max(1, c + o.delta))
+                                    elif o.kind == "first":
+                                        nf = min(5, max(1, f + o.delta))
+                                    elif o.kind == "second":
+                                        ns = min(5, max(1, s + o.delta))
+                                    elif o.kind == "view":
+                                        vd = o.delta
+                                    elif o.kind == "cost":
+                                        ncs = 1 - cs
+                                    entries.append(
+                                        (o.key, _s625(nw, nc, nf, ns), ncs, vd))
+                                    weights.append(o.weight)
+                                cache[_s625(w, c, f, s)] = (entries, weights)
+                trans_cache[(label, cs)] = cache
+        hand_cache = _hand_contexts(self.pool, mt)
+
+        for tl in range(1, mt + 1):
+            turn = mt - tl + 1
+            label = ("first" if turn == 1 else "last" if tl == 1 else "middle")
+            for w in range(1, 6):
+                for c in range(1, 6):
+                    for f in range(1, 6):
+                        for s in range(1, 6):
+                            st = _s625(w, c, f, s)
+                            total = w + c + f + s
+                            for cs in (0, 1):
+                                entries, weights = trans_cache[(label, cs)][st]
+                                hand = hand_cache[(label, cs)][st]
+                                probs = hand[0]
+                                for fi, si in pairs:
+                                    ea = fi * 4 + si
+                                    d0, d1 = dests[(fi, si)]
+                                    # Destinations per option: change_effect
+                                    # lands on either non-equipped effect.
+                                    targets = []
+                                    for key, nst, ncs, vd in entries:
+                                        if key == "change_first_effect":
+                                            targets.append((
+                                                vd, (nst, ncs, d0 * 4 + si),
+                                                (nst, ncs, d1 * 4 + si)))
+                                        elif key == "change_second_effect":
+                                            targets.append((
+                                                vd, (nst, ncs, fi * 4 + d0),
+                                                (nst, ncs, fi * 4 + d1)))
+                                        else:
+                                            targets.append((vd, (nst, ncs, ea)))
+                                    is_met = met[st * 16 + ea]
+                                    if is_met:
+                                        safe = [
+                                            i for i, tg in enumerate(targets)
+                                            if all(met[t[0] * 16 + t[2]]
+                                                   for t in tg[1:])]
+                                        q_safe = 0.0
+                                        for i in safe:
+                                            q_safe += probs[i]
+                                        safe_hand = (
+                                            hand_context(
+                                                [weights[i] for i in safe])
+                                            if len(safe) >= 4 else None)
+                                        finish_val = value[idx(st, cs, ea, 0, 0)]
+                                        protect = False
+                                        if grade_gate:
+                                            bench = (ancient_bench if total >= 19
+                                                     else relic_bench
+                                                     if total >= 16 else 0)
+                                            protect = (
+                                                bench > 0
+                                                and coeffs[fi] * f
+                                                + coeffs[si] * s < bench)
+                                    for r in range(max_r + 1):
+                                        ys = []
+                                        for tg in targets:
+                                            nr = r + tg[0]
+                                            if nr > max_r:
+                                                nr = max_r
+                                            if len(tg) == 2:
+                                                t = tg[1]
+                                                ys.append(dp[idx(
+                                                    t[0], t[1], t[2], nr, tl - 1)])
+                                            else:
+                                                a, b = tg[1], tg[2]
+                                                ys.append(0.5 * (
+                                                    dp[idx(a[0], a[1], a[2],
+                                                           nr, tl - 1)]
+                                                    + dp[idx(b[0], b[1], b[2],
+                                                             nr, tl - 1)]))
+                                        can_reroll = r > 0 and turn != 1
+                                        here = idx(st, cs, ea, r, tl)
+                                        if not is_met:
+                                            alt = (dp[idx(st, cs, ea, r - 1, tl)]
+                                                   if can_reroll else None)
+                                            if fresh is not None and tl == 1:
+                                                # Last turn: rerolls first,
+                                                # then the reset ticket.
+                                                if alt is None or fresh > alt:
+                                                    alt = fresh
+                                            if alt is None:
+                                                v = 0.0
+                                                for p, y in zip(probs, ys):
+                                                    v += p * y
+                                                dp[here] = v
+                                            else:
+                                                dp[here] = _hand_turn_value(
+                                                    hand, ys, alt)
+                                            continue
+                                        if hold_cap and w == 5 and c == 5:
+                                            # --ignore-side-node-values holds
+                                            # the will/chaos cap firm.
+                                            dp[here] = 1.0
+                                            continue
+                                        xs = []
+                                        for tg in targets:
+                                            nr = r + tg[0]
+                                            if nr > max_r:
+                                                nr = max_r
+                                            if len(tg) == 2:
+                                                t = tg[1]
+                                                xs.append(value[idx(
+                                                    t[0], t[1], t[2], nr, tl - 1)])
+                                            else:
+                                                a, b = tg[1], tg[2]
+                                                xs.append(0.5 * (
+                                                    value[idx(a[0], a[1], a[2],
+                                                              nr, tl - 1)]
+                                                    + value[idx(b[0], b[1], b[2],
+                                                                nr, tl - 1)]))
+                                        if can_reroll:
+                                            # Process only a risk-free hand
+                                            # worth more than a redraw.
+                                            redraw = dp[idx(st, cs, ea, r - 1, tl)]
+                                            p_acc = 0.0
+                                            e_y = 1.0
+                                            if safe_hand is not None:
+                                                p_gt, e_y = _keep_stats(
+                                                    safe_hand,
+                                                    [xs[i] for i in safe],
+                                                    [ys[i] for i in safe],
+                                                    value[idx(st, cs, ea, r - 1,
+                                                              tl)] + _POLICY_EPS)
+                                                p_acc = q_safe ** 4 * p_gt
+                                            dp[here] = (p_acc * e_y
+                                                        + (1.0 - p_acc) * redraw)
+                                        elif protect:
+                                            dp[here] = 1.0
+                                        else:
+                                            p_keep, e_y = _keep_stats(
+                                                hand, xs, ys,
+                                                finish_val - margin + _POLICY_EPS)
+                                            dp[here] = (p_keep * e_y
+                                                        + (1.0 - p_keep))
+
+    def lookup(self, state: GemState, turns_left: int,
+               rerolls: Optional[int] = None) -> float:
+        """P(the bot ends with a goal-meeting gem) from this state."""
+        if not self.enabled:
+            return 0.0
+        if turns_left < 0 or turns_left >= self._tl_dim:
+            return 0.0
+        try:
+            fi = self._effect_tuple.index(state.first_effect)
+            si = self._effect_tuple.index(state.second_effect)
+        except ValueError:
+            return 0.0
+        if fi == si:
+            return 0.0
+        r = (min(self._max_rerolls, rerolls or 0)
+             if self._max_rerolls > 0 else 0)
+        return self._dp[self._idx(
+            _s625(state.will, state.chaos, state.first, state.second),
+            1 if state.cost_ratio != 0 else 0, fi * 4 + si, r, turns_left)]

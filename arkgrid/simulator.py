@@ -18,12 +18,38 @@ from arkgrid.policy import RerollPolicy
 from arkgrid.probability import GoalProbabilityTable, SideValueTable
 from arkgrid.table_cache import (
     goal_table as cached_goal_table,
+    realised_table as cached_realised_table,
     side_value_table as cached_side_value_table,
 )
 
 
 # `--reset-keep-grade`: total points at which a gem holds the grade.
 RESET_KEEP_POINTS = {None: 0, "relic": 16, "ancient": 19}
+
+# The reset-aware realised-success table depends on what a fresh start is
+# worth, which varies with the gem's starting effects. Rounding it to this
+# step lets gems with near-equal fresh values share one table (the error it
+# adds to the displayed number is far below the model's own).
+REALISED_FRESH_STEP = 0.005
+
+
+def realised_tables(value_table: SideValueTable, start: GemState,
+                    turns_total: int, fresh_rerolls: int, *,
+                    endgame_risk: Optional[float], auto_grade_gate: bool,
+                    with_reset: bool):
+    """`(plain, reset_aware_or_None)` realised-success tables for a gem that
+    started as `start` (a reset returns it there with `fresh_rerolls`).
+    Shared by the simulator and `auto`; both tables are disk-cached."""
+    plain = cached_realised_table(
+        value_table, endgame_risk=endgame_risk,
+        auto_grade_gate=auto_grade_gate)
+    if not with_reset or not plain.enabled:
+        return plain, None
+    fresh = plain.lookup(start, turns_total, rerolls=fresh_rerolls)
+    fresh = round(fresh / REALISED_FRESH_STEP) * REALISED_FRESH_STEP
+    return plain, cached_realised_table(
+        value_table, endgame_risk=endgame_risk,
+        auto_grade_gate=auto_grade_gate, fresh=fresh)
 
 
 class GemSimulator:
@@ -59,6 +85,7 @@ class GemSimulator:
             reset_keep_grade: Optional[str] = None,
             ticket_min_goal_gain: float = 0.0,
             ticket_min_value_gain: float = 0.0,
+            log_policy_success: bool = False,
     ) -> None:
         self.rarity = rarity
         self.goal = goal
@@ -80,6 +107,9 @@ class GemSimulator:
         self.reset_keep_points = RESET_KEEP_POINTS[reset_keep_grade]
         self.ticket_min_goal_gain = ticket_min_goal_gain
         self.ticket_min_value_gain = ticket_min_value_gain
+        # Add the realised-success column (`bot_prob`) to turn logs. Opt-in:
+        # it needs two more DP tables per gem (seconds each when cold).
+        self.log_policy_success = log_policy_success
         # Phase B: when True, the finish/continue/grade/maxed value oracles are
         # built reroll-aware (max_rerolls=dp_max_rerolls) so the decision prices
         # the value of remaining rerolls. Default False = legacy flat behavior.
@@ -94,6 +124,8 @@ class GemSimulator:
         # the per-turn --reroll-min-coeff reroll-ticket enabler.
         self._expected_coeff_table_cache: Dict[str, SideValueTable] = {}
         self._ea_table_cache: Dict[str, GoalProbabilityTable] = {}
+        # (plain, reset-aware) realised-success tables per starting gem.
+        self._realised_cache: Dict[tuple, tuple] = {}
         # Active gem/policy are set per-run in simulate_one;
         # initialize with the configured gem (or None) for direct method calls.
         self.astro_gem = astro_gem
@@ -289,6 +321,82 @@ class GemSimulator:
         )
         self._maxed_value_table_cache[gem_type] = table
         return table
+
+    def reset_allowed(self, gem: AstroGem) -> bool:
+        """Whether this run may spend the reset ticket on `gem`: the ticket
+        is enabled and the gem's starting target-effect coefficient clears
+        `--reset-min-coeff`."""
+        if not self.use_reset_ticket:
+            return False
+        if self.reset_min_coeff <= 0:
+            return True
+        coeff = DPS_COEFF if gem.optimize == "dps" else SUPPORT_COEFF
+        target = DPS_EFFECTS if gem.optimize == "dps" else SUPPORT_EFFECTS
+        total = sum(coeff.get(e, 0)
+                    for e in (gem.first_effect, gem.second_effect)
+                    if e in target)
+        return total >= self.reset_min_coeff
+
+    def policy_success_at_start(self, gem: AstroGem) -> Optional[float]:
+        """`realised_success` for a fresh `gem` as a run starts it: free
+        rerolls plus the reroll ticket when an enabler lends it on turn 1,
+        reset ticket included when this run may use it. This is the analytic
+        counterpart of the Monte Carlo success rate."""
+        if gem.gem_type not in GEM_TYPES:
+            return None
+        self.astro_gem = gem
+        start = GemState(will=1, chaos=1, first=1, second=1,
+                         first_effect=gem.first_effect,
+                         second_effect=gem.second_effect)
+        free = self.RARITY_REROLLS[self.rarity]
+        if self.effect_aware:
+            self.prob_table = self._get_ea_table(gem.gem_type)
+        lent = (self.use_extra_ticket is not False and ticket_enabled(
+            self._decision_context(), start, self.turns_total, free))
+        rerolls = free + (1 if lent else 0)
+        return self.realised_success(
+            start, self.turns_total, rerolls,
+            reset_available=self.reset_allowed(gem), start_gem=gem,
+            fresh_rerolls=rerolls)
+
+    def realised_success(self, state: GemState, turns_left: int,
+                         rerolls: int, reset_available: bool = False,
+                         start_gem: Optional[AstroGem] = None,
+                         fresh_rerolls: Optional[int] = None,
+                         ) -> Optional[float]:
+        """P(this simulator's policy ends with a goal-meeting gem) from
+        `state` — what runs actually deliver, unlike the stop-when-met
+        `prob_table`. `reset_available`: the reset ticket is still unused
+        (it is then worth a fresh start of `start_gem`, default the
+        configured gem, with `fresh_rerolls` rerolls — default the rarity's
+        free rerolls plus a force-on ticket; pass the turn-1 budget when an
+        enabler lends the ticket there). None when the gem type is unknown.
+        """
+        gem = start_gem or self.astro_gem or self._configured_gem
+        if gem is None or gem.gem_type not in GEM_TYPES:
+            return None
+        start = GemState(will=1, chaos=1, first=1, second=1,
+                         first_effect=gem.first_effect,
+                         second_effect=gem.second_effect)
+        if fresh_rerolls is None:
+            fresh_rerolls = self.RARITY_REROLLS[self.rarity] + (
+                1 if self.use_extra_ticket is True else 0)
+        # Memoised per run configuration: the disk cache alone would be
+        # re-read on every lookup (once per logged turn).
+        key = (gem.gem_type, gem.first_effect, gem.second_effect,
+               fresh_rerolls, reset_available)
+        tables = self._realised_cache.get(key)
+        if tables is None:
+            tables = realised_tables(
+                self._get_side_value_table(gem.gem_type), start,
+                self.turns_total, fresh_rerolls,
+                endgame_risk=self.endgame_risk,
+                auto_grade_gate=not self.confirm_active,
+                with_reset=reset_available)
+            self._realised_cache[key] = tables
+        plain, reset_aware = tables
+        table = reset_aware if reset_aware is not None else plain
+        return table.lookup(state, turns_left, rerolls=rerolls)
 
     def _get_expected_coeff_table(self, gem_type: str) -> SideValueTable:
         """Build/fetch the goal-conditioned *expected side-coefficient* table.
@@ -658,9 +766,7 @@ class GemSimulator:
         total_coeff = sum(coeff.get(e, 0)
                           for e in (run_gem.first_effect, run_gem.second_effect)
                           if e in target)
-        if reset_available and self.reset_min_coeff > 0:
-            if total_coeff < self.reset_min_coeff:
-                reset_available = False
+        reset_available = self.reset_allowed(run_gem)
         self._force_reroll_active = (
             self.force_reroll_no_progress > 0
             and total_coeff >= self.force_reroll_no_progress)
@@ -681,6 +787,14 @@ class GemSimulator:
         # prob_table reference — it may have
         # been swapped to per-gem-type EA tables above.
         ctx = self._decision_context(p_fresh=p_fresh)
+        # Reroll budget on turn 1 of a fresh process (free rerolls + the
+        # ticket when an enabler lends it there) — what a reset is worth in
+        # the realised-success log column.
+        fresh_rerolls = run_rerolls + (1 if (ownable and ticket_enabled(
+            ctx, GemState(will=1, chaos=1, first=1, second=1,
+                          first_effect=run_gem.first_effect,
+                          second_effect=run_gem.second_effect),
+            self.turns_total, run_rerolls)) else 0)
 
         turn_log: List[Dict[str, Any]] = []
 
@@ -721,6 +835,17 @@ class GemSimulator:
                         "turns_left": turns_left,
                         "goal_prob": _log_pt.lookup(state, turns_left, rerolls=state.rerolls) if _log_pt else None,
                         "relic_prob": self._relic_prob_table.lookup(state, turns_left, rerolls=state.rerolls) if self._relic_prob_table else None,
+                        # What the policy actually delivers from here (reset
+                        # ticket included while unused); "ticket view" like
+                        # the decision budget.
+                        "bot_prob": (self.realised_success(
+                            state, turns_left,
+                            state.rerolls + (1 if ticket_lent else 0),
+                            reset_available=(reset_available
+                                             and not reset_used),
+                            start_gem=run_gem,
+                            fresh_rerolls=fresh_rerolls)
+                            if self.log_policy_success else None),
                         "rerolls_available": state.rerolls,
                         "ticket_lent": ticket_lent,
                         "eff_threshold": self.reroll_policy.effective_side_threshold(state),
