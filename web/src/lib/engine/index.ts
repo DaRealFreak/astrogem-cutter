@@ -15,9 +15,9 @@ import {
 import type { AstroGem } from './models';
 import { GemState, LastTurnGoal } from './models';
 import { OptionPool } from './pool';
-import { GoalProbabilityTable, SideValueTable } from './probability';
+import { GoalProbabilityTable, RealisedSuccessTable, SideValueTable } from './probability';
 import type { DecisionContext } from './decision';
-import { ActionKind, decidePostRoll } from './decision';
+import { ActionKind, decidePostRoll, ticketEnabled } from './decision';
 
 export { ActionKind };
 
@@ -27,6 +27,12 @@ export { ActionKind };
 
 const RARITY_TURNS: Record<string, number> = { common: 5, rare: 7, epic: 9 };
 const RARITY_REROLLS: Record<string, number> = { common: 0, rare: 1, epic: 2 };
+
+// The reset-aware realised-success table depends on what a fresh start is
+// worth, which varies with the gem's effects. Rounding it to this step lets
+// gems with near-equal fresh values share one table (mirrors
+// arkgrid/simulator.py REALISED_FRESH_STEP).
+const REALISED_FRESH_STEP = 0.005;
 
 // ---------------------------------------------------------------------------
 // Public config / input / output types
@@ -72,6 +78,12 @@ export interface EngineContext {
   _sideValueTable: SideValueTable;
   _displayValueTable: SideValueTable;
   _freshState: GemState;
+  /** Reroll budget on turn 1 of a fresh cutting process: the rarity's free
+   *  rerolls, plus the ticket when an enabler lends it there. */
+  _freshRerolls: number;
+  /** Realised-success (P(bot)) table, built on first use: the plain one, or
+   *  the reset-aware one while the reset ticket is still available. */
+  _realised(withReset: boolean): RealisedSuccessTable;
 }
 
 export interface AdvisorInput {
@@ -85,12 +97,22 @@ export interface AdvisorInput {
   ticketLent?: boolean;
 }
 
-export type ActionMetrics = { pGoal: number; pRelic: number; pAncient: number; eValue: number };
+/**
+ * `pGoal` is the chance of reaching the goal if play stops the moment it is
+ * met. `pBot` is what following the advice actually delivers: it keeps
+ * cutting for side value once the goal is met (and can lose it), and it uses
+ * the reset ticket while one is available — a little below `pGoal` without a
+ * reset, far above it with one.
+ */
+export type ActionMetrics = {
+  pGoal: number; pRelic: number; pAncient: number; eValue: number; pBot: number;
+};
 export type ActionsMap = { process: ActionMetrics | null; reroll: ActionMetrics | null; reset: ActionMetrics | null };
 
 /** A full metric snapshot at a fixed reroll budget (for the ticket comparison). */
 export type ActionsSnapshot = {
-  pGoal: number; pRelic: number; pAncient: number; eValue: number; actions: ActionsMap;
+  pGoal: number; pRelic: number; pAncient: number; eValue: number; pBot: number;
+  actions: ActionsMap;
 };
 
 /**
@@ -113,6 +135,8 @@ export interface AdvisorOutput {
   pRelic: number;
   pAncient: number;
   eValue: number;
+  /** Success rate of the advice's own policy (see ActionMetrics). */
+  pBot: number;
   perOffer: Array<{ key: string; pGoalAfter: number; eValueAfter: number }>;
   actions: ActionsMap;
   /** Set by computeAdvice when the extra ticket is owned; null otherwise. */
@@ -260,8 +284,10 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
   // finish/continue decision gate AND the displayed eValue matrix, threaded with
   // the live reroll budget. (When dpMaxRerolls === 0 a reroll-aware build is
   // byte-identical to a flat one.)
+  const sideValueKey =
+    `sv:${goalKey}:${turnsTotal}:${gemType}:${optimize}:${minSideCoeff}:${relicCoeff}:${ancientCoeff}:${ignoreSide}:${dpMaxRerolls}`;
   const sideValueTable = cachedTable(
-    `sv:${goalKey}:${turnsTotal}:${gemType}:${optimize}:${minSideCoeff}:${relicCoeff}:${ancientCoeff}:${ignoreSide}:${dpMaxRerolls}`,
+    sideValueKey,
     () => new SideValueTable(goal, turnsTotal, pool, gemType, {
       optimize,
       minSideCoeff,
@@ -393,10 +419,41 @@ export function buildEngineContext(gem: AstroGem, config: AdvisorConfig): Engine
     ticketMinValueGain: config.ticketMinValueGain ?? 0,
   };
 
+  // Realised success (P(bot)): a policy evaluation of the decision tree on
+  // top of the DECISION value table (will_chaos under ignoreSide). Built on
+  // first use — the reset-aware table only while a reset is available — and
+  // shared through the table cache. Stateless-port limitation: a reset is
+  // priced as a fresh start of the gem's CURRENT effects (like the Reset row).
+  const freeRerolls = RARITY_REROLLS[rarity]!;
+  const freshRerolls = freeRerolls + (
+    ownable && ticketEnabled(decisionCtx, freshState, turnsTotal, freeRerolls) ? 1 : 0);
+  const realisedKey = `real:${sideValueKey}:${endgameRisk ?? 'auto'}`;
+  let realisedPlain: RealisedSuccessTable | null = null;
+  let realisedReset: RealisedSuccessTable | null = null;
+  const realised = (withReset: boolean): RealisedSuccessTable => {
+    if (realisedPlain === null) {
+      realisedPlain = cachedTable(
+        `${realisedKey}:plain`,
+        () => new RealisedSuccessTable(sideValueTable, { endgameRisk }));
+    }
+    if (!withReset || !realisedPlain.enabled) return realisedPlain;
+    if (realisedReset === null) {
+      const plain = realisedPlain;
+      const exact = plain.lookup(freshState, turnsTotal, freshRerolls);
+      const fresh = Math.round(exact / REALISED_FRESH_STEP) * REALISED_FRESH_STEP;
+      realisedReset = cachedTable(
+        `${realisedKey}:${fresh.toFixed(3)}`,
+        () => new RealisedSuccessTable(sideValueTable, { endgameRisk, fresh }));
+    }
+    return realisedReset;
+  };
+
   return {
     turnsTotal,
     dpMaxRerolls,
     baseRerolls,
+    _freshRerolls: freshRerolls,
+    _realised: realised,
     _decisionCtx: decisionCtx,
     _relicProbTable: relicProbTable,
     _ancientProbTable: ancientProbTable,
@@ -441,6 +498,10 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
   // ---------------------------------------------------------------------------
   const probT = dc.probTable, relicT = ctx._relicProbTable, ancientT = ctx._ancientProbTable, dispT = ctx._displayValueTable;
   const tlAfter = turnsLeft - 1;
+  // P(bot): the policy's own success. While the reset ticket is available the
+  // process/reroll rows include it; the reset row is a fresh process without
+  // a further reset.
+  const botT = ctx._realised(resetAvailable);
 
   // process = expected outcome of clicking. The game applies a uniformly-random
   // one of the 4 offers (simulator.py: rng.choice(offers)), so this is the
@@ -452,6 +513,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pRelic: relicT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
     pAncient: ancientT.expectedProbAfterClick(state, offers, tlAfter, rerolls),
     eValue: dispT.expectedValueAfterClick(state, offers, tlAfter, rerolls),
+    pBot: botT.expectedAfterClick(state, offers, tlAfter, rerolls),
   } : null;
 
   // reroll = same state, one reroll spent (state/turnsLeft unchanged → side value unchanged)
@@ -460,6 +522,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pRelic: relicT.lookup(state, turnsLeft, rerolls - 1),
     pAncient: ancientT.lookup(state, turnsLeft, rerolls - 1),
     eValue: dispT.lookup(state, turnsLeft, rerolls - 1),
+    pBot: botT.lookup(state, turnsLeft, rerolls - 1),
   } : null;
 
   // reset = fresh gem, full budget (reroll-aware tables for matrix consistency)
@@ -468,6 +531,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pRelic: relicT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
     pAncient: ancientT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
     eValue: dispT.lookup(ctx._freshState, ctx.turnsTotal, ctx.baseRerolls),
+    pBot: ctx._realised(false).lookup(ctx._freshState, ctx.turnsTotal, ctx._freshRerolls),
   } : null;
 
   // Headline = the recommended action's projected row, so the big P(click) block
@@ -482,6 +546,9 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
   const pRelic = recRow ? recRow.pRelic : posRelic;
   const pAncient = recRow ? recRow.pAncient : posAncient;
   const eValue = recRow ? recRow.eValue : posEValue;
+  // FINISH / FAIL end the gem as it stands: success is whether it meets the
+  // goal now (the table's value with no turns left).
+  const pBot = recRow ? recRow.pBot : botT.lookup(state, 0, 0);
 
   return {
     action: decision.action,
@@ -491,6 +558,7 @@ export function advise(ctx: EngineContext, input: AdvisorInput): AdvisorOutput {
     pRelic,
     pAncient,
     eValue,
+    pBot,
     perOffer,
     actions: { process: processM, reroll: rerollM, reset: resetM },
   };

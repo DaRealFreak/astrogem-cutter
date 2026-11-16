@@ -39,7 +39,8 @@
       advisor.waiting = false;
     },
     observeTurn(det, output) {
-      turnLog.observe(det, output.action, output.pGoal, output.pRelic, output.pAncient, output.eValue);
+      turnLog.observe(det, output.action, output.pGoal, output.pRelic, output.pAncient, output.eValue,
+        output.pBot);
     },
   };
 

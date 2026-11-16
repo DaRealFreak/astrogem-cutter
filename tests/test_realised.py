@@ -11,6 +11,7 @@ from __future__ import annotations
 import random
 import unittest
 
+from arkgrid.constants import GEM_TYPES
 from arkgrid.models import AstroGem, GemState, LastTurnGoal
 from arkgrid.pool import OptionPool
 from arkgrid.probability import (
@@ -110,6 +111,35 @@ class TestRealisedSuccessTable(unittest.TestCase):
         mid = self._start(will=2, chaos=3, first=2, second=2)
         vals = [self.plain.lookup(mid, 5, rerolls=r) for r in range(4)]
         self.assertEqual(vals, sorted(vals))
+
+    def test_expected_after_click_averages_the_offers_in_hand(self) -> None:
+        # The value of processing THIS hand: one of the 4 offers is applied
+        # uniformly. A change-effect card hides its destination (average of
+        # the two non-equipped effects); a view card adds rerolls.
+        pool = OptionPool()
+        by_key = {o.key: o for o in pool.pool}
+        offers = [by_key["will+1"], by_key["first+1"], by_key["view+1"],
+                  by_key["change_first_effect"]]
+        mid = self._start(will=3, chaos=4, first=2, second=2)
+        others = [e for e in GEM_TYPES[GEM.gem_type]
+                  if e not in (GEM.first_effect, GEM.second_effect)]
+        self.assertEqual(len(others), 2)
+        for table in (self.plain, self.with_reset):
+            want = (
+                table.lookup(self._start(will=4, chaos=4, first=2, second=2),
+                             4, rerolls=1)
+                + table.lookup(self._start(will=3, chaos=4, first=3, second=2),
+                               4, rerolls=1)
+                + table.lookup(mid, 4, rerolls=2)
+                + 0.5 * sum(
+                    table.lookup(GemState(
+                        will=3, chaos=4, first=2, second=2, first_effect=e,
+                        second_effect=GEM.second_effect), 4, rerolls=1)
+                    for e in others)) / 4.0
+            self.assertAlmostEqual(
+                table.expected_after_click(mid, offers, 4, rerolls=1), want,
+                places=12)
+        self.assertEqual(self.plain.expected_after_click(mid, [], 4), 0.0)
 
     def test_unknown_gem_type_is_disabled(self) -> None:
         svt = SideValueTable(GOAL, 9, OptionPool(), gem_type="", optimize="dps")

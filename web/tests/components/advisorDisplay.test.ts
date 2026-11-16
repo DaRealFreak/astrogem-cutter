@@ -11,7 +11,7 @@ afterEach(cleanup);
 
 const output: AdvisorOutput = {
   action: 'REROLL' as any, branch: 'dp_reroll', reason: 'reroll for value',
-  pGoal: 0.62, pRelic: 0.41, pAncient: 0.12, eValue: 1180,
+  pGoal: 0.62, pRelic: 0.41, pAncient: 0.12, eValue: 1180, pBot: 0.587,
   perOffer: [
     { key: 'will+1', pGoalAfter: 0.5, eValueAfter: 1100 },
     { key: 'chaos+1', pGoalAfter: 0.7, eValueAfter: 1150 },
@@ -25,6 +25,14 @@ describe('advisor display', () => {
     render(AdvisorPanel, { props: { output, waiting: false } });
     expect(screen.getByText('REROLL')).toBeTruthy();
     expect(screen.getByText(/62\.0%/)).toBeTruthy();
+  });
+  it('AdvisorPanel shows P(bot) next to P(goal), with what it means on hover', () => {
+    render(AdvisorPanel, { props: { output, waiting: false } });
+    const label = screen.getByText('P(bot)');
+    expect(screen.getByText(/58\.7%/)).toBeTruthy();
+    // The two numbers answer different questions; the labels say which.
+    expect(label.getAttribute('title')).toMatch(/keeps cutting for side value/i);
+    expect(screen.getByText('P(goal)').getAttribute('title')).toMatch(/stop the moment/i);
   });
   it('AdvisorPanel shows a waiting state when gated', () => {
     render(AdvisorPanel, { props: { output: null, waiting: true } });

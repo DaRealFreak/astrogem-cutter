@@ -17,9 +17,11 @@ const recs: Array<{
     offers: string[];
   };
   expected: {
-    process: { pGoal: number; pRelic: number; pAncient: number; eValue: number; bestOfferKey: string } | null;
-    reroll: { pGoal: number; pRelic: number; pAncient: number; eValue: number } | null;
-    reset: { pGoal: number; pRelic: number; pAncient: number; eValue: number };
+    process: { pGoal: number; pRelic: number; pAncient: number; eValue: number;
+      pBot: number; pBotNoReset: number; bestOfferKey: string } | null;
+    reroll: { pGoal: number; pRelic: number; pAncient: number; eValue: number;
+      pBot: number; pBotNoReset: number } | null;
+    reset: { pGoal: number; pRelic: number; pAncient: number; eValue: number; pBot: number };
   };
 }> = fixture.records;
 
@@ -72,6 +74,7 @@ describe('advise().actions parity', () => {
         expect(out.actions.process!.pRelic).toBeCloseTo(rec.expected.process.pRelic, 6);
         expect(out.actions.process!.pAncient).toBeCloseTo(rec.expected.process.pAncient, 6);
         expect(out.actions.process!.eValue).toBeCloseTo(rec.expected.process.eValue, 6);
+        expect(out.actions.process!.pBot).toBeCloseTo(rec.expected.process.pBot, 6);
       }
 
       // reroll
@@ -81,6 +84,7 @@ describe('advise().actions parity', () => {
         expect(out.actions.reroll!.pRelic).toBeCloseTo(rec.expected.reroll.pRelic, 6);
         expect(out.actions.reroll!.pAncient).toBeCloseTo(rec.expected.reroll.pAncient, 6);
         expect(out.actions.reroll!.eValue).toBeCloseTo(rec.expected.reroll.eValue, 6);
+        expect(out.actions.reroll!.pBot).toBeCloseTo(rec.expected.reroll.pBot, 6);
       } else {
         // rerolls === 0 in this record
         expect(out.actions.reroll).toBeNull();
@@ -92,6 +96,21 @@ describe('advise().actions parity', () => {
       expect(out.actions.reset!.pRelic).toBeCloseTo(rec.expected.reset.pRelic, 6);
       expect(out.actions.reset!.pAncient).toBeCloseTo(rec.expected.reset.pAncient, 6);
       expect(out.actions.reset!.eValue).toBeCloseTo(rec.expected.reset.eValue, 6);
+      // A reset starts a fresh process WITHOUT a further reset ticket.
+      expect(out.actions.reset!.pBot).toBeCloseTo(rec.expected.reset.pBot, 6);
+
+      // P(bot) without the reset ticket: the plain policy table.
+      const noReset = advise(ctx, {
+        state, offers, turn: i.turn, turnsLeft: i.turns_left, rerolls: i.rerolls,
+        resetAvailable: false,
+      });
+      expect(noReset.actions.reset).toBeNull();
+      if (rec.expected.process !== null) {
+        expect(noReset.actions.process!.pBot).toBeCloseTo(rec.expected.process.pBotNoReset, 6);
+      }
+      if (rec.expected.reroll !== null) {
+        expect(noReset.actions.reroll!.pBot).toBeCloseTo(rec.expected.reroll.pBotNoReset, 6);
+      }
     }
   });
 });

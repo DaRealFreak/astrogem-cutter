@@ -285,12 +285,87 @@ export function handEMax(
   return total;
 }
 
+/** Atoms of the hand mean for a two-valued offer distribution (the
+ *  distribution `handEMax2` prices). Mirrors `_hand_atoms2`. */
+function handAtoms2(mu: number, m2: number, m3: number, rho: number): [number, number][] {
+  const sd = Math.sqrt(m2);
+  const g = m3 / (m2 * sd);
+  const r = Math.sqrt(4.0 + g * g);
+  const q = g >= 0.0 ? 2.0 / (r * (r + g)) : 1.0 - 2.0 / (r * (r - g));
+  const lo = mu - sd * Math.sqrt(q / (1.0 - q));
+  const step = (mu + sd * Math.sqrt((1.0 - q) / q) - lo) / 4.0;
+  const meanK = 4.0 * q;
+  const denom = 1.0 - (1.0 - q) * rho;
+  let n = denom > meanK / 4.0 ? meanK / denom : 4.0;
+  const floorN = meanK < 1.0 ? 1.0 : meanK;
+  if (n < floorN) n = floorN;
+  const nLo = Math.floor(n);
+  let parts: [number, number][];
+  if (nLo >= 4) {
+    parts = [[4, 1.0]];
+  } else if (nLo < meanK) {
+    parts = [[nLo + 1, 1.0]];
+  } else {
+    const lam = (1.0 / n - 1.0 / (nLo + 1)) / (1.0 / nLo - 1.0 / (nLo + 1));
+    parts = [[nLo, lam], [nLo + 1, 1.0 - lam]];
+  }
+  const atoms: [number, number][] = [];
+  for (const [nj, share] of parts) {
+    if (share <= 0.0) continue;
+    const qj = meanK / nj;
+    for (let k = 0; k <= nj; k++) {
+      atoms.push([lo + step * k, share * BINOM[nj]![k]! * qj ** k * (1.0 - qj) ** (nj - k)]);
+    }
+  }
+  return atoms;
+}
+
+/** The hand-mean distribution `handEMax` prices, as explicit
+ *  `[value, probability]` atoms — for callers that need more than
+ *  `E[max(H, t)]` (e.g. `P(H > t)` in the realised-success table).
+ *  `sum(p * max(h, t))` over the atoms equals `handEMax(..., t)`.
+ *  Mirrors arkgrid/probability.py::hand_atoms. */
+export function handAtoms(
+  mu: number, m2: number, m3: number, m4: number, m5: number, rho: number
+): [number, number][] {
+  if (m2 <= 1e-12 * (mu * mu > 1.0 ? mu * mu : 1.0)) return [[mu, 1.0]];
+  const sd = Math.sqrt(m2);
+  const g = m3 / (m2 * sd);
+  const k = m4 / (m2 * m2);
+  const h5 = m5 / (m2 * m2 * sd);
+  const det = k - g * g - 1.0;
+  if (det <= 1e-9 * (k > 1.0 ? k : 1.0)) return handAtoms2(mu, m2, m3, rho);
+  const c2 = (g + g * k - h5) / det;
+  const c1 = -k - g * c2;
+  const c0 = -g - c2;
+  const p = c1 - (c2 * c2) / 3.0;
+  if (p >= 0.0) return handAtoms2(mu, m2, m3, rho);
+  const q = (2.0 * c2 * c2 * c2) / 27.0 - (c2 * c1) / 3.0 + c0;
+  const amp = 2.0 * Math.sqrt(-p / 3.0);
+  let arg = (3.0 * q) / (p * amp);
+  arg = arg > 1.0 ? 1.0 : arg < -1.0 ? -1.0 : arg;
+  const phi = Math.acos(arg) / 3.0;
+  const shift = c2 / 3.0;
+  const z1 = amp * Math.cos(phi) - shift;
+  const z2 = amp * Math.cos(phi - TWO_THIRDS_PI) - shift;
+  const z3 = amp * Math.cos(phi - 2.0 * TWO_THIRDS_PI) - shift;
+  const w1 = (1.0 + z2 * z3) / ((z1 - z2) * (z1 - z3));
+  const w2 = (1.0 + z1 * z3) / ((z2 - z1) * (z2 - z3));
+  const w3 = 1.0 - w1 - w2;
+  if (!(w1 > 0.0 && w2 > 0.0 && w3 > 0.0)) return handAtoms2(mu, m2, m3, rho);
+  const s = sd * Math.sqrt(rho) * 0.25;
+  return HAND_TRINOM.map(([n1, n2, n3, coef]): [number, number] => [
+    mu + s * (n1 * z1 + n2 * z2 + n3 * z3),
+    coef * w1 ** n1 * w2 ** n2 * w3 ** n3,
+  ]);
+}
+
 /** `[mu, m2, m3, m4, m5, rho]` of a hand over `ctx`'s options with post-click
  *  values `posts`: the single-offer mean and central moments, and `rho`, the
  *  exact variance of the 4-distinct-offer hand mean relative to 4 independent
  *  draws (`m2 / 4`). Mirrors `_hand_moments`. */
 export function handMoments(
-  ctx: HandContext, posts: number[]
+  ctx: HandContext, posts: ArrayLike<number>
 ): [number, number, number, number, number, number] {
   const probs = ctx.probs;
   const n = probs.length;
@@ -327,7 +402,7 @@ export function handMoments(
  *  values `posts`) is kept when its mean beats `alt` — the value of the
  *  alternative (redraw, or finishing) — and given up for that alternative
  *  otherwise. Mirrors `_hand_turn_value`. */
-export function handTurnValue(ctx: HandContext, posts: number[], alt: number): number {
+export function handTurnValue(ctx: HandContext, posts: ArrayLike<number>, alt: number): number {
   const [mu, m2, m3, m4, m5, rho] = handMoments(ctx, posts);
   // Certain hand: <= 4 eligible options, or all offers worth the same.
   if (m2 <= 0.0) return mu > alt ? mu : alt;
@@ -1659,6 +1734,18 @@ export class SideValueTable {
     }
   }
 
+  /** Build inputs for `RealisedSuccessTable`, which evaluates the policy this
+   *  table drives and shares its state layout. Not part of the public API. */
+  _internals() {
+    return {
+      dp: this._dp, goal: this._goal, maxTurns: this._maxTurns, pool: this._pool,
+      minSideCoeff: this._minSideCoeff, maxRerolls: this._maxRerolls,
+      rDim: this._rDim, tlDim: this._tlDim, effectTuple: this._effectTuple,
+      effectCoeffs: this._effectCoeffs, changeDests: this._changeDests,
+      valueMode: this._valueMode,
+    };
+  }
+
   // -- public API --------------------------------------------------
 
   /** Value of finishing the gem in its current state. */
@@ -1690,6 +1777,424 @@ export class SideValueTable {
    */
   expectedValueAfterClick(state: GemState, offers: Option[], turnsLeftAfter: number,
                           rerolls?: number): number {
+    if (!this.enabled || offers.length === 0) return 0.0;
+    if (turnsLeftAfter < 0 || turnsLeftAfter >= this._tlDim) return 0.0;
+    const idx = this._effectIndices(state);
+    if (idx === null) return 0.0;
+    const [fi, si] = idx;
+    const dests = this._changeDests[fi * 4 + si]!;
+    const nd = dests.length;
+    const ra = this._maxRerolls > 0;
+    const cs = state.costRatio !== 0 ? 1 : 0;
+    let total = 0.0;
+    for (const o of offers) {
+      const nw = o.kind === 'will' ? clampLevel(state.will + o.delta) : state.will;
+      const nc = o.kind === 'chaos' ? clampLevel(state.chaos + o.delta) : state.chaos;
+      const nf = o.kind === 'first' ? clampLevel(state.first + o.delta) : state.first;
+      const ns = o.kind === 'second' ? clampLevel(state.second + o.delta) : state.second;
+      const ncs = o.kind === 'cost' ? 1 - cs : cs;
+      const nst = s625(nw, nc, nf, ns);
+      let nr = 0;
+      if (ra) {
+        const vd = o.kind === 'view' ? o.delta : 0;
+        nr = Math.min(this._maxRerolls, (rerolls ?? 0) + vd);
+      }
+      if (o.key === 'change_first_effect') {
+        let sum = 0;
+        for (const d of dests) sum += this._dp[this._idx(nst, ncs, d * 4 + si, nr, turnsLeftAfter)]!;
+        total += sum / nd;
+      } else if (o.key === 'change_second_effect') {
+        let sum = 0;
+        for (const d of dests) sum += this._dp[this._idx(nst, ncs, fi * 4 + d, nr, turnsLeftAfter)]!;
+        total += sum / nd;
+      } else {
+        total += this._dp[this._idx(nst, ncs, fi * 4 + si, nr, turnsLeftAfter)]!;
+      }
+    }
+    return total / offers.length;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// RealisedSuccessTable — what the advisor's OWN policy delivers (P(bot))
+// ---------------------------------------------------------------------------
+
+// Value comparisons in the realised-success policy mirror decision.ts's
+// GRADE_VALUE_EPS tie handling.
+const POLICY_EPS = 1e-9;
+
+/** `[P(keep), E[success | keep]]` for a hand that is kept when its mean VALUE
+ *  beats `threshold`. The hand's value mean follows the hand model
+ *  (`handAtoms`); its mean success is regressed linearly on its value mean
+ *  (offers that break the goal are also the low-value ones, so the two move
+ *  together). Mirrors `_keep_stats`. */
+function keepStats(
+  ctx: HandContext, values: ArrayLike<number>, successes: ArrayLike<number>, threshold: number
+): [number, number] {
+  const [mu, m2, m3, m4, m5, rho] = handMoments(ctx, values);
+  const probs = ctx.probs;
+  const n = probs.length;
+  let muY = 0.0;
+  for (let i = 0; i < n; i++) muY += probs[i]! * successes[i]!;
+  if (m2 <= 0.0) return [mu > threshold ? 1.0 : 0.0, muY];
+  let cov = 0.0;
+  for (let i = 0; i < n; i++) cov += probs[i]! * (values[i]! - mu) * (successes[i]! - muY);
+  let pKeep = 0.0;
+  let dev = 0.0;
+  for (const [h, pr] of handAtoms(mu, m2, m3, m4, m5, rho)) {
+    if (h > threshold) {
+      pKeep += pr;
+      dev += pr * (h - mu);
+    }
+  }
+  if (pKeep <= 0.0) return [0.0, muY];
+  const eY = muY + ((cov / m2) * dev) / pKeep;
+  return [pKeep, eY > 1.0 ? 1.0 : eY < 0.0 ? 0.0 : eY];
+}
+
+/** One state's eligible options for the realised-success build: transition
+ *  code (0 plain, 1 change_first, 2 change_second), next state625, next cost
+ *  state and view delta per option, plus the option weights. */
+interface RealisedTrans {
+  n: number; code: Uint8Array; nst: Uint16Array; ncs: Uint8Array; vd: Uint8Array;
+  weights: number[];
+}
+
+/** What a realised-success build shares across states (tables, policy knobs
+ *  and scratch buffers). */
+interface RealisedEnv {
+  dp: Float64Array;      // the table being built
+  value: Float64Array;   // the side-value table (same layout)
+  met: Uint8Array;       // [st * 16 + ea]: goal + side-coefficient floor met
+  maxR: number; tlDim: number; stride: number; // stride = one (st, cs, ea) block
+  fresh: number | null; margin: number; gradeGate: boolean;
+  relicBench: number; ancientBench: number;
+  coeffs: readonly number[]; changeDests: (number[] | null)[];
+  ea1: Int32Array;       // destination effect pair per option
+  ea2: Int32Array;       // second destination (change cards), else -1
+  ys: Float64Array;      // success after each option
+  xs: Float64Array;      // value after each option
+  safe: Int32Array; safeYs: Float64Array; safeXs: Float64Array;
+}
+
+/** Fill one (state, cost state, effect pair) for every reroll count at
+ *  `tl` turns left. Kept as a small standalone function on purpose: it is
+ *  the build's hot kernel, and the JIT optimises a small function called
+ *  135k times far sooner than loops nested nine deep inside one large
+ *  function (which cost ~600ms on the first build). */
+function realisedFillPair(
+  e: RealisedEnv, tr: RealisedTrans, hand: HandContext, tl: number, rerollTurn: boolean,
+  st: number, cs: number, fi: number, si: number, capped: boolean, total: number,
+  sideCoeff: number,
+): void {
+  const dp = e.dp, value = e.value, met = e.met;
+  const maxR = e.maxR, tlDim = e.tlDim, stride = e.stride;
+  const ea1 = e.ea1, ea2 = e.ea2, ys = e.ys, xs = e.xs;
+  const probs = hand.probs;
+  const n = tr.n;
+  const ea = fi * 4 + si;
+  const d = e.changeDests[ea]!;
+  const d0 = d[0]!, d1 = d[1]!;
+  // Destinations per option: change_effect lands on either non-equipped
+  // effect.
+  for (let i = 0; i < n; i++) {
+    const code = tr.code[i]!;
+    if (code === 1) { ea1[i] = d0 * 4 + si; ea2[i] = d1 * 4 + si; }
+    else if (code === 2) { ea1[i] = fi * 4 + d0; ea2[i] = fi * 4 + d1; }
+    else { ea1[i] = ea; ea2[i] = -1; }
+  }
+  const isMet = met[st * 16 + ea] === 1;
+  const here0 = ((st * 2 + cs) * 16 + ea) * stride; // index of (r = 0, tl = 0)
+  let nSafe = 0;
+  let qSafe = 0.0;
+  let safeHand: HandContext | null = null;
+  let finishVal = 0.0;
+  let protect = false;
+  if (isMet && !capped) {
+    const safe = e.safe;
+    for (let i = 0; i < n; i++) {
+      const base = tr.nst[i]! * 16;
+      if (met[base + ea1[i]!] === 1 && (ea2[i]! < 0 || met[base + ea2[i]!] === 1)) {
+        safe[nSafe++] = i;
+        qSafe += probs[i]!;
+      }
+    }
+    if (nSafe >= 4) {
+      const weights: number[] = new Array(nSafe);
+      for (let j = 0; j < nSafe; j++) weights[j] = tr.weights[safe[j]!]!;
+      safeHand = handContext(weights);
+    }
+    finishVal = value[here0]!;
+    if (e.gradeGate) {
+      const bench = total >= 19 ? e.ancientBench : total >= 16 ? e.relicBench : 0;
+      protect = bench > 0 && sideCoeff < bench;
+    }
+  }
+  for (let r = 0; r <= maxR; r++) {
+    const here = here0 + r * tlDim + tl;
+    if (isMet && capped) {
+      dp[here] = 1.0;
+      continue;
+    }
+    for (let i = 0; i < n; i++) {
+      let nr = r + tr.vd[i]!;
+      if (nr > maxR) nr = maxR;
+      const blk = (tr.nst[i]! * 2 + tr.ncs[i]!) * 16;
+      const off = nr * tlDim + (tl - 1);
+      let y = dp[(blk + ea1[i]!) * stride + off]!;
+      if (ea2[i]! >= 0) y = 0.5 * (y + dp[(blk + ea2[i]!) * stride + off]!);
+      ys[i] = y;
+    }
+    const canReroll = r > 0 && rerollTurn;
+    if (!isMet) {
+      let alt = canReroll ? dp[here - tlDim]! : -1.0; // -1 = no alternative
+      // Last turn: rerolls first, then the reset ticket.
+      if (e.fresh !== null && tl === 1 && e.fresh > alt) alt = e.fresh;
+      if (alt < 0.0) {
+        let v = 0.0;
+        for (let i = 0; i < n; i++) v += probs[i]! * ys[i]!;
+        dp[here] = v;
+      } else {
+        dp[here] = handTurnValue(hand, ys, alt);
+      }
+      continue;
+    }
+    for (let i = 0; i < n; i++) {
+      let nr = r + tr.vd[i]!;
+      if (nr > maxR) nr = maxR;
+      const blk = (tr.nst[i]! * 2 + tr.ncs[i]!) * 16;
+      const off = nr * tlDim + (tl - 1);
+      let x = value[(blk + ea1[i]!) * stride + off]!;
+      if (ea2[i]! >= 0) x = 0.5 * (x + value[(blk + ea2[i]!) * stride + off]!);
+      xs[i] = x;
+    }
+    if (canReroll) {
+      // Process only a risk-free hand worth more than a redraw.
+      const redraw = dp[here - tlDim]!;
+      let pAcc = 0.0;
+      let eY = 1.0;
+      if (safeHand !== null) {
+        const safe = e.safe, safeXs = e.safeXs, safeYs = e.safeYs;
+        for (let j = 0; j < nSafe; j++) {
+          safeXs[j] = xs[safe[j]!]!;
+          safeYs[j] = ys[safe[j]!]!;
+        }
+        const kept = keepStats(safeHand, safeXs, safeYs, value[here - tlDim]! + POLICY_EPS);
+        eY = kept[1];
+        pAcc = qSafe ** 4 * kept[0];
+      }
+      dp[here] = pAcc * eY + (1.0 - pAcc) * redraw;
+    } else if (protect) {
+      dp[here] = 1.0;
+    } else {
+      const kept = keepStats(hand, xs, ys, finishVal - e.margin + POLICY_EPS);
+      dp[here] = kept[0] * kept[1] + (1.0 - kept[0]);
+    }
+  }
+}
+
+export interface RealisedOpts {
+  /** The finish margin (`endgameRisk`); null/undefined = auto grade gate. */
+  endgameRisk?: number | null;
+  /** Protect a relic/ancient gem with a below-benchmark side coefficient
+   *  (only without an explicit margin). Default true. */
+  autoGradeGate?: boolean;
+  /** Value of a fresh start while the reset ticket is unused; null/undefined
+   *  = no reset ticket. */
+  fresh?: number | null;
+}
+
+/**
+ * P(the advisor's OWN policy ends with a gem that meets the goal).
+ *
+ * `GoalProbabilityTable` answers "how likely is the goal if play stops the
+ * moment it is met" — the most success any policy can have. The advice does
+ * not play that way: once the goal is met it keeps cutting for side value
+ * (and can lose the goal doing so), and it can spend a reset ticket. This
+ * table evaluates that policy: a little below P(goal) without a reset, far
+ * above it with one.
+ *
+ * Policy evaluated (mirrors `decidePostRoll`):
+ *  - Goal not met — chase it: with a reroll in hand the 4-offer hand is kept
+ *    when it beats a redraw (`handTurnValue`, as in the goal table).
+ *  - Goal met, rerolls in hand — the hand is processed only when it is
+ *    risk-free (no offer can break the goal) AND worth more than a redraw per
+ *    the value table; otherwise reroll.
+ *  - Goal met, no rerolls — finish, unless the hand's value beats finishing
+ *    by `endgameRisk` (auto grade-protect gate when it is null).
+ *  - Reset (`fresh` given): a last-turn hand is weighed against a fresh
+ *    start, and a dead gem is worth one. Without it a dead gem is worth 0.
+ *
+ * Built on the side-value table the decisions read, with its state layout.
+ * Approximations: P(risk-free hand) treats the 4 offers as independent; the
+ * hand's success is regressed linearly on its value; a lent reroll ticket is
+ * a reroll in hand (its enablers and spend gates are not modelled).
+ * Mirrors arkgrid/probability.py::RealisedSuccessTable.
+ */
+export class RealisedSuccessTable {
+  readonly enabled: boolean;
+  readonly fresh: number | null;
+
+  private readonly _maxRerolls: number;
+  private readonly _rDim: number;
+  private readonly _tlDim: number;
+  private readonly _effectTuple: readonly string[];
+  private readonly _changeDests: (number[] | null)[];
+  private readonly _dp: Float64Array;
+
+  constructor(valueTable: SideValueTable, opts?: RealisedOpts) {
+    const svt = valueTable._internals();
+    this.enabled = valueTable.enabled;
+    this.fresh = opts?.fresh ?? null;
+    this._maxRerolls = svt.maxRerolls;
+    this._rDim = svt.rDim;
+    this._tlDim = svt.tlDim;
+    this._effectTuple = svt.effectTuple;
+    this._changeDests = svt.changeDests;
+    this._dp = new Float64Array(this.enabled ? svt.dp.length : 0);
+    if (this.enabled) {
+      const endgameRisk = opts?.endgameRisk ?? null;
+      this._build(valueTable, endgameRisk, endgameRisk === null && (opts?.autoGradeGate ?? true));
+    }
+  }
+
+  private _idx(st: number, cs: number, ea: number, r: number, tl: number): number {
+    return (((st * 2 + cs) * 16 + ea) * this._rDim + r) * this._tlDim + tl;
+  }
+
+  private _build(valueTable: SideValueTable, endgameRisk: number | null, gradeGate: boolean): void {
+    const svt = valueTable._internals();
+    const dp = this._dp;
+    const mt = svt.maxTurns;
+    const maxR = this._maxRerolls;
+    const coeffs = svt.effectCoeffs;
+    const msc = svt.minSideCoeff;
+    const pool = svt.pool;
+    const pairs: [number, number][] = [];
+    for (let fi = 0; fi < 4; fi++)
+      for (let si = 0; si < 4; si++)
+        if (fi !== si) pairs.push([fi, si]);
+
+    // met[st * 16 + ea]: goal AND side-coefficient floor satisfied.
+    const met = new Uint8Array(625 * 16);
+    for (let w = 1; w <= 5; w++)
+      for (let c = 1; c <= 5; c++)
+        for (let f = 1; f <= 5; f++)
+          for (let s = 1; s <= 5; s++) {
+            if (!svt.goal.satisfied(w, c, f, s)) continue;
+            const st = s625(w, c, f, s);
+            for (const [fi, si] of pairs) {
+              if (msc <= 0 || coeffs[fi]! * f + coeffs[si]! * s >= msc) met[st * 16 + fi * 4 + si] = 1;
+            }
+          }
+
+    for (let st = 0; st < 625; st++)
+      for (const [fi, si] of pairs) {
+        const ea = fi * 4 + si;
+        const v = met[st * 16 + ea]!;
+        for (let cs = 0; cs <= 1; cs++)
+          for (let r = 0; r <= maxR; r++) dp[this._idx(st, cs, ea, r, 0)] = v;
+      }
+
+    // Per (turn label, cost state) and state: the eligible options'
+    // transitions and weights.
+    const labels: [string, number, number][] = [
+      ['first', 1, mt], ['last', mt, 1], ['middle', 2, mt > 2 ? mt - 1 : 2]];
+    const transCache: Record<string, RealisedTrans[]> = {};
+    for (const [label, turn, tl] of labels) {
+      for (let cs = 0; cs <= 1; cs++) {
+        const cache: RealisedTrans[] = new Array(625);
+        for (let w = 1; w <= 5; w++)
+          for (let c = 1; c <= 5; c++)
+            for (let f = 1; f <= 5; f++)
+              for (let s = 1; s <= 5; s++) {
+                const state = new GemState({ will: w, chaos: c, first: f, second: s, costRatio: cs ? 100 : 0 });
+                const elig = pool.pool.filter((o) => pool.eligible(o, state, turn, tl));
+                const n = elig.length;
+                const t: RealisedTrans = {
+                  n, code: new Uint8Array(n), nst: new Uint16Array(n), ncs: new Uint8Array(n),
+                  vd: new Uint8Array(n), weights: elig.map((o) => o.weight),
+                };
+                for (let i = 0; i < n; i++) {
+                  const o = elig[i]!;
+                  let nw = w, nc = c, nf = f, ns = s, ncs = cs, vd = 0;
+                  if (o.kind === 'will') nw = clampLevel(w + o.delta);
+                  else if (o.kind === 'chaos') nc = clampLevel(c + o.delta);
+                  else if (o.kind === 'first') nf = clampLevel(f + o.delta);
+                  else if (o.kind === 'second') ns = clampLevel(s + o.delta);
+                  else if (o.kind === 'view') vd = o.delta;
+                  else if (o.kind === 'cost') ncs = 1 - cs;
+                  t.code[i] = o.key === 'change_first_effect' ? 1 : o.key === 'change_second_effect' ? 2 : 0;
+                  t.nst[i] = s625(nw, nc, nf, ns);
+                  t.ncs[i] = ncs;
+                  t.vd[i] = vd;
+                }
+                cache[s625(w, c, f, s)] = t;
+              }
+        transCache[`${label},${cs}`] = cache;
+      }
+    }
+    const handCache = handContexts(pool, mt);
+
+    const maxN = pool.pool.length;
+    const env: RealisedEnv = {
+      dp, value: svt.dp, met, maxR, tlDim: this._tlDim, stride: this._rDim * this._tlDim,
+      fresh: this.fresh, margin: endgameRisk === null ? 0.0 : endgameRisk, gradeGate,
+      relicBench: valueTable.relicCoeff, ancientBench: valueTable.ancientCoeff,
+      coeffs, changeDests: this._changeDests,
+      ea1: new Int32Array(maxN), ea2: new Int32Array(maxN),
+      ys: new Float64Array(maxN), xs: new Float64Array(maxN),
+      safe: new Int32Array(maxN), safeYs: new Float64Array(maxN), safeXs: new Float64Array(maxN),
+    };
+    const holdCap = svt.valueMode === 'will_chaos';
+
+    for (let tl = 1; tl <= mt; tl++) {
+      const turn = mt - tl + 1;
+      const label = turn === 1 ? 'first' : tl === 1 ? 'last' : 'middle';
+      for (let cs = 0; cs <= 1; cs++) {
+        const trans = transCache[`${label},${cs}`]!;
+        const hands = handCache[`${label},${cs}`]!;
+        for (let w = 1; w <= 5; w++)
+          for (let c = 1; c <= 5; c++)
+            for (let f = 1; f <= 5; f++)
+              for (let s = 1; s <= 5; s++) {
+                const st = s625(w, c, f, s);
+                // ignoreSideNodeValues holds the will/chaos cap firm.
+                const capped = holdCap && w === 5 && c === 5;
+                for (const [fi, si] of pairs) {
+                  realisedFillPair(env, trans[st]!, hands[st]!, tl, turn !== 1, st, cs, fi, si,
+                    capped, w + c + f + s, coeffs[fi]! * f + coeffs[si]! * s);
+                }
+              }
+      }
+    }
+  }
+
+  private _effectIndices(state: GemState): [number, number] | null {
+    const fi = this._effectTuple.indexOf(state.firstEffect);
+    const si = this._effectTuple.indexOf(state.secondEffect);
+    if (fi === -1 || si === -1 || fi === si) return null;
+    return [fi, si];
+  }
+
+  /** P(the advisor's policy ends with a goal-meeting gem) from this state. */
+  lookup(state: GemState, turnsLeft: number, rerolls?: number): number {
+    if (!this.enabled) return 0.0;
+    if (turnsLeft < 0 || turnsLeft >= this._tlDim) return 0.0;
+    const idx = this._effectIndices(state);
+    if (idx === null) return 0.0;
+    const [fi, si] = idx;
+    const r = this._maxRerolls > 0 ? Math.min(this._maxRerolls, rerolls ?? 0) : 0;
+    return this._dp[this._idx(
+      s625(state.will, state.chaos, state.first, state.second),
+      state.costRatio !== 0 ? 1 : 0, fi * 4 + si, r, turnsLeft)]!;
+  }
+
+  /** The same if THIS hand is processed: the mean over the visible offers
+   *  (one is applied uniformly). Destination-blind for change-effect cards,
+   *  like `GoalProbabilityTable.expectedProbAfterClick`. */
+  expectedAfterClick(state: GemState, offers: Option[], turnsLeftAfter: number,
+                     rerolls?: number): number {
     if (!this.enabled || offers.length === 0) return 0.0;
     if (turnsLeftAfter < 0 || turnsLeftAfter >= this._tlDim) return 0.0;
     const idx = this._effectIndices(state);

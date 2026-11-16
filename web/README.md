@@ -21,7 +21,7 @@ web/
     constants.ts       # <- arkgrid/constants.py  (effects, coefficients, gem types)
     models.ts          # <- arkgrid/models.py      (Option, LastTurnGoal, GemState, AstroGem)
     pool.ts            # <- arkgrid/pool.py        (27-entry weighted option pool + eligibility)
-    probability.ts     # <- arkgrid/probability.py (GoalProbabilityTable, SideValueTable DPs)
+    probability.ts     # <- arkgrid/probability.py (GoalProbabilityTable, SideValueTable, RealisedSuccessTable DPs)
     decision.ts        # <- arkgrid/decision.py    (decide_post_roll branch tree)
     index.ts           # buildEngineContext() + advise() — the advisor entry point
   tests/               # vitest unit + golden-vector parity suites
@@ -123,8 +123,14 @@ const ctx = buildEngineContext(
   { rarity: 'epic', minWill: 4, minChaos: 5 });
 
 const out = advise(ctx, { state, offers, turn, turnsLeft, rerolls, resetAvailable });
-// -> { action, branch, reason, pGoal, pRelic, pAncient, eValue, perOffer[] }
+// -> { action, branch, reason, pGoal, pBot, pRelic, pAncient, eValue, perOffer[], actions }
 ```
+
+`pGoal` is the chance of reaching the goal if you stop the moment it is met. `pBot` is what
+following the advice actually delivers: it keeps cutting for side value once the goal is met
+(and can lose it), and it uses the reset ticket while one is available — a little below
+`pGoal` without a reset, well above it with one. Both are shown in the headline, per action
+in the matrix, and in the turn log.
 
 ## Parity: Python is the source of truth
 

@@ -20,7 +20,8 @@
     {/if}
     <p class="reason">{output.reason}</p>
     <dl class="metrics">
-      <div><dt>P(goal)</dt><dd>{pct(output.pGoal)}</dd></div>
+      <div><dt title="Chance of reaching the goal if you stop the moment it is met.">P(goal)</dt><dd>{pct(output.pGoal)}</dd></div>
+      <div><dt title="What following this advice actually delivers: it keeps cutting for side value after the goal is met (and can lose it), and it uses the reset ticket while one is available. A little below P(goal) without a reset, well above it with one.">P(bot)</dt><dd>{pct(output.pBot)}</dd></div>
       <div><dt>P(relic+)</dt><dd>{pct(output.pRelic)}</dd></div>
       <div><dt>P(ancient)</dt><dd>{pct(output.pAncient)}</dd></div>
       <div><dt>E[coeff]</dt><dd>{output.eValue.toFixed(1)}</dd></div>

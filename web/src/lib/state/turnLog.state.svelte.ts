@@ -4,7 +4,7 @@ import { classifyRunTransition, turnFromDetection, type RunIdentity } from '../a
 
 export interface TurnLogEntry {
   turn: number; will: number; chaos: number; firstLevel: number; secondLevel: number;
-  action: ActionKind; pGoal: number; pRelic: number; pAncient: number; eValue: number;
+  action: ActionKind; pGoal: number; pBot: number; pRelic: number; pAncient: number; eValue: number;
 }
 
 class TurnLog {
@@ -14,7 +14,7 @@ class TurnLog {
 
   observe(
     det: DetectionResult, action: ActionKind,
-    pGoal: number, pRelic: number, pAncient: number, eValue: number,
+    pGoal: number, pRelic: number, pAncient: number, eValue: number, pBot: number,
   ): void {
     const turn = turnFromDetection(det);
     const id: RunIdentity = { gemType: det.gemType, firstEffect: det.firstEffect, secondEffect: det.secondEffect };
@@ -30,7 +30,7 @@ class TurnLog {
       this.entries = [...this.entries, {
         turn, will: det.willpower ?? 0, chaos: det.chaos ?? 0,
         firstLevel: det.firstLevel ?? 0, secondLevel: det.secondLevel ?? 0,
-        action, pGoal, pRelic, pAncient, eValue,
+        action, pGoal, pBot, pRelic, pAncient, eValue,
       }];
     }
   }

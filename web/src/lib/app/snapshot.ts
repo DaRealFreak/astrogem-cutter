@@ -31,7 +31,8 @@ export function buildAdvisorSnapshot(
       branch: output.branch,
       reason: output.reason,
       headline: {
-        pGoal: output.pGoal, pRelic: output.pRelic, pAncient: output.pAncient, eValue: output.eValue,
+        pGoal: output.pGoal, pBot: output.pBot, pRelic: output.pRelic, pAncient: output.pAncient,
+        eValue: output.eValue,
       },
       actions: output.actions,
       perOffer: output.perOffer,

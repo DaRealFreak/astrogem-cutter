@@ -26,7 +26,7 @@ function det(overrides: Partial<DetectionResult> = {}): DetectionResult {
 }
 
 function ticket(overrides: Partial<TicketComparison> = {}): TicketComparison {
-  const snap = { pGoal: 0, pRelic: 0, pAncient: 0, eValue: 0, actions: { process: null, reroll: null, reset: null } };
+  const snap = { pGoal: 0, pRelic: 0, pAncient: 0, eValue: 0, pBot: 0, actions: { process: null, reroll: null, reset: null } };
   return { owned: true, lent: true, spent: false, free: 4, withoutTicket: snap, withTicket: snap, ...overrides };
 }
 
@@ -63,7 +63,7 @@ describe('AdvisorPanel ticket-reroll note', () => {
   const output = (t: TicketComparison | null): AdvisorOutput => ({
     action: 'reroll' as any, branch: 'side_value_finish',
     reason: 'goal met, spending the reroll ticket (Charge)',
-    pGoal: 0.5, pRelic: 0.5, pAncient: 0.1, eValue: 1000,
+    pGoal: 0.5, pRelic: 0.5, pAncient: 0.1, eValue: 1000, pBot: 0.5,
     perOffer: [], actions: { process: null, reroll: null, reset: null },
     ticket: t,
   } as any);

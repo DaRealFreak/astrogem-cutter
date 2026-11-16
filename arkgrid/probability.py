@@ -2042,6 +2042,7 @@ class RealisedSuccessTable:
         self._tl_dim = svt._tl_dim
         self._effect_tuple = svt._effect_tuple
         self._effect_coeffs = svt._effect_coeffs
+        self._change_dests = svt._change_dests
         self._dp: List[float] = [0.0] * len(svt._dp) if self.enabled else []
         if self.enabled:
             self._build(svt, endgame_risk,
@@ -2281,3 +2282,58 @@ class RealisedSuccessTable:
         return self._dp[self._idx(
             _s625(state.will, state.chaos, state.first, state.second),
             1 if state.cost_ratio != 0 else 0, fi * 4 + si, r, turns_left)]
+
+    def expected_after_click(self, state: GemState, offers: List[Option],
+                             turns_left_after: int,
+                             rerolls: Optional[int] = None) -> float:
+        """P(the bot ends with a goal-meeting gem) if THIS hand is processed:
+        the mean over the visible offers (one is applied uniformly).
+
+        The realised counterpart of
+        `GoalProbabilityTable.expected_prob_after_click`, and like it
+        destination-blind: a change-effect card is valued as the average of
+        its two possible destinations.
+        """
+        if not self.enabled or not offers:
+            return 0.0
+        if turns_left_after < 0 or turns_left_after >= self._tl_dim:
+            return 0.0
+        try:
+            fi = self._effect_tuple.index(state.first_effect)
+            si = self._effect_tuple.index(state.second_effect)
+        except ValueError:
+            return 0.0
+        if fi == si:
+            return 0.0
+        dests = self._change_dests[(fi, si)]
+        nd = len(dests)
+        ra = self._max_rerolls > 0
+        cs = 1 if state.cost_ratio != 0 else 0
+        dp = self._dp
+        idx = self._idx
+        total = 0.0
+        for o in offers:
+            nw = (min(5, max(1, state.will + o.delta))
+                  if o.kind == "will" else state.will)
+            nc = (min(5, max(1, state.chaos + o.delta))
+                  if o.kind == "chaos" else state.chaos)
+            nf = (min(5, max(1, state.first + o.delta))
+                  if o.kind == "first" else state.first)
+            ns = (min(5, max(1, state.second + o.delta))
+                  if o.kind == "second" else state.second)
+            ncs = (1 - cs) if o.kind == "cost" else cs
+            nst = _s625(nw, nc, nf, ns)
+            if ra:
+                vd = o.delta if o.kind == "view" else 0
+                nr = min(self._max_rerolls, (rerolls or 0) + vd)
+            else:
+                nr = 0
+            if o.key == "change_first_effect":
+                total += sum(dp[idx(nst, ncs, d * 4 + si, nr, turns_left_after)]
+                             for d in dests) / nd
+            elif o.key == "change_second_effect":
+                total += sum(dp[idx(nst, ncs, fi * 4 + d, nr, turns_left_after)]
+                             for d in dests) / nd
+            else:
+                total += dp[idx(nst, ncs, fi * 4 + si, nr, turns_left_after)]
+        return total / len(offers)

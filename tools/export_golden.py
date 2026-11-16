@@ -7,6 +7,7 @@ from __future__ import annotations
 import itertools
 import json
 import os
+import random
 import subprocess
 import sys
 
@@ -15,10 +16,16 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pathlib import Path
-from arkgrid.constants import DPS_COEFF, SUPPORT_COEFF, DPS_EFFECTS, SUPPORT_EFFECTS
+from arkgrid.constants import (
+    DPS_COEFF, SUPPORT_COEFF, DPS_EFFECTS, SUPPORT_EFFECTS, GEM_TYPES,
+)
 from arkgrid.models import LastTurnGoal, GemState, AstroGem
 from arkgrid.pool import OptionPool
-from arkgrid.probability import GoalProbabilityTable, SideValueTable
+from arkgrid.probability import (
+    GoalProbabilityTable, RealisedSuccessTable, SideValueTable,
+    _hand_moments, hand_atoms, hand_context,
+)
+from arkgrid.simulator import REALISED_FRESH_STEP
 from arkgrid import decision as D
 
 FIX = Path("web/tests/fixtures")
@@ -429,6 +436,11 @@ def export_actions():
       - reroll: lookup(state, turnsLeft, rerolls-1); eValue = lookup(state, turnsLeft)
         (unchanged because reroll doesn't change state/turnsLeft).
       - reset: lookup(fresh_state, turns_total, base_rerolls) across all tables.
+
+    `pBot` (realised success of the advisor's own policy) reads the decision
+    value table's `RealisedSuccessTable`: process/reroll use the reset-aware
+    table while the reset is available (`pBot`) and the plain one otherwise
+    (`pBotNoReset`); the reset row is the plain table at a fresh start.
     """
     pool = OptionPool()
     recs = []
@@ -471,6 +483,15 @@ def export_actions():
             svt = SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
                 min_side_coeff=0, max_rerolls=mr)
         fresh = GemState(first_effect=fe, second_effect=se)
+        # Realised success follows the DECISION value table (will_chaos under
+        # ignore_side), not the displayed one. No ticket enabler is
+        # configured in these cases, so a fresh process starts on the
+        # rarity's free rerolls.
+        dec_svt = (SideValueTable(goal, turns, pool, gem_type=gt, optimize=opt,
+                                  min_side_coeff=0, value_mode="will_chaos",
+                                  max_rerolls=mr) if ignore_side else svt)
+        bot_plain, bot_reset, _fresh, bot_fresh = _realised_pair(
+            dec_svt, fresh, turns, RARITY_REROLLS[rarity])
 
         for w, c, f, s in [(2, 2, 2, 1), (4, 4, 3, 2), (5, 5, 3, 2)]:
             st = GemState(will=w, chaos=c, first=f, second=s,
@@ -490,6 +511,8 @@ def export_actions():
                             "pRelic": relic.expected_prob_after_click(st, offers, tl_after, rerolls=r),
                             "pAncient": anc.expected_prob_after_click(st, offers, tl_after, rerolls=r),
                             "eValue": svt.expected_value_after_click(st, offers, tl_after, rerolls=r),
+                            "pBot": bot_reset.expected_after_click(st, offers, tl_after, rerolls=r),
+                            "pBotNoReset": bot_plain.expected_after_click(st, offers, tl_after, rerolls=r),
                         }
                     else:
                         process_rec = None
@@ -501,6 +524,8 @@ def export_actions():
                             "pRelic": relic.lookup(st, tl, rerolls=r - 1),
                             "pAncient": anc.lookup(st, tl, rerolls=r - 1),
                             "eValue": svt.lookup(st, tl, rerolls=r - 1),
+                            "pBot": bot_reset.lookup(st, tl, rerolls=r - 1),
+                            "pBotNoReset": bot_plain.lookup(st, tl, rerolls=r - 1),
                         }
                     else:
                         reroll_rec = None
@@ -511,6 +536,7 @@ def export_actions():
                         "pRelic": relic.lookup(fresh, turns, rerolls=base_rerolls),
                         "pAncient": anc.lookup(fresh, turns, rerolls=base_rerolls),
                         "eValue": svt.lookup(fresh, turns, rerolls=base_rerolls),
+                        "pBot": bot_fresh,
                     }
 
                     recs.append({"inputs": {
@@ -527,6 +553,113 @@ def export_actions():
 
 
 # ---------------------------------------------------------------------------
+# Realised success (P(bot)): hand atoms, table lookups, per-hand average
+# ---------------------------------------------------------------------------
+
+def _realised_pair(svt, start, turns, fresh_rerolls, endgame_risk=None):
+    """(plain, reset-aware, fresh) — mirrors simulator.realised_tables."""
+    plain = RealisedSuccessTable(svt, endgame_risk=endgame_risk)
+    exact = plain.lookup(start, turns, rerolls=fresh_rerolls)
+    fresh = round(exact / REALISED_FRESH_STEP) * REALISED_FRESH_STEP
+    return plain, RealisedSuccessTable(svt, endgame_risk=endgame_risk,
+                                       fresh=fresh), fresh, exact
+
+
+def export_realised():
+    pool = OptionPool()
+    recs = []
+    rng = random.Random(20261116)
+
+    # 1. The hand-mean distribution behind every keep-vs-alternative choice.
+    hand_states = [
+        (GemState(will=2, chaos=3, first=1, second=4), 3, 7),
+        (GemState(will=5, chaos=5, first=5, second=2), 9, 1),
+        (GemState(will=1, chaos=1, first=1, second=1, cost_ratio=100), 2, 8),
+        (GemState(will=5, chaos=5, first=5, second=5), 5, 5),
+    ]
+    for st, turn, tl in hand_states:
+        elig = [o for o in pool.pool if pool.eligible(o, st, turn, tl)]
+        weights = [o.weight for o in elig]
+        ctx = hand_context(weights)
+        for kind in ("smooth", "lumpy", "hit_or_miss", "single_out",
+                     "constant"):
+            if kind == "smooth":
+                posts = [rng.random() for _ in elig]
+            elif kind == "lumpy":
+                posts = [rng.random() ** 6 for _ in elig]
+            elif kind == "hit_or_miss":
+                posts = [float(rng.random() < 0.25) for _ in elig]
+            elif kind == "single_out":
+                posts = [0.0] * len(elig)
+                posts[rng.randrange(len(elig))] = 1.0
+            else:
+                posts = [0.375] * len(elig)
+            mom = _hand_moments(ctx, posts)
+            recs.append({"inputs": {"kind": "atoms", "case": kind,
+                                    "weights": weights, "posts": posts},
+                         "expected": {"moments": list(mom),
+                                      "atoms": [list(a)
+                                                for a in hand_atoms(*mom)]}})
+
+    # 2. Tables: auto grade gate, an explicit finish margin, and the
+    #    will_chaos value mode (holds the will/chaos cap).
+    cases = [
+        dict(gt="order_immutability", fe="boss_damage", se="additional_damage",
+             opt="dps", g={"min_will": 4, "min_chaos": 5}, msc=2000, turns=9,
+             mr=3, fresh_rerolls=2, endgame_risk=None, mode="side"),
+        dict(gt="order_stability", fe="additional_damage", se="attack_power",
+             opt="dps", g={"min_total_will_chaos": 8}, msc=0, turns=7,
+             mr=2, fresh_rerolls=1, endgame_risk=500.0, mode="side"),
+        dict(gt="order_fortitude", fe="ally_attack", se="boss_damage",
+             opt="dps", g={"min_total_will_chaos": 8}, msc=0, turns=9,
+             mr=3, fresh_rerolls=2, endgame_risk=None, mode="will_chaos"),
+    ]
+    for cfg in cases:
+        gt, turns, mr = cfg["gt"], cfg["turns"], cfg["mr"]
+        svt = SideValueTable(LastTurnGoal(**cfg["g"]), turns, pool, gem_type=gt,
+                             optimize=cfg["opt"], min_side_coeff=cfg["msc"],
+                             value_mode=cfg["mode"], max_rerolls=mr)
+        start = GemState(first_effect=cfg["fe"], second_effect=cfg["se"])
+        plain, with_reset, fresh, _exact = _realised_pair(
+            svt, start, turns, cfg["fresh_rerolls"], cfg["endgame_risk"])
+        effects = GEM_TYPES[gt]
+        samples = [(start, turns, cfg["fresh_rerolls"])]
+        for i in range(44):
+            lo = 3 if i % 2 else 1     # half the samples near the goal
+            fe, se = rng.sample(effects, 2)
+            samples.append((GemState(
+                will=rng.randint(lo, 5), chaos=rng.randint(lo, 5),
+                first=rng.randint(1, 5), second=rng.randint(1, 5),
+                cost_ratio=rng.choice((0, 0, 100)),
+                first_effect=fe, second_effect=se),
+                rng.randint(0, turns), rng.randint(0, mr)))
+        for st, tl, r in samples:
+            offers = []
+            if tl >= 1:
+                elig = [o for o in pool.pool
+                        if pool.eligible(o, st, turns - tl + 1, tl)]
+                if len(elig) >= 4:
+                    offers = rng.sample(elig, 4)
+            for table, fresh_val in ((plain, None), (with_reset, fresh)):
+                recs.append({"inputs": {
+                    "kind": "table", "gem_type": gt, "optimize": cfg["opt"],
+                    "goal": cfg["g"], "min_side_coeff": cfg["msc"],
+                    "turns": turns, "max_rerolls": mr, "mode": cfg["mode"],
+                    "endgame_risk": cfg["endgame_risk"], "fresh": fresh_val,
+                    "state": [st.will, st.chaos, st.first, st.second],
+                    "cost_ratio": st.cost_ratio,
+                    "first_effect": st.first_effect,
+                    "second_effect": st.second_effect,
+                    "turns_left": tl, "rerolls": r,
+                    "offers": [o.key for o in offers]},
+                  "expected": {
+                    "lookup": table.lookup(st, tl, rerolls=r),
+                    "after_click": (table.expected_after_click(
+                        st, offers, tl - 1, rerolls=r) if offers else None)}})
+    dump("realised", recs)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -538,3 +671,4 @@ if __name__ == "__main__":
     export_side_values()
     export_decisions()
     export_actions()
+    export_realised()

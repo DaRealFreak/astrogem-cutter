@@ -29,6 +29,7 @@ describe('buildAdvisorSnapshot', () => {
     expect(snap.gem.freeRerolls).toBe(1);
     expect(snap.advice.action).toBe(out.action);
     expect(snap.advice.headline.pGoal).toBe(out.pGoal);
+    expect(snap.advice.headline.pBot).toBe(out.pBot);
     expect(snap.advice.perOffer).toHaveLength(4);
     expect(snap.turnLog).toEqual([]);
     expect(() => JSON.stringify(snap)).not.toThrow();

@@ -2,7 +2,7 @@
 // Run: npx tsx tests/perf_measure.mjs   (or via vite-node)
 import { OptionPool } from '../src/lib/engine/pool.ts';
 import { LastTurnGoal } from '../src/lib/engine/models.ts';
-import { GoalProbabilityTable, SideValueTable } from '../src/lib/engine/probability.ts';
+import { GoalProbabilityTable, RealisedSuccessTable, SideValueTable } from '../src/lib/engine/probability.ts';
 import { buildEngineContext } from '../src/lib/engine/index.ts';
 
 const pool = new OptionPool();
@@ -21,8 +21,11 @@ time('goal EA flat (reset)', () => new GoalProbabilityTable(goal, 9, pool,
   { earlyFinish: true, effectAware: true, gemType: 'chaos_distortion', optimize: 'dps' }));
 time('relic (flat-state, mr=3)', () => new GoalProbabilityTable(new LastTurnGoal({ minTotal: 16 }), 9, pool,
   { maxRerolls: 3 }));
-time('sideValue reroll (mr=3)', () => new SideValueTable(goal, 9, pool, 'chaos_distortion',
+const svt = time('sideValue reroll (mr=3)', () => new SideValueTable(goal, 9, pool, 'chaos_distortion',
   { optimize: 'dps', maxRerolls: 3 }));
+// P(bot): built on first advise(); the reset-aware one only while a reset is available.
+time('realised plain (mr=3)', () => new RealisedSuccessTable(svt));
+time('realised reset-aware (mr=3)', () => new RealisedSuccessTable(svt, { fresh: 0.15 }));
 time('sideValue policy-eval', () => new SideValueTable(goal, 9, pool, 'chaos_distortion',
   { optimize: 'dps', valueMode: 'side', policyValueMode: 'will_chaos' }));
 

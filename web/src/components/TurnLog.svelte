@@ -9,14 +9,14 @@
     <thead>
       <tr>
         <th>Turn</th><th>Will</th><th>Chaos</th><th>Side 1</th><th>Side 2</th>
-        <th>Action</th><th>P(goal)</th><th>P(relic+)</th><th>P(ancient)</th><th>E[coeff]</th>
+        <th>Action</th><th title="Chance of reaching the goal if you stop the moment it is met.">P(goal)</th><th title="What following this advice actually delivers: it keeps cutting for side value after the goal is met (and can lose it), and it uses the reset ticket while one is available. A little below P(goal) without a reset, well above it with one.">P(bot)</th><th>P(relic+)</th><th>P(ancient)</th><th>E[coeff]</th>
       </tr>
     </thead>
     <tbody>
       {#each entries as e}
         <tr>
           <td>{e.turn}</td><td>{e.will}</td><td>{e.chaos}</td><td>{e.firstLevel}</td><td>{e.secondLevel}</td>
-          <td>{e.action}</td><td>{pct(e.pGoal)}</td><td>{pct(e.pRelic)}</td><td>{pct(e.pAncient)}</td><td>{e.eValue.toFixed(1)}</td>
+          <td>{e.action}</td><td>{pct(e.pGoal)}</td><td>{pct(e.pBot)}</td><td>{pct(e.pRelic)}</td><td>{pct(e.pAncient)}</td><td>{e.eValue.toFixed(1)}</td>
         </tr>
       {/each}
     </tbody>

@@ -5,8 +5,8 @@ import ActionMatrix from '../../src/components/ActionMatrix.svelte';
 afterEach(cleanup);
 
 const actions = {
-  process: { pGoal: 0.62, pRelic: 0.4, pAncient: 0.1, eValue: 1180 },
-  reroll: { pGoal: 0.55, pRelic: 0.38, pAncient: 0.09, eValue: 1180 },
+  process: { pGoal: 0.62, pRelic: 0.4, pAncient: 0.1, eValue: 1180, pBot: 0.571 },
+  reroll: { pGoal: 0.55, pRelic: 0.38, pAncient: 0.09, eValue: 1180, pBot: 0.533 },
   reset: null,
 };
 
@@ -18,12 +18,21 @@ describe('ActionMatrix', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0); // reset row dashes
   });
 
+  it('has a P(bot) column: what following the advice delivers per action', () => {
+    render(ActionMatrix, { props: { actions, recommended: 'PROCESS' as any } });
+    expect(screen.getByText('P(bot)').getAttribute('title')).toMatch(/reset ticket/i);
+    expect(screen.getByText(/57\.1%/)).toBeTruthy();   // process
+    expect(screen.getByText(/53\.3%/)).toBeTruthy();   // reroll
+    // 5 metric columns, so an unavailable action shows 5 dashes.
+    expect(screen.getAllByText('—')).toHaveLength(5);
+  });
+
   it('shows both with/without-ticket matrices when a ticket comparison is present', () => {
     // Unique E[coeff] sentinels per budget so each appears exactly once.
     const withoutTicket = { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001,
-      actions: { ...actions, reroll: { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001 } } };
+      actions: { ...actions, reroll: { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001, pBot: 0.45 } } };
     const withTicket = { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301,
-      actions: { ...actions, reroll: { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301 } } };
+      actions: { ...actions, reroll: { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301, pBot: 0.65 } } };
     render(ActionMatrix, { props: {
       actions: withTicket.actions, recommended: 'REROLL' as any,
       ticket: { owned: true, lent: true, free: 1, withoutTicket, withTicket } as any,
@@ -38,9 +47,9 @@ describe('ActionMatrix', () => {
 
   it('flags a spent ticket and marks the recommended budget', () => {
     const withoutTicket = { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001,
-      actions: { ...actions, reroll: { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001 } } };
+      actions: { ...actions, reroll: { pGoal: 0.5, pRelic: 0.3, pAncient: 0.05, eValue: 1001, pBot: 0.45 } } };
     const withTicket = { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301,
-      actions: { ...actions, reroll: { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301 } } };
+      actions: { ...actions, reroll: { pGoal: 0.7, pRelic: 0.6, pAncient: 0.12, eValue: 1301, pBot: 0.65 } } };
     render(ActionMatrix, { props: {
       actions: withoutTicket.actions, recommended: 'PROCESS' as any,
       ticket: { owned: true, lent: false, spent: true, free: 0, withoutTicket, withTicket } as any,

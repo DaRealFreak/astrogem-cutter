@@ -15,15 +15,20 @@
 
 {#snippet matrix(a: ActionsMap, highlight: boolean)}
   <table class="action-matrix">
-    <thead><tr><th>Action</th><th>P(goal)</th><th>P(relic+)</th><th>P(ancient)</th><th>E[coeff]</th></tr></thead>
+    <thead><tr>
+      <th>Action</th>
+      <th title="Chance of reaching the goal if you stop the moment it is met.">P(goal)</th>
+      <th title="What following this advice actually delivers: it keeps cutting for side value after the goal is met (and can lose it), and it uses the reset ticket while one is available. A little below P(goal) without a reset, well above it with one.">P(bot)</th>
+      <th>P(relic+)</th><th>P(ancient)</th><th>E[coeff]</th>
+    </tr></thead>
     <tbody>
       {#each rowsOf(a) as r (r.key)}
         <tr class:recommended={highlight && r.key === recommended}>
           <td>{r.label}</td>
           {#if r.m}
-            <td>{pct(r.m.pGoal)}</td><td>{pct(r.m.pRelic)}</td><td>{pct(r.m.pAncient)}</td><td>{r.m.eValue.toFixed(1)}</td>
+            <td>{pct(r.m.pGoal)}</td><td>{pct(r.m.pBot)}</td><td>{pct(r.m.pRelic)}</td><td>{pct(r.m.pAncient)}</td><td>{r.m.eValue.toFixed(1)}</td>
           {:else}
-            <td>—</td><td>—</td><td>—</td><td>—</td>
+            <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
           {/if}
         </tr>
       {/each}

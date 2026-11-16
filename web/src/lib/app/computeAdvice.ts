@@ -57,7 +57,8 @@ export function computeAdvice(
   // the ticket. Reuse the primary output for whichever budget it already used.
   if (owned) {
     const snap = (o: AdvisorOutput): ActionsSnapshot => ({
-      pGoal: o.pGoal, pRelic: o.pRelic, pAncient: o.pAncient, eValue: o.eValue, actions: o.actions,
+      pGoal: o.pGoal, pRelic: o.pRelic, pAncient: o.pAncient, eValue: o.eValue, pBot: o.pBot,
+      actions: o.actions,
     });
     const outFree = rerolls === free ? output : adviseAt(free);
     const outTicket = rerolls === free + 1 ? output : adviseAt(free + 1);
