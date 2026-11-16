@@ -40,7 +40,7 @@ python -m arkgrid effects [--gem-type TYPE] [--optimize {dps,support}]
 
 ### `live` - Screenshot analysis with probabilities
 
-Detect game state from a screenshot and show per-option goal probabilities with reroll recommendations.
+Detect game state from a screenshot and show per-option goal probabilities with reroll recommendations. The header shows `P(goal)~` and, below it, `P(bot)~` — what the bot's own policy delivers from that state (reset ticket included when `--reset-ticket` allows it and the Reset button is still lit).
 
 ```bash
 python -m arkgrid live --screenshot FILE [options]

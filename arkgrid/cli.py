@@ -15,7 +15,7 @@ from arkgrid.table_cache import (
     goal_table as cached_goal_table,
     side_value_table as cached_side_value_table,
 )
-from arkgrid.simulator import GemSimulator
+from arkgrid.simulator import GemSimulator, realised_tables
 from arkgrid.analyzer import GemAnalyzer, pprint_result
 
 ALL_EFFECTS = sorted(DPS_EFFECTS | SUPPORT_EFFECTS)
@@ -43,6 +43,60 @@ def _reset_enabled_for_rarity(value, rarity: str) -> bool:
     if not value:
         return False
     return _RARITY_LEVEL.get(rarity, 0) >= _RARITY_LEVEL[value]
+
+
+def _live_policy_success(args, det, state: GemState, goal: LastTurnGoal,
+                         pool: OptionPool, gem_type: str, rarity: str,
+                         turns_total: int, turns_left: int,
+                         reroll_count: int) -> Optional[Tuple[float, bool]]:
+    """`(P(bot), reset ticket included)` for the `live` analysis: what the
+    bot's own policy delivers from the detected state (see
+    `probability.RealisedSuccessTable`). None when the gem type is unknown.
+
+    The reset ticket counts when `--reset-ticket` / `--reset-min-coeff` allow
+    it for this gem and the on-screen Reset button is still lit.
+
+    `live` sees one frame, so two things are approximated: a reset is priced
+    as a fresh start of the gem's CURRENT effects (not the ones it began
+    with), and a fresh process is granted the rarity's free rerolls plus the
+    reroll ticket only when it is forced on (`--extra-ticket`) — the
+    per-turn ticket enablers are not evaluated here.
+    """
+    if gem_type not in GEM_TYPES:
+        return None
+    optimize = getattr(args, "optimize", "dps")
+    fresh_rerolls = GemSimulator.RARITY_REROLLS.get(rarity, 0) + (
+        1 if args.extra_ticket is True else 0)
+    svt = cached_side_value_table(
+        goal, turns_total, pool, gem_type=gem_type, optimize=optimize,
+        min_side_coeff=getattr(args, "min_side_coeff", 0),
+        relic_coeff=getattr(args, "relic_coeff", None),
+        ancient_coeff=getattr(args, "ancient_coeff", None),
+        value_mode=("will_chaos"
+                    if getattr(args, "ignore_side_node_values", False)
+                    else "side"),
+        max_rerolls=max(reroll_count, fresh_rerolls),
+    )
+    if not svt.enabled:
+        return None
+    reset_on = _reset_enabled_for_rarity(args.reset_ticket, rarity)
+    min_coeff = getattr(args, "reset_min_coeff", 0) or 0
+    if reset_on and min_coeff > 0:
+        coeff = DPS_COEFF if optimize == "dps" else SUPPORT_COEFF
+        target = DPS_EFFECTS if optimize == "dps" else SUPPORT_EFFECTS
+        reset_on = sum(coeff.get(e, 0)
+                       for e in (state.first_effect, state.second_effect)
+                       if e in target) >= min_coeff
+    reset_live = reset_on and det.reset_enabled is not False
+    start = GemState(first_effect=state.first_effect,
+                     second_effect=state.second_effect)
+    plain, with_reset = realised_tables(
+        svt, start, turns_total, fresh_rerolls,
+        endgame_risk=getattr(args, "endgame_risk", None),
+        auto_grade_gate=not bool(getattr(args, "confirm_min_coeff", None)),
+        with_reset=reset_live)
+    table = with_reset if with_reset is not None else plain
+    return table.lookup(state, turns_left, rerolls=reroll_count), reset_live
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -1059,7 +1113,16 @@ def cmd_live(args: argparse.Namespace) -> None:
     if min_side_coeff > 0:
         goal_parts.append(f"min_side_coeff={min_side_coeff}")
     print(f"Goal:       {', '.join(goal_parts) if goal_parts else '(none)'}")
-    print(f"P(goal)~:   {p_current:.1%}  (reroll-aware DP)")
+    print(f"P(goal)~:   {p_current:.1%}  (reroll-aware DP: success if you "
+          f"stop the moment the goal is met)")
+    policy = _live_policy_success(
+        args, det, state, goal, pool, gem_type_domain, rarity, turns_total,
+        turns_left, reroll_count)
+    if policy is not None:
+        p_bot, reset_included = policy
+        print(f"P(bot)~:    {p_bot:.1%}  (what this policy delivers: it keeps "
+              f"cutting for side value"
+              f"{', reset ticket included' if reset_included else ''})")
 
     # Relic+ (>=16 total points) probability from current state
     relic_table = cached_goal_table(
